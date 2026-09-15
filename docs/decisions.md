@@ -103,3 +103,102 @@ w rodzaju `ref_case: preserve | lower`), bo zasada „zapisuj tak, jak przyszło
 dla nieprzezroczystego identyfikatora liczbowego i błędna dla sluga tekstowego. Jedna reguła
 dla obu przypadków byłaby błędna w jednym z nich. Do czasu ADR stan bieżący jest przybity
 testem, więc nie zmieni się mimochodem.
+
+---
+
+## Pomiar 1 — czy `ftp.uzp.gov.pl` nadal odpowiada
+
+**Zmierzone 2026-09-15, 3 próby połączenia (zero pobranych bajtów).** Wynik: **negatywny.**
+
+Nazwa rozwiązuje się poprawnie na `37.128.76.156`, ale port 21 nie przyjmuje połączenia.
+Trzy próby, limity 20 s, 25 s i 60 s; każda kończy się `Failed to connect to
+ftp.uzp.gov.pl:21 ... Could not connect to server` po około 21 sekundach.
+
+**Kontrola, bez której ten pomiar nic by nie znaczył.** Cisza na porcie 21 ma dwie możliwe
+przyczyny i z samego wyniku nie da się ich odróżnić: albo serwer nie odpowiada, albo port 21
+jest zablokowany wychodząco po stronie mierzącego — co w sieciach firmowych jest regułą,
+nie wyjątkiem. Dlatego:
+
+- `ftp://ftp.gnu.org/` **z tej samej maszyny, w tej samej minucie**: kod 226, czas 1,5 s.
+  Port 21 nie jest więc u mierzącego zablokowany.
+- `https://orzeczenia.uzp.gov.pl/`: HTTP 200, czas 4,6 s. Łączność do tej domeny działa,
+  a sam urząd odpowiada — milczy wyłącznie usługa FTP.
+
+**Czego ten pomiar NIE dowodzi.** Przekroczenie czasu to nie to samo co odmowa połączenia
+(`ECONNREFUSED`). Zapora odrzucająca pakiety po stronie UZP dałaby ten sam obraz co wyłączony
+serwer, więc nie wiadomo, czy usługa nie istnieje, czy jest niedostępna dla obcych adresów.
+Dla operatora narzędzia skutek jest ten sam.
+
+**Konsekwencje.** Tytuł komunikatu UZP („Komunikat dotyczący wyłączenia serwera FTP
+z orzecznictwem KIO") okazuje się celniejszy niż jego treść, a korekta 3 z przeglądu
+architektury — trafna. Droga „pobierz osiemnaście lat archiwum hurtem" jest zamknięta.
+Wobec tego:
+
+- **decyzja 9 (postać kanału FTP) odpada bez kosztu** — nie ma czego implementować, a reguła
+  11 w brzmieniu z ADR-0003 i tak zabrania budowania `ftplib.FTP` gdziekolwiek, dopóki nie
+  dopisze się właściciela protokołu;
+- **ciężar odcinka 2007–2018 przechodzi w całości na SAOS** (pomiar 2a/2b), czyli na kanał,
+  którego żaden klient w tym projekcie jeszcze nie potwierdził. Jeśli pomiar 2a wypadnie
+  negatywnie, jedenaście lat materiału zostaje bez żadnej znanej drogi poza pośrednikiem;
+- `source/ftp/` nie powstaje, a wiersz w tabeli 4.3 architektury, usunięty przy wdrożeniu
+  ADR-0003, zostaje usunięty na stałe.
+
+Sposób wykonania warto odnotować: pomiar zrobiono **narzędziem systemowym (`curl`)**, a nie
+kodem Pythona, bo reguła 11 zabrania budowania konstruktu FTP w drzewie — także w `scripts/`.
+Gdyby pomiar wypadł pozytywnie, dopiero decyzja 9 otwierałaby drogę do własnego właściciela
+protokołu.
+
+---
+
+## Pomiar 14 — warunki ponownego wykorzystywania dla `orzeczenia.uzp.gov.pl`
+
+**Zmierzone 2026-09-15, 4 żądania GET** (`orzeczenia.uzp.gov.pl/`, `gov.pl/`,
+`gov.pl/web/gov/warunki-korzystania`, `gov.pl/web/gov/prawa-autorskie`). Wynik:
+**warunków nie ma, informacji o ich braku też nie ma.**
+
+Sposób uzyskania jest tu częścią wyniku. Pierwszy odczyt szedł przez narzędzie streszczające
+i dopiero powtórzenie **w surowych bajtach** uznaję za pomiar — bo audyt opisuje dokładnie tę
+pułapkę: liczba albo zdanie przeniesione przez jedno ogniwo streszczenia za dużo (14.1).
+
+**Na `orzeczenia.uzp.gov.pl` (28 064 bajty strony głównej): zero trafień** dla ciągów
+„licencj", „Creative", „ponowne wykorzyst", „warunki korzystania", „regulamin", „prawa
+autorskie". Stopka niesie wyłącznie logotypy, nazwę projektu „Profesjonalizacja kadr
+w zamówieniach publicznych" i „Deklarację dostępności". Jedyny odnośnik o charakterze
+prawnym w całym serwisie dotyczy plików cookie.
+
+**Na `gov.pl` licencja jest, ale jej zakres nie sięga tej domeny.** Wspólna stopka gov.pl
+niesie dwa zdania, oba odczytane dosłownie:
+
+> „Treści tekstowe publikowane **w serwisie** (z wyłączeniem treści audiowizualnych), są
+> udostępniane na licencji typu Creative Commons: uznanie autorstwa - na tych samych
+> warunkach 4.0 (CC BY-SA 4.0)."
+
+> „**Strony dostępne w domenie www.gov.pl** mogą zawierać adresy skrzynek mailowych. […]"
+
+Zakres jest więc zakreślony domeną `www.gov.pl`, a `orzeczenia.uzp.gov.pl` jest technicznie
+odrębnym serwisem w odrębnej domenie, z własną stopką bez noty licencyjnej. Nie znalazłem
+żadnego zdania rozciągającego licencję gov.pl na serwisy podmiotów w innych domenach.
+
+**Co to rozstrzyga.** Dwie rzeczy, obie otwarte od audytu (3.5):
+
+1. **Obawa o *share-alike* odpada.** CC BY-SA 4.0 niesie obowiązek udostępniania korpusów
+   pochodnych na tej samej licencji, którego reżim ustawowy nie nakłada. Skoro licencja
+   gov.pl nie obejmuje tej domeny, ten obowiązek nie wchodzi.
+2. **Droga z art. 39 ust. 1 pkt 2 ustawy o otwartych danych jest właściwa.** Przepis mówi
+   o ISP „udostępnianych w innym systemie teleinformatycznym niż [BIP lub portal danych]",
+   dla których „nie zostały określone warunki ponownego wykorzystywania [...] albo nie
+   poinformowano o braku takich warunków". Obie przesłanki są spełnione łącznie: wyszukiwarka
+   jest takim innym systemem, warunków nie ma i informacji o ich braku też nie ma.
+
+**Konsekwencja dla decyzji 2.** Wniosek o ponowne wykorzystywanie ma podstawę, a razem z nim
+postulat techniczny z 4.6: kanał z datą modyfikacji albo zrzut przyrostowy, na wzór
+`sinceModificationDate` z SAOS. Art. 39 ust. 2 pozwala wprost żądać dostępu „w sposób stały
+i bezpośredni w czasie rzeczywistym"; art. 40 ust. 1 daje urzędowi 14 dni; art. 17 — bez
+opłaty. To jest jedyna pozycja planu, która jednym pismem może usunąć problem „co nowego"
+opisany w 4.6 jako wymagający trzech osobnych osi.
+
+**Czego ten pomiar nie zrobił.** Nie przejrzałem całego BIP UZP pod kątem osobnej strony
+o ponownym wykorzystywaniu — `uzp.gov.pl/bip` przekierowuje na `gov.pl/web/uzp/`, a strona
+`gov.pl/web/uzp/ponowne-wykorzystywanie-informacji-sektora-publicznego` nie istnieje. Nie
+jestem prawnikiem; to jest odczyt przepisu i odczyt stron, nie opinia, i wymaga potwierdzenia
+u prawnika, o którym audyt mówi w 13.2 pkt 2.
