@@ -82,10 +82,22 @@ zapisać importem, bo reguła granic zabrania limiterowi znać bazę — pilnuje
 porównanie wyniku z tą stałą byłoby tautologią.
 """
 
+DOBA_S = 86_400.0
+"""Dolna granica przycięcia postoju budżetowego.
+
+Najdłuższy znany limit kanału jest dobowy (Atlas: 1500 żądań na dobę na adres IP), więc
+przycięcie krótsze niż doba potrafiłoby stłumić reset zdrowy — patrz `note_budget`.
+"""
+
 # Znaczniki epoch (~1,7e9) mają w float precyzję ~2,4e-7 s; bez tolerancji pętla oczekiwania
-# mogłaby kręcić się na resztkach zaokrągleń.
+# mogłaby kręcić się na resztkach zaokrągleń. Ta sama stała wyznacza dolną granicę odstępu
+# minimalnego w konstruktorze — inaczej walidacja i zachowanie rozjeżdżałyby się o tę wartość.
 _WAIT_EPSILON_S = 0.005
 _MAX_WAIT_ITERATIONS = 1000
+
+# Względny margines granicy okna. Pokrywa narastający niedomiar zmiennoprzecinkowy
+# przy odstępie równym `span / limit`; uzasadnienie liczby stoi przy użyciu.
+_MARGINES_OKNA_WZGLEDNY = 1e-9
 
 
 class LimiterStalledError(ResumableError):
@@ -157,8 +169,22 @@ class RateLimiter:
         # Okna są **opcjonalne**, a odstęp wymagany — odwrotnie niż we wzorcu z CEIDG.
         # Powód jest w nagłówku modułu: UZP nie publikuje żadnego limitu, więc okno byłoby
         # liczbą wziętą z niczego, a odstęp jest jedynym hamulcem, który da się uzasadnić.
-        if min_spacing_s <= 0:
-            raise ValueError("odstęp minimalny musi być dodatni; to jedyny hamulec bez limitu")
+        #
+        # Granica walidacji to `_WAIT_EPSILON_S`, a nie zero, i to jest poprawka z 2026-09-15.
+        # Pierwsza wersja odrzucała tylko wartości niedodatnie, a pętla oczekiwania honoruje
+        # dopiero postoje **powyżej** epsilona — więc `min_spacing_s=0.004` przechodziło
+        # walidację i nie hamowało w ogóle: tysiąc kolejnych `acquire` bez jednego snu i bez
+        # jednego zdarzenia `on_wait`. Dwa różne miejsca wyznaczały granicę i rozjeżdżały się
+        # o cztery tysięczne, a przy kanale bez okien odstęp jest **jedynym** hamulcem, więc
+        # literówka w miejscu po przecinku zamieniała limiter w przelotkę. Jedynym obserwatorem
+        # takiej zmiany jest cudzy serwer.
+        if min_spacing_s <= _WAIT_EPSILON_S:
+            raise ValueError(
+                f"odstęp minimalny musi przekraczać {_WAIT_EPSILON_S} s, a wynosi "
+                f"{min_spacing_s}; krótszy nie zatrzyma ani jednego żądania, bo pętla "
+                "oczekiwania traktuje go jak zero — a przy kanale bez okien jest to jedyny "
+                "hamulec, jaki ten limiter ma."
+            )
         for limit, span in windows:
             if limit <= 0 or span <= 0:
                 raise ValueError(f"okno limitera musi być dodatnie: ({limit}, {span})")
@@ -273,16 +299,27 @@ class RateLimiter:
 
         Hamuje wyłącznie, gdy znane są **obie** liczby: bez czasu resetu nie wiadomo, jak długo
         czekać, a zgadywanie godziny postoju na podstawie samego licznika byłoby gorsze od
-        jednego 429. Postój przycinamy do najdłuższego okna — błędny albo odległy `reset` nie
-        może zatrzymać pracy na dłużej, niż trwa całe okno limitu. Bez okien przycinamy do
-        doby, bo najdłuższy znany limit kanału (Atlas: 1500 na dobę na adres IP) jest dobowy.
+        jednego 429.
+
+        **Przycięcie postoju ma dolną granicę dobową i to jest poprawka z 2026-09-15.**
+        Wersja przeniesiona z CEIDG przycinała do najdłuższego okna, bo tam najdłuższe okno
+        miało godzinę. Tutaj okna bywają minutowe, a wtedy zabezpieczenie przed zepsutym
+        `X-RateLimit-Reset` tłumiło reset **zdrowy**: kanał z jednym oknem 500/60 s dostawał
+        „reset za 900 s", czekał 60 s i wracał pod ten sam wyczerpany budżet, dobijając do 429
+        — czyli dokładnie do tego, czemu ten hamulec miał zapobiec. Dolna granica jest dobowa,
+        bo najdłuższy znany limit kanału (Atlas: 1500 na dobę na adres IP) jest dobowy.
+
+        Górna granica zostaje, bo `reset` odległy o lata jest prawdopodobniej zepsuty niż
+        prawdziwy. Postój nie jest przy tym cichy: `acquire` zgłasza go zdarzeniem `on_wait`
+        z powodem i momentem wznowienia, więc wartość absurdalna jest dla operatora widoczna,
+        a nie tłumiona po cichu.
 
         Zwraca długość ustawionego postoju w sekundach (0 = brak hamowania).
         """
         if remaining is None or reset_epoch is None or remaining > self._budget_reserve:
             return 0.0
-        longest = max((span for _, span in self._windows), default=86_400.0)
-        wait = min(max(0.0, reset_epoch - self._clock.wall()), longest)
+        longest = max((span for _, span in self._windows), default=0.0)
+        wait = min(max(0.0, reset_epoch - self._clock.wall()), max(longest, DOBA_S))
         if wait <= 0.0:
             return 0.0
         candidate = self._clock.monotonic() + wait
@@ -321,9 +358,32 @@ class RateLimiter:
             earliest, reason = last_mono + self._min_spacing_s, REASON_SPACING
 
         for limit, span in self._windows:
-            in_window = [t for t, _ in history_mono if t > mono_now - span]
+            # Granica okna jest rozszerzona o **względny** margines, w obie strony:
+            # żądanie leżące na krawędzi liczy się jako będące w oknie, a moment zwolnienia
+            # slotu wypada o tyleż później. Poprawka z 2026-09-15.
+            #
+            # Powód: przy odstępie równym `span / limit` oba hamulce wiążą w tym samym
+            # punkcie, a odstępy liczy się przez dodawanie liczb zmiennoprzecinkowych
+            # (0,12 nie ma dokładnej postaci binarnej). Narastający niedomiar rzędu 1e-13 s
+            # na krok sprawiał, że najstarsze żądanie wypadało z okna o włos za wcześnie
+            # i do okna wchodziło jedno żądanie **ponad limit** — zmierzone 501 na 60 s przy
+            # oknie zadeklarowanym jako 500/60 s, powtarzalnie.
+            #
+            # Margines jest względny, a nie stały, bo ma pokryć dryf proporcjonalny do
+            # długości okna, a nie do zegara. Dla okna minutowego to 60 ns wobec dryfu rzędu
+            # 5e-11 s — z zapasem trzech rzędów wielkości, a jednocześnie o rzędy wielkości
+            # poniżej tolerancji, z jaką ktokolwiek mierzy postoje. Stały epsilon 5 ms
+            # załatwiłby to samo, ale przesuwałby **każde** czekanie na oknie o wartość
+            # widoczną w testach i w dzienniku, czyli płaciłby widocznością za dryf
+            # niewidoczny.
+            #
+            # Rozstrzygnięcie remisu idzie świadomie w stronę „policz i poczekaj", a nie
+            # „wypuść": czekanie o nanosekundę za długo nie widzi nikt, a wysłanie o jedno
+            # żądanie za dużo widzi cudzy serwer.
+            margines = span * _MARGINES_OKNA_WZGLEDNY
+            in_window = [t for t, _ in history_mono if t > mono_now - span - margines]
             if len(in_window) >= limit:
-                candidate = in_window[-limit] + span
+                candidate = in_window[-limit] + span + margines
                 if candidate > earliest:
                     earliest, reason = candidate, REASON_WINDOW
 
