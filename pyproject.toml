@@ -75,6 +75,11 @@ target-version = "py312"
 # ale narzędzie do kodu nie ma prawa dotykać dokumentów, w których stoją cudze ustalenia
 # z datami; następnym razem mogłoby to być więcej niż spacje.
 extend-exclude = ["docs"]
+# `force-exclude` sprawia, że wykluczenie obowiązuje także wtedy, gdy ktoś poda ścieżkę
+# wprost. Bez tego `ruff format docs/` omija wykluczenie i przetwarza dokumenty decyzyjne —
+# sprawdzone 2026-09-15: siedem plików weszło do formatowania mimo wpisu wyżej. Samo
+# `extend-exclude` broni więc tylko przed `ruff format .`, czyli przed jedną z dwóch dróg.
+force-exclude = true
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "W"]
