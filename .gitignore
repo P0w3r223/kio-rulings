@@ -1,0 +1,49 @@
+# --- sekrety ---
+.env
+
+# --- korpus i wyniki przebiegów ---
+# Baza korpusu nigdy nie wchodzi do historii. Powód nie jest rozmiarowy: orzeczenia niosą
+# pełne nazwiska składu orzekającego i protokolantów (audyt 3.3), a operator narzędzia jest
+# dla nich administratorem danych. Repozytorium przechowuje kod i dowody, nie korpus.
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+.kio/
+wyniki/
+*.xlsx
+*.parquet
+*.warc
+*.warc.gz
+
+# --- wyjścia sond fazy 0 ---
+# `scripts/` zawiera jednorazowe sondy (audyt 9, faza 0). Ich kod wchodzi do repozytorium,
+# ich wyjście nie — to surowe odpowiedzi cudzego serwisu, których miejscem jest
+# `tests/examples/` po świadomym przeglądzie, a nie katalog roboczy.
+scripts/out/
+probe_out/
+
+# --- zamrożone dowody: WCHODZĄ do repozytorium ---
+# Poniższe katalogi są celowo NIE ignorowane i to jest decyzja, nie przeoczenie.
+# `tests/examples/` trzyma surowe odpowiedzi z `*.compare.json` (reguła 17, wzorzec
+# Juriscrapera), `tests/cassettes/` kasety HTTP (reguła 20), `tests/gold/` złoty zbiór
+# 50 dokumentów z ręcznie potwierdzonymi sekcjami. Bez nich testy parsera i adaptera nie
+# mają się o co oprzeć. Każde rozszerzenie danych zakazane wyżej, które kiedyś będzie
+# musiało tam trafić, dopisuje się poniżej jawnie przez `!`, po przejrzeniu zawartości.
+
+# --- python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+
+# --- ide ---
+.idea/
+.vscode/

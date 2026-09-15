@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kio-tool"
+version = "0.0.0"
+description = "Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej"
+readme = "README.md"
+# Jedyna wersja, na której cokolwiek w tym projekcie zostało uruchomione, to 3.12.10.
+# Deklaracja 3.11 byłaby obietnicą bez pomiaru — dokładnie tym, czego zakazuje zasada 7.1.
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    # Górna granica przeniesiona z `ceidg-tool` razem z powodem: gwarancja bramki wyjścia
+    # opiera się na **wewnętrznym** zachowaniu httpx (`allow_env_proxies = trust_env and
+    # transport is None`), a nie na jego publicznym API. Podniesienie tej granicy jest
+    # zmianą w zabezpieczeniu, nie w zależności.
+    # Dolna granica podniesiona do 0.28 po przeglądzie kodu 2026-09-15: nazwy wewnętrzne,
+    # na których stoi ta gwarancja, sprawdzono na 0.28.1 i na żadnej innej. Okno
+    # dopuszczające 0.27.x byłoby liczbą bez pomiaru w miejscu, gdzie pomiar był robiony.
+    "httpx>=0.28,<0.29",
+    "pydantic>=2.7",
+    "python-dotenv>=1.0",
+    "openpyxl>=3.1",
+    "typer>=0.12",
+    "questionary>=2.0",
+    "pyyaml>=6.0",
+    "rich>=13.7",
+    "platformdirs>=4.2",
+]
+
+# Biblioteki parsera HTML (`selectolax` albo `lxml`) celowo NIE są tu wymienione.
+# Architektura 3.3 zostawia wybór „po fixture": `Details` jest tabelaryczne, `ContentHtml`
+# nagłówkowe, a decyzja bez zamrożonej odpowiedzi ze źródła byłaby zgadywaniem kształtu.
+# Wchodzą po pomiarze 4b, razem z pierwszym plikiem w `tests/examples/uzp/`.
+
+[project.optional-dependencies]
+# Formaty eksportu fazy 3. Extra, nie zależność: korpus i wyszukiwanie mają działać
+# u operatora, który nigdy nie zażąda Parquetu ani WARC-a.
+eksport = ["pyarrow>=16", "warcio>=1.7"]
+dev = [
+    "pytest>=8.2",
+    # Reguła 20: sieć w testach jest zablokowana, a wyjątek jest jawny. Pomiar 21
+    # rozstrzyga, który z tych dwóch mechanizmów zostaje — vcrpy podpina się wyżej niż
+    # wstrzyknięty transport z `httpclient.py`, `respx` dokładnie na jego poziomie.
+    # Do rozstrzygnięcia instalujemy oba; po pomiarze jeden z nich stąd znika.
+    "pytest-recording>=0.13",
+    "respx>=0.21",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-PyYAML",
+]
+
+[tool.setuptools.packages.find]
+include = ["kio_tool*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `-q` celowo NIE stoi w addopts. W `ceidg-tool` stało i kosztowało to trzy rewizje
+# dokumentacji cytujące liczbę testów, której udokumentowana bramka nie potrafiła wypisać:
+# `pytest -q` z wiersza poleceń dawał w sumie `-qq`, przy którym pytest nie drukuje linii
+# podsumowania w ogóle (audyt 12). Cisza o wyniku jest tu usterką, nie zwięzłością.
+addopts = "--block-network"
+markers = [
+    "smoke: pojedynczy odczyt diagnostyczny przy żywym źródle; jedyny wyjątek od reguły 20, uruchamiany ręcznie po zgodzie właściciela",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# `docs/` jest wyłączone, bo `ruff format` formatuje bloki ```python osadzone w markdown.
+# Przy pierwszym uruchomieniu przeformatowało to `ARCHITEKTURA_KIO_TOOL.md` — dokument
+# decyzyjny, nie kod. Zmiana była kosmetyczna (wyrównanie komentarza przy `name: SourceName`),
+# ale narzędzie do kodu nie ma prawa dotykać dokumentów, w których stoją cudze ustalenia
+# z datami; następnym razem mogłoby to być więcej niż spacje.
+extend-exclude = ["docs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
