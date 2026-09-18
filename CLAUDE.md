@@ -106,7 +106,7 @@ audyt 13 (decyzje) → architektura 8 (decyzje właściciela).
 
 ## Co zmierzono, a co jest wciąż przypuszczeniem
 
-Pięć pomiarów własnych, wszystkie w `docs/decisions.md` z datą i liczbą żądań:
+Siedem pomiarów własnych, wszystkie w `docs/decisions.md` z datą i liczbą żądań:
 
 - **pomiar 21** — blokada sieci w testach działa i sięga gniazda, nie tylko transportu `httpx`;
 - **pomiar 1** — FTP UZP nie odpowiada (kontrola: `ftp.gnu.org` z tej samej maszyny działa);
@@ -118,7 +118,13 @@ Pięć pomiarów własnych, wszystkie w `docs/decisions.md` z datą i liczbą ż
   błędne (9 ze 100) — zbiór sięga co najmniej rocznika 2010, 2007–2009 niezmierzone;
 - **pomiar 23** (2026-09-18, 3 żądania) — Atlas licencjonuje reuse wprost: CC BY 4.0
   z atrybucją „Źródło: Atlas Przetargów (https://atlasprzetargow.pl)", odczytane u dostawcy;
-  korzeń SAOS nie odpowiedział w 45 s.
+  korzeń SAOS nie odpowiedział w 45 s;
+- **pomiar filtrów Atlasu** (2026-09-18, 6 żądań) — `outcome` zgodny z lokalnym rozstrzygnięciem
+  (6 na 6 sygnatur), `search` dopasowuje sygnaturę, nie treść (słowo z treści daje 0, sygnatura
+  daje 1); mina 2 audytu rozstrzygnięta;
+- **przebieg 2** (2026-09-18, 48 żądań) — 1–5 lutego 2024, 46 orzeczeń; proces ubity
+  `Stop-Process -Force` po 22 dokumentach i dokończony tym samym poleceniem jako osierocony
+  (`docs/decisions.md`, „Przebieg 2"). Korpus: 341 orzeczeń.
 
 Złote pliki z pomiaru 3a leżą w `tests/examples/atlas/` z `.compare.json` i `ZRODLO.md`.
 Wszystko pozostałe o źródłach pochodzi z lektury cudzych repozytoriów i dokumentacji. Kontrakt

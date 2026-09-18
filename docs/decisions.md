@@ -398,6 +398,57 @@ przez `--od/--do` (zgłoszone testerowi 2026-09-18).
 
 ---
 
+## Przebieg 2 — luty 2024 (1–5) z Atlasu: ubicie procesu i wznowienie na żywym serwisie
+
+**Zmierzone 2026-09-18, 48 żądań GET** (kanał `atlas`, poziom anonimowy, ta sama baza co
+Przebieg 1). Scenariusz „zanik zasilania": `pobierz --od 2024-02-01 --do 2024-02-05 --zgoda`
+uruchomione jako osobny proces i ubite `Stop-Process -Force` (odpowiednik `taskkill /F`) po
+24 sekundach — bez `finally`, bez zapisu statusu, bez sprzątania.
+
+- Po ubiciu: przebieg `atlas-009ab0e9dd93` stoi w bazie jako `w_toku` bez procesu, 22 dokumenty,
+  23 żądania (1 strona listy + 22 dokumenty), `ostatnia_strona = 1`; kanał zgłosił 46 dokumentów
+  w zakresie.
+- To samo polecenie: rozpoznane jako osierocony (zdanie na ekranie), wznowione od strony 1 —
+  24 nowe dokumenty, 22 pominięte bez żądania, 25 żądań; łącznie w przebiegu 48 żądań,
+  46 dokumentów objętych i pobranych, status `zakonczony`; eksport xlsx, jsonl i md (46).
+- Po wznowieniu `wznow` odmawia: „nie ma przerwanego ani osieroconego przebiegu" (kod 3).
+- Baza po całości dnia: 341 dokumentów = 341 wersji surowych = 341 metadanych = 341 w indeksie;
+  352 żądania, wszystkie ze statusem 200 i kształtem zgodnym; `run_documents` przebiegu: 46,
+  wszystkie nowe.
+
+Wniosek: poprawka „przebieg `w_toku` bez procesu jest osierocony i wznawialny" (tester
+i przegląd 2026-09-18) działa na żywym serwisie tak samo jak na atrapie; kosztem ubicia jest
+jedna strona listy wysłana ponownie.
+
+---
+
+## Pomiar filtrów Atlasu — `outcome` i `search` (pierwsze własne wywołania)
+
+**Zmierzone 2026-09-18, 6 żądań GET** — po jednej stronie listy na wywołanie; dokumenty były już
+w bazie, więc żadne żądanie za dokument nie poszło. Metoda: ten sam zakres dat u kanału
+i lokalnie, porównanie zbiorów sygnatur.
+
+| Wywołanie | U Atlasu | Lokalnie (`eksportuj`, `szukaj` na 295 dokumentach stycznia) |
+|---|---|---|
+| `outcome=odrzucono`, 2024-01-01..31 | 6 | 6 — te same sygnatury: KIO 3814/23, 3841/23, 3869/23, 3951/23, 115/24, 155/24 |
+| `search=odrzuca odwołanie`, styczeń | 0 | 11 (pełny tekst, FTS5) |
+| `search=odwołanie`, styczeń | 0 | co najmniej 11 (każde z orzeczeń wyżej niesie to słowo) |
+| `search=KIO 115/24`, styczeń | 1 — KIO 115/24 | — |
+| `outcome=odrzucono`, 2024-02-01..05 | 0 | 0 |
+| `search=odrzuca odwołanie`, 2024-02-01..05 | 0 | 0 |
+
+Wnioski — mina 2 audytu (semantyka `search`) rozstrzygnięta: **`search` Atlasu dopasowuje
+sygnaturę, nie treść** — słowo obecne w treści zwraca zero, sygnatura zwraca dokładnie ten
+dokument. `outcome` jest zgodny z rozstrzygnięciem znormalizowanym w rekordzie (6 na 6). Skutek
+dla narzędzia: `pobierz --fraza` nie służy do wyszukiwania w treści u kanału — treść przeszukuje
+lokalnie `szukaj` po pobraniu zakresu dat; pomoc flagi i zdanie przy pustym wyniku mówią to od
+2026-09-18. Parametry `date_from`/`date_to` miały pierwsze własne wywołanie w Przebiegu 1
+(295 dokumentów z datami 2024-01-03..2024-01-31) i drugie w Przebiegu 2 (46 dokumentów
+2024-02-01..2024-02-05). Filtry `law_article`, `chairperson`, `party` nadal bez własnego
+wywołania.
+
+---
+
 ## Pomiar 23 — warunki ponownego wykorzystywania SAOS i Atlasu, odczytane u źródła
 
 **Zmierzone 2026-09-18, 3 żądania GET** (`sonda-20260918T103544Z`), te same sześć markerów

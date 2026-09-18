@@ -98,11 +98,14 @@ def test_zero_trafien_przy_jedynym_filtrze_mowi_ze_jest_jedyny() -> None:
     assert "jedyny filtr" in tekst
 
 
-def test_zero_kandydatow_zastrzega_niezmierzona_semantyke_filtrow() -> None:
+def test_zero_kandydatow_mowi_co_search_kanalu_naprawde_przeszukuje() -> None:
+    """Pomiar filtrów Atlasu 2026-09-18 (`docs/decisions.md`): `search` dopasowuje sygnaturę, nie
+    treść. Pusty wynik u kanału ma kierować do `szukaj` na korpusie lokalnym, nie do poszerzania
+    frazy."""
     tekst = texts.zero_kandydatow(Criteria(fraza="x", strona="y")).as_text()
 
     assert "Spróbuj bez pola „fraza”" in tekst
-    assert "nie miały jeszcze własnego pomiaru" in tekst
+    assert "sygnaturę, nie treść" in tekst and "`szukaj`" in tekst
 
 
 def test_blok_runow_i_eksportu_niosa_liczby_z_argumentow() -> None:

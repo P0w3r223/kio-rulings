@@ -64,7 +64,11 @@ POMOC_SZUKAJ = (
 
 POMOC_OD = "początek zakresu dat wydania, RRRR-MM-DD (włącznie)"
 POMOC_DO = "koniec zakresu dat wydania, RRRR-MM-DD (włącznie)"
-POMOC_FRAZA = "fraza szukana dosłownie: u kanału w jego wyszukiwarce, lokalnie w pełnym tekście"
+POMOC_FRAZA = (
+    "fraza szukana dosłownie: lokalnie w pełnym tekście (`szukaj`, `eksportuj`); w `pobierz` "
+    "idzie do wyszukiwarki kanału, która u Atlasu dopasowuje sygnaturę, nie treść (zmierzone "
+    "2026-09-18)"
+)
 POMOC_ROZSTRZYGNIECIE = (
     "rozstrzygnięcie (można powtórzyć przy szukaniu i eksporcie): oddalono, uwzglednione, "
     "umorzono, odrzucono, inne — lista zmierzona na stu rekordach, nie udokumentowana"
@@ -381,7 +385,9 @@ def zero_kandydatow(kryteria: Criteria) -> Block:
         for pole, kandydat in kryteria.poszerzenia()
     )
     uwagi.append(
-        "Filtry kanału nie miały jeszcze własnego pomiaru (contract.yaml, `parametry_listy`): "
-        "pusty wynik znaczy „kanał nic nie zwrócił”, nie „takich orzeczeń nie ma”."
+        "Filtry kanału mają inną semantykę niż lokalne (zmierzone 2026-09-18: `search` Atlasu "
+        "dopasowuje sygnaturę, nie treść; `outcome` jest zgodny z rozstrzygnięciem): pusty wynik "
+        "znaczy „kanał nic nie zwrócił”, nie „takich orzeczeń nie ma” — treść przeszukuje "
+        "`szukaj` po pobraniu zakresu dat."
     )
     return Block(title="Kanał nie zwrócił żadnego kandydata", notes=tuple(uwagi))

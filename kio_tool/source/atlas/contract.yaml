@@ -63,9 +63,13 @@ parametry_listy:
     bywa w Atlasie błędne (9 ze 100 rekordów), więc filtr po dacie może gubić dokumenty
     z pomyloną datą; to jest cena zapisana, nie ukryta. Filtry `search`, `outcome`,
     `ruling_kind`, `law_article`, `chairperson`, `party` z tej samej dokumentacji (lista
-    w ADR-0004 §4, kolumna zdolności, odczyt 2026-09-18); żaden nie miał własnego wywołania,
-    a semantyka `search` (metadane czy treść — mina 2 audytu) jest niezmierzona: pierwszy
-    przebieg z filtrem jest jego pomiarem
+    w ADR-0004 §4, kolumna zdolności, odczyt 2026-09-18). Własne wywołania 2026-09-18
+    (`docs/decisions.md`, „Pomiar filtrów Atlasu", 6 żądań): `date_from`/`date_to` — 295
+    dokumentów stycznia i 46 z 1–5 lutego 2024; `outcome=odrzucono` — 6 sygnatur, te same
+    co lokalnie; `search` — dopasowuje **sygnaturę, nie treść** (mina 2 audytu rozstrzygnięta:
+    „KIO 115/24" daje 1, „odwołanie" daje 0 przy co najmniej 11 orzeczeniach z tym słowem
+    w treści). `ruling_kind`,
+    `law_article`, `chairperson`, `party` nadal bez własnego wywołania
 
 tempo:
   # Odstęp 1,0 s jak w sondzie (`zadanie.ODSTEP_POSREDNIK_S`). Pośrednik publikuje limity, więc

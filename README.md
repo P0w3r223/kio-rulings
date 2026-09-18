@@ -228,8 +228,11 @@ i zgubić własne. To jest cena zapisana, nie ukryta.
   się zmieniła.
 - **Ma jeden kanał.** Kanały `uzp` i `saos` nie istnieją; kompletność Atlasu względem wyszukiwarki
   UZP jest niepotwierdzona (cena wyboru zapisana w ADR-0004 §6).
-- **Filtry inne niż daty nie miały własnego wywołania** u Atlasu — pierwszy przebieg z `--fraza`
-  albo `--przepis` jest ich pomiarem; semantyka `search` (metadane czy treść) jest niezmierzona.
+- **`--fraza` w `pobierz` nie przeszukuje treści u Atlasu** — jego `search` dopasowuje
+  sygnaturę (zmierzone 2026-09-18, 6 żądań; słowo obecne w treści daje zero, sygnatura daje ten
+  dokument). Treść przeszukuje lokalnie `szukaj` po pobraniu zakresu dat. `--rozstrzygniecie`
+  u kanału jest zgodne z lokalnym (6 na 6 sygnatur). `--przepis`, `--przewodniczacy` i `--strona`
+  u kanału nie miały jeszcze własnego wywołania.
 - **Nie ma kreatora, warstwy modelu, parsera sekcji ani grafu cytowań** — plan faz 2–4
   w `docs/AUDYT_KIO_ORZECZENIA.md`.
 - **Nie ponawia żądań i nie pilnuje dwóch procesów naraz** (sekcja „Po przerwaniu").
@@ -244,10 +247,15 @@ wywołanie tego samego polecenia wysłało 3 żądania listy i zero za dokumenty
 umorzono 134, oddalono 67, uwzględnione 57, inne 31, odrzucono 6. Pełny zapis
 w `docs/decisions.md`, „Przebieg 1".
 
+Drugi przebieg tego samego dnia sprawdził odporność na żywym serwisie: 1–5 lutego 2024,
+46 orzeczeń, proces ubity siłą po 22 dokumentach i dokończony tym samym poleceniem jako
+osierocony (24 nowe, 22 pominięte bez żądania, 48 żądań łącznie). Korpus po obu przebiegach:
+341 orzeczeń, każde z wersją surową, metadanymi i indeksem. Zapis w „Przebieg 2".
+
 ## Co już zmierzono
 
 Wyniki z datami i liczbą żądań oraz status każdego pomiaru stoją w `docs/decisions.md`
-(sekcja „Status pomiarów"). Pięć pomiarów własnych:
+(sekcja „Status pomiarów"). Siedem pomiarów własnych:
 
 - **FTP UZP nie odpowiada** (pomiar 1, 2026-09-15) — port 21 milczy przy kontroli na cudzym
   serwerze FTP z tej samej maszyny w tej samej minucie.
@@ -260,6 +268,11 @@ Wyniki z datami i liczbą żądań oraz status każdego pomiaru stoją w `docs/d
   29 580 orzeczeń i sięga co najmniej rocznika 2010.
 - **Atlas licencjonuje ponowne wykorzystywanie wprost** (pomiar 23, 2026-09-18, 3 żądania):
   CC BY 4.0 z atrybucją, odczytane u dostawcy; korzeń SAOS nie odpowiedział w 45 s.
+- **Filtr `outcome` Atlasu jest zgodny z lokalnym, `search` dopasowuje sygnaturę, nie treść**
+  (pomiar filtrów, 2026-09-18, 6 żądań): te same 6 sygnatur „odrzucono" u kanału i lokalnie;
+  fraza z 11 orzeczeń stycznia daje u kanału zero, sygnatura daje dokładnie jeden dokument.
+- **Przebieg ubity w trakcie na żywym serwisie dokończył się tym samym poleceniem** (przebieg 2,
+  2026-09-18, 48 żądań): 1–5 lutego 2024, 46 orzeczeń, proces ubity po 22 dokumentach.
 
 Wszystko pozostałe o źródłach pochodzi z lektury cudzych repozytoriów i dokumentacji. Kontrakt
 `POST /Home/GetResults` wyszukiwarki UZP stoi na dwóch cudzych kolektorach — własnego POST-a nikt
