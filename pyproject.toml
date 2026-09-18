@@ -52,8 +52,17 @@ dev = [
     "types-PyYAML",
 ]
 
+[project.scripts]
+kio-tool = "kio_tool.cli:app"
+
 [tool.setuptools.packages.find]
 include = ["kio_tool*"]
+# `contract.yaml` kanału leży obok `channel.py` i jest czytany z `Path(__file__)` — bez tego
+# wpisu instalacja z koła nie zawierałaby kontraktu, a `kio-tool pobierz` padałby na
+# „brak pliku" w środowisku, w którym testy z drzewa źródłowego są zielone.
+
+[tool.setuptools.package-data]
+kio_tool = ["source/*/contract.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

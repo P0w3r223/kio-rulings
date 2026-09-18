@@ -1092,6 +1092,35 @@ def _stale_dzierzawy(korzen: Path) -> list[tuple[str, str, float]]:
     return znalezione
 
 
+def _funkcje_blokady(sciezka: Path) -> list[str]:
+    """Nazwy funkcji i metod modułu, które mówią o blokadzie (`lock`, `blokad`, `dzierzaw`).
+
+    Ten sam skan składniowy co `_stale_dzierzawy`, tylko po definicjach: blokada w `store.py`
+    powstanie jako metoda `acquire_lock`/`zwolnij_blokade`, nie jako literał SQL — a gdyby
+    powstała inaczej, ten skan jej nie zobaczy i mówi to wprost (punkt 2 docstringu testu).
+    """
+    wzorce = ("lock", "blokad", "dzierzaw")
+    return [
+        wezel.name
+        for wezel in ast.walk(ast.parse(sciezka.read_text(encoding="utf-8")))
+        if isinstance(wezel, ast.FunctionDef | ast.AsyncFunctionDef)
+        and any(w in wezel.name.lower() for w in wzorce)
+    ]
+
+
+def test_samosprawdzenie_skanu_funkcji_blokady(tmp_path: Path) -> None:
+    """Skan, który niczego nie znajduje, i skan, który nie działa, wyglądają tak samo."""
+    modul = tmp_path / "store.py"
+    modul.write_text(
+        "class Store:\n    def acquire_lock(self): ...\n    def count(self): ...\n"
+        "def zwolnij_blokade(): ...\n",
+        encoding="utf-8",
+    )
+
+    # Zbiór, nie lista: `ast.walk` idzie wszerz, więc funkcja modułowa wyprzedza metodę klasy.
+    assert set(_funkcje_blokady(modul)) == {"acquire_lock", "zwolnij_blokade"}
+
+
 def test_wyzwalacz_plaster_miesci_sie_pod_dzierzawa_blokady_bazy() -> None:
     """Zależność między dwoma modułami, której nie da się zapisać importem.
 
@@ -1124,10 +1153,17 @@ def test_wyzwalacz_plaster_miesci_sie_pod_dzierzawa_blokady_bazy() -> None:
     dzierzawy = _stale_dzierzawy(PAKIET)
 
     if not dzierzawy:
-        assert not (PAKIET / "store.py").exists(), (
-            "`store.py` powstał, a skan nie widzi w nim okresu dzierżawy — nazwij stałą tak, "
-            "żeby ten test ją widział, albo dopisz porównanie ręcznie"
-        )
+        # `store.py` istnieje od etapu III (2026-09-18) **bez** dzierżawy blokady — świadomie
+        # (nagłówek `store.py`: jeden operator, jeden proces; wraca z harmonogramem). Wyzwalacz
+        # zmienia więc przedmiot: nie „czy `store.py` powstał", tylko „czy powstała w nim blokada
+        # bez nazwanego okresu dzierżawy". Blokada bez dzierżawy to dokładnie ta awaria z CEIDG,
+        # którą `WAIT_SLICE_S` ma omijać — więc dzień jej dopisania ma być tu czerwony.
+        store = PAKIET / "store.py"
+        if store.exists():
+            assert not _funkcje_blokady(store), (
+                "`store.py` ma blokadę, a skan nie widzi okresu dzierżawy — nazwij stałą tak, "
+                "żeby ten test ją widział (`*LOCK_STALE*`, `*LEASE*`, `*STALE_S*`, `*DZIERZAW*`)"
+            )
         return
 
     for plik, nazwa, wartosc in dzierzawy:

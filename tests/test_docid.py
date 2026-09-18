@@ -467,8 +467,11 @@ def test_lista_zwraca_pusta_liste_a_nie_none() -> None:
 def test_identyfikator_dokumentu_ma_postac_kanal_dwukropek_referencja(
     kanal: str, ref: str, oczekiwany: str
 ) -> None:
-    """Postaci z odczytu składają się dokładnie tak, jak opisuje schemat `documents`."""
-    assert document_id(SourceName(kanal), ref) == oczekiwany
+    """Postaci z odczytu składają się dokładnie tak, jak opisuje schemat `documents`.
+
+    `preserve`, bo te referencje są już w postaci z odczytu; o `lower` mówi osobny test niżej.
+    """
+    assert document_id(SourceName(kanal), ref, ref_case="preserve") == oczekiwany
 
 
 @pytest.mark.parametrize(
@@ -488,34 +491,44 @@ def test_pisownia_kanalu_nie_tworzy_drugiego_identyfikatora(kanal_zapisany: str,
     liter klucz główny kazał zapisywać każdy zmieniony wpis dwa razy. Identyfikator
     `uzp:9620` pochodzi z odczytu (ARCHITEKTURA 1.1); zmieniona jest tylko pisownia.
     """
-    assert document_id(SourceName(kanal_zapisany), ref) == "uzp:9620"
+    assert document_id(SourceName(kanal_zapisany), ref, ref_case="preserve") == "uzp:9620"
 
 
-def test_wielkosc_liter_w_referencji_kanalu_wciaz_tworzy_dwa_identyfikatory() -> None:
-    """Strażnik hazardu: składanie tożsamości jest odporne na pisownię tylko po jednej stronie.
+def test_pisownia_referencji_rozstrzyga_deklaracja_kanalu() -> None:
+    """ADR-0001 2.2 (przyjęty 2026-09-18): dwie pisownie tego samego sluga przy `lower` dają
+    jeden `doc_id`, a przy `preserve` — dwa. Stan przybity, nie pochwalony.
 
-    `document_id` sprowadza do małych liter **kanał**, a referencję zostawia bez zmiany —
-    zgodnie z komentarzem w schemacie (`source_ref TEXT -- identyfikator w kanale, tak jak
-    przyszedł`, ARCHITEKTURA 4.4). Skutek jest jednak taki, że dla kanału, w którym
-    referencją jest slug tekstowy, a nie liczba, wraca dokładnie kształt miny 1: dwa zapisy
-    tego samego dokumentu dają dwa różne klucze główne, cache nigdy nie trafia, a wpis
-    zapisuje się dwa razy. Ryzyko jest realne tylko dla Atlasu — `uzp:9620` i `saos:354301`
-    mają referencje liczbowe, `atlas:kio-827-18` jest slugiem (ARCHITEKTURA 1.1, 4.4).
-
-    Test przybija bieżące zachowanie i zostawia ślad. Jeśli ktoś zacznie sprowadzać
-    referencję do małych liter, ten test padnie — i wtedy trzeba świadomie rozstrzygnąć,
-    czy „tak jak przyszedł” ze schematu nadal obowiązuje, zamiast zmieniać klucz główny
-    korpusu mimochodem.
+    Do tego dnia ten test przybijał samą wrażliwość referencji na wielkość liter jako hazard
+    („składanie tożsamości jest odporne na pisownię tylko po jednej stronie") i mówił, że jego
+    czerwony wynik ma wymusić decyzję wobec komentarza „tak jak przyszedł" ze schematu. Decyzja
+    zapadła w ADR-0001: pisownia referencji jest **sprawą kanału** — `preserve` dla
+    nieprzezroczystego identyfikatora liczbowego (`uzp:9620`), `lower` dla sluga tekstowego
+    (`atlas:kio-827-18`, 100 na 100 rekordów pomiaru 3a małymi literami), bo dwie pisownie sluga
+    dałyby dwa klucze główne na jeden dokument, czyli minę 1 w drugim miejscu.
     """
-    z_odczytu = document_id(SourceName("atlas"), "kio-827-18")
-    ta_sama_sprawa_inna_pisownia_sztuczna = document_id(SourceName("atlas"), "KIO-827-18")
+    z_odczytu = document_id(SourceName("atlas"), "kio-827-18", ref_case="lower")
+    inna_pisownia_sztuczna = document_id(SourceName("atlas"), "KIO-827-18", ref_case="lower")
 
-    assert z_odczytu == "atlas:kio-827-18"
-    assert ta_sama_sprawa_inna_pisownia_sztuczna != z_odczytu, (
-        "Referencja przestała być wrażliwa na wielkość liter. To zmiana klucza głównego "
-        "`documents.doc_id`, a nie drobiazg — wymaga decyzji wobec komentarza "
-        "„tak jak przyszedł” w schemacie (ARCHITEKTURA 4.4)."
+    assert z_odczytu == inna_pisownia_sztuczna == "atlas:kio-827-18"
+
+    zachowana = document_id(SourceName("atlas"), "KIO-827-18", ref_case="preserve")
+
+    assert zachowana == "atlas:KIO-827-18" and zachowana != z_odczytu, (
+        "`preserve` przestało zachowywać pisownię — deklaracja kanału nie ma wtedy znaczenia, "
+        "a dla identyfikatora nieprzezroczystego sprowadzenie do małych liter dokłada informację, "
+        "której w źródle nie ma"
     )
+
+
+def test_ref_case_jest_wymagany_bez_wartosci_domyslnej() -> None:
+    """ADR-0001 2.2: kanał dopisany jutro musi tę decyzję podjąć jawnie, a nie odziedziczyć.
+
+    Domyślna wartość — którakolwiek — byłaby dziedziczeniem: `lower` zjadałoby informację
+    z identyfikatora nieprzezroczystego, `preserve` odtwarzałoby minę 1 dla sluga. Ten test
+    przybija brak domyślnej, bo jej dopisanie przeszłoby przez każdy inny test w tym pliku.
+    """
+    with pytest.raises(TypeError):
+        document_id(SourceName("atlas"), "kio-827-18")  # type: ignore[call-arg]
 
 
 def test_dwukropek_w_referencji_przechodzi_i_rozmywa_granice_skladnikow() -> None:
@@ -532,9 +545,9 @@ def test_dwukropek_w_referencji_przechodzi_i_rozmywa_granice_skladnikow() -> Non
     została odkryta dopiero przez kanał, którego jeszcze nie ma.
     """
     with pytest.raises(IdentityError, match="dwukropka"):
-        document_id(SourceName("u:zp"), "9620")
+        document_id(SourceName("u:zp"), "9620", ref_case="preserve")
 
-    assert document_id(SourceName("uzp"), "96:20") == "uzp:96:20", (
+    assert document_id(SourceName("uzp"), "96:20", ref_case="preserve") == "uzp:96:20", (
         "Referencja z dwukropkiem przestała przechodzić. Jeśli to zamierzona zmiana, "
         "bramka jest teraz symetryczna i ten komentarz trzeba usunąć."
     )
@@ -565,7 +578,7 @@ def test_pusty_skladnik_tozsamosci_konczy_sie_bledem_a_nie_kaleka_tozsamoscia(
     # identyfikator dokumentu"), bo od 2026-09-15 kanał i referencja mają osobne bramki.
     # Dopasowanie po wspólnym rdzeniu, żeby test pilnował zachowania, a nie brzmienia zdania.
     with pytest.raises(IdentityError, match="Pust"):
-        document_id(SourceName(kanal), ref)
+        document_id(SourceName(kanal), ref, ref_case="preserve")
 
 
 def test_sygnatura_nie_jest_tozsamoscia_dokumentu() -> None:
@@ -577,8 +590,8 @@ def test_sygnatura_nie_jest_tozsamoscia_dokumentu() -> None:
     `equivalences` przez polecenie `porownaj`, nigdy zakładana — więc `document_id` ma tu
     dać dwa różne klucze i nie próbować ich scalać.
     """
-    z_uzp = document_id(SourceName("uzp"), "9620")
-    z_atlasu = document_id(SourceName("atlas"), "kio-827-18")
+    z_uzp = document_id(SourceName("uzp"), "9620", ref_case="preserve")
+    z_atlasu = document_id(SourceName("atlas"), "kio-827-18", ref_case="lower")
 
     assert z_uzp != z_atlasu
     assert z_uzp.split(":", 1)[0] != z_atlasu.split(":", 1)[0]
@@ -596,7 +609,7 @@ def test_identyfikator_dokumentu_nie_powstaje_z_sygnatury() -> None:
     sygnatury = normalize_signature_list("KIO 233/18, KIO 234/18")
     assert len(sygnatury) == 2
 
-    identyfikator_z_odczytu = document_id(SourceName("saos"), "354301")
+    identyfikator_z_odczytu = document_id(SourceName("saos"), "354301", ref_case="preserve")
 
     for sygnatura in sygnatury:
         assert sygnatura not in identyfikator_z_odczytu

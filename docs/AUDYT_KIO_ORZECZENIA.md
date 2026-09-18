@@ -855,8 +855,21 @@ z powodu zmierzonego w 4.3.
 
 ## 10. Pomiary do wykonania w fazie 0 — lista, nie założenia
 
-Kolejność jest posortowana po tym, **ile decyzji odblokowuje pomiar**, nie po trudności. Pierwsze
-trzy rozstrzygają wybór kanału i dopóki nie padną, `source/` nie ma co implementować.
+Kolejność jest posortowana po tym, **ile decyzji odblokowuje pomiar**, nie po trudności.
+
+**Status pomiarów nie stoi już w tej tabeli** (poprawka 2026-09-17). Ta lista mówi, po co
+pomiar powstał i jak go wykonać najtaniej; stan każdego z nich — wykonany, niewykonany,
+zamknięty — stoi w `docs/decisions.md`, sekcja „Status pomiarów" (do 2026-09-18 osobny
+`docs/pomiary.md`, scalony przez ADR-0005), a wynik obok w tym samym pliku. Powód rozdzielenia jest
+wprost zasadą 7.1 zastosowaną do tego dokumentu: ta sama lista stała w trzech miejscach
+(tu, w architekturze 6 i w bramce z ADR-0003) i w każdym mówiła co innego o tym, co musi paść
+przed wyborem kanału.
+
+Zdanie „pierwsze trzy rozstrzygają wybór kanału", które stało tu do 2026-09-17, przestało być
+prawdziwe wraz z pierwszymi pomiarami: **pomiar 1 wypadł negatywnie** (FTP nie odpowiada,
+zmierzone 2026-09-15), a pomiar 2 zmienił punkt końcowy — mierzy się go na Dump API, nie na
+`/api/search/judgments`, który zablokował dwa niezależne klienty. Wejście bramki w brzmieniu
+obowiązującym stoi w `docs/adr/0004_wybor_kanalu.md` sekcja 3.
 
 | # | Pomiar | Jak najtaniej | Co rozstrzyga |
 |---|---|---|---|
@@ -981,6 +994,11 @@ ostrożnością i staje się wymogiem: **korpus i tak będzie składany z dwóch
 5. **Gdzie mieszka nowe repozytorium.** Zdalne repozytorium CEIDG to gałąź w projekcie innego
    zespołu. Nowy projekt potrzebuje własnego miejsca i to trzeba uzgodnić, zanim powstanie pierwszy
    commit — nie po nim.
+   **Stan na 2026-09-17: commity są, zdalnego nie ma**, więc decyzja przestała brzmieć „gdzie
+   zacząć" i brzmi „dokąd wypchnąć". Waga wzrosła, a nie spadła: `docs/decisions.md`
+   i `docs/dziennik_zadan.md` są jedynym **nieodtwarzalnym** aktywem tego przedsięwzięcia — kod
+   da się napisać ponownie, a pomiar z 2026-09-15 mówiący, że FTP milczy, powtórzony za rok
+   będzie inną informacją, nie tą samą. Dziś ten zapis leży na jednym dysku.
 
 ### 13.3 Czego ten audyt nie zrobił
 
@@ -1064,3 +1082,17 @@ potwierdził własnym klientem** — próba weryfikacyjna dostała 403 na samym 
 na stronach HTML. Jeśli pomiar 2 z sekcji 10 wypadnie negatywnie, **połowa rekomendowanej
 architektury znika** i zostaje FTP (pomiar 1) albo pośrednik (pomiar 3). Kolejność pomiarów 1–3
 jest z tego powodu nienegocjowalna: dopóki nie padną, `source/` nie ma czego implementować.
+
+**Dopisek z 2026-09-17: FTP odpadł, a zdanie „połowa architektury znika" jest prawdopodobnie za
+mocne — ale osłabia je twierdzenie, które samo jest z drugiej ręki.** Pomiar 1 wypadł negatywnie,
+więc z dwóch dróg zapasowych została jedna. Przegląd architektoniczny wskazał, że odcinek
+2007–2018 nie wisi wyłącznie na SAOS, bo sekcja 2.4 odnotowuje w wyszukiwarce sygnatury
+`KIO/UZP 5/07`, `1423/07` i dalsze z grudnia 2007 r. Ta obserwacja pochodzi jednak z przebiegu 2
+przeglądu, w którym do `orzeczenia.uzp.gov.pl` poszło **zero żądań** (architektura 7) — czyli
+z wyników cudzej wyszukiwarki, nie z własnego odczytu. Status: **niepotwierdzone samodzielnie**,
+dokładnie jak liczby SAOS w wierszu wyżej.
+
+Zapisujemy to tutaj, bo dramatyzacja ryzyka przestawia kolejność prac tak samo skutecznie jak
+jego niedoszacowanie, a obie rzeczy są tym samym błędem: zdaniem bez zmierzonej podstawy. Co
+zamyka pytanie tanio: pomiar 3a (od którego rocznika sięga zbiór pośrednika, jedno żądanie)
+i — po pozytywnym 4b — jedno `GetResults` z zakresem dat z 2007 r.

@@ -17,14 +17,25 @@ przeniesieniu zostało w docstringu bez testu.
 
 from __future__ import annotations
 
+import inspect
 from pathlib import Path
 
 import httpx
 import pytest
 
+from kio_tool import config
+from kio_tool.config import ATLAS_HOSTS, UZP_HOSTS
 from kio_tool.httpclient import build_http_client
 
 UA_TESTOWY = "kio-tool/test (kontakt: test@example.org)"
+
+HOSTY_TESTOWE = frozenset({"orzeczenia.uzp.gov.pl"})
+"""Zbiór podawany jawnie, bo od 2026-09-17 `allowed` nie ma wartości domyślnej.
+
+Wcześniej te trzy testy szły ścieżką bez argumentu, czyli przez sumę wszystkich hostów —
+sprawdzały więc mechanizm 1, 2 i 16 na wywołaniu, którego produkcja nigdy nie wykonuje.
+Teraz jadą tą samą ścieżką co adapter.
+"""
 
 
 def test_mechanizm_1_proxy_ze_srodowiska_nie_jest_montowane(
@@ -44,7 +55,7 @@ def test_mechanizm_1_proxy_ze_srodowiska_nie_jest_montowane(
     monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example.org:8080")
     monkeypatch.setenv("ALL_PROXY", "http://proxy.example.org:8080")
 
-    with build_http_client(user_agent=UA_TESTOWY) as client:
+    with build_http_client(user_agent=UA_TESTOWY, allowed=HOSTY_TESTOWE) as client:
         assert client._mounts == {}, (
             "Klient zamontował proxy ze środowiska. Mechanizm 1 bramki wyjścia nie działa: "
             "żądanie wyszłoby przez host spoza listy dozwolonych."
@@ -68,7 +79,7 @@ def test_mechanizm_2_podmiana_zaufanych_certyfikatow_jest_zablokowana(
     """
     monkeypatch.setenv("SSL_CERT_FILE", str(tmp_path / "nie-ma-takiego-pliku.pem"))
 
-    with build_http_client(user_agent=UA_TESTOWY) as client:
+    with build_http_client(user_agent=UA_TESTOWY, allowed=HOSTY_TESTOWE) as client:
         assert client is not None
 
     # Druga połowa dowodu: pokazujemy, że zmienna **jest** żywa, więc test wyżej nie
@@ -101,5 +112,61 @@ def test_uzytkownik_klienta_przedstawia_sie_podanym_naglowkiem() -> None:
     pilnuje, że podana wartość faktycznie ląduje w nagłówkach klienta — bo parametr
     przyjmowany i nieużywany byłby gorszy niż jego brak: dawałby pewność bez pokrycia.
     """
-    with build_http_client(user_agent=UA_TESTOWY) as client:
+    with build_http_client(user_agent=UA_TESTOWY, allowed=HOSTY_TESTOWE) as client:
         assert client.headers["User-Agent"] == UA_TESTOWY
+
+
+def test_zbior_hostow_jest_parametrem_bez_wartosci_domyslnej() -> None:
+    """Poprawka z 2026-09-17 i jej jedyny obserwator.
+
+    Do tego dnia `allowed` miało domyślną w postaci sumy trzech zbiorów hostów. Wywołanie bez
+    argumentu nie otwierało bramki na oścież, ale adapter, który zapomniał zawęzić ją do
+    swojego kanału, dostawał sumę i **nic się nie zapalało na czerwono** — ta sama klasa
+    usterki, dla której `user_agent` domyślnej nie ma.
+
+    Dopisanie domyślnej z powrotem nie psuje niczego innego: każde dzisiejsze wywołanie podaje
+    zbiór jawnie, więc cała suita zostaje zielona. Ta asercja jest jedynym miejscem, w którym
+    taka zmiana staje się widoczna, i dlatego celuje w sygnaturę, a nie w zachowanie.
+    """
+    parametr = inspect.signature(build_http_client).parameters["allowed"]
+
+    assert parametr.default is inspect.Parameter.empty, (
+        f"`allowed` dostało z powrotem wartość domyślną ({parametr.default!r}). Zawężenie "
+        "bramki ma być własnością wywołania, a nie pamięci autora adaptera."
+    )
+    assert parametr.kind is inspect.Parameter.KEYWORD_ONLY
+
+    with pytest.raises(TypeError):
+        build_http_client(user_agent=UA_TESTOWY)  # type: ignore[call-arg]
+
+
+def test_suma_zbiorow_hostow_zniknela_razem_z_wartoscia_domyslna() -> None:
+    """Stała bez wywołującego jest napisem, nie zabezpieczeniem — `config.py` mówi to wprost.
+
+    `ALLOWED_HOSTS` istniało wyłącznie jako wartość domyślna i jej uzasadnienie („używają jej
+    sondy fazy 0”) opisywało użycie nieobecne w drzewie. Test pilnuje, że nie wraca tylnymi
+    drzwiami jako stała, po którą sięgnie pierwszy adapter, któremu będzie się spieszyło.
+    """
+    assert not hasattr(config, "ALLOWED_HOSTS"), (
+        "wróciła suma zbiorów hostów. Kto potrzebuje dotknąć dwóch kanałów jednym klientem, "
+        "składa ją w miejscu wywołania — wtedy widać ją w przeglądzie kodu."
+    )
+
+
+def test_bramka_jednego_kanalu_odmawia_hostowi_drugiego() -> None:
+    """Zdanie z docstringa `build_http_client` postawione jako asercja: adapter Atlasu niosący
+    `X-Api-Key` nie ma prawa wyjść na `orzeczenia.uzp.gov.pl`, choćby przez przekierowanie.
+
+    Bez tego testu „zawęża bramkę do hostów jednego kanału” jest zdaniem o argumencie, a nie
+    o tym, co robi transport: klient zbudowany z dowolnym zbiorem przepuszczałby wszystko, co
+    przepuszcza jakikolwiek inny, i żadna asercja by tego nie zobaczyła.
+    """
+    from kio_tool.errors import UntrustedLinkError
+
+    with build_http_client(user_agent=UA_TESTOWY, allowed=ATLAS_HOSTS) as atlas:
+        with pytest.raises(UntrustedLinkError):
+            atlas.get("https://orzeczenia.uzp.gov.pl/Home/Details/9620")
+
+    with build_http_client(user_agent=UA_TESTOWY, allowed=UZP_HOSTS) as uzp:
+        with pytest.raises(UntrustedLinkError):
+            uzp.get("https://atlasprzetargow.pl/api/kio")

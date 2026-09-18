@@ -1,0 +1,34 @@
+# Szablon wpisu. Kopiuj do `zapytania.yaml` i wypełniaj — 30-50 pozycji (architektura 4.8).
+#
+# Wartości poniżej są PUSTE ALBO NEUTRALNE i to jest celowe: zapytanie wymyślone brzmi tak
+# samo wiarygodnie jak prawdziwe, a nie mierzy niczego (mina 4 audytu). Treść pochodzi od
+# operatora, nie od narzędzia i nie od modelu.
+
+- id: przyklad-zakres-dat
+  cel: zakres_dat # zakres_dat | sygnatury | przepis | haslo | fraza
+  pytanie: "" # własnymi słowami: czego szukasz i po co
+  kryteria:
+    data_od: 2024-01-01
+    data_do: 2024-12-31
+  dlaczego: "" # jaka decyzja albo praca zależy od odpowiedzi
+  dobra_odpowiedz: "" # po czym poznasz, że wynik jest KOMPLETNY, a nie tylko niepusty
+  wymaga_od_kanalu: [filtr_po_dacie] # wypełniane przy porównaniu kanałów (ADR-0004)
+
+- id: przyklad-przepis
+  cel: przepis
+  pytanie: ""
+  kryteria:
+    przepis: "" # postać ze słownika Pzp; `Art` jest wrażliwy na format (5.2)
+  dlaczego: ""
+  dobra_odpowiedz: ""
+  wymaga_od_kanalu: [filtr_po_przepisie]
+
+- id: przyklad-fraza-w-uzasadnieniu
+  cel: fraza
+  pytanie: ""
+  kryteria:
+    fraza: ""
+    szukaj_w_tresci: true # pomiar 11: co indeksuje „Hasło", a co dokłada „w treści"
+  dlaczego: ""
+  dobra_odpowiedz: ""
+  wymaga_od_kanalu: [wyszukiwanie_w_tresci]

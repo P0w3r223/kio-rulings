@@ -40,9 +40,15 @@ jest zakreślona domeną `www.gov.pl` i tej domeny nie obejmuje.
 Art. 39 ust. 2 pozwala, żeby wniosek dotyczył udostępniania „w sposób stały i bezpośredni
 w czasie rzeczywistym". To jest przepis, na którym stoi cały postulat techniczny poniżej.
 
-**Zastrzeżenie.** To jest odczyt przepisu, nie opinia prawna. Przed wysłaniem warto pokazać
-pismo prawnikowi razem z pytaniami z `pytania_do_prawnika.md` — zwłaszcza pytaniem 1, bo
-odpowiedź UZP może określić warunki, a te będą wiązać.
+**Zastrzeżenie.** To jest odczyt przepisu, nie opinia prawna.
+
+**Kolejność wobec prawnika — rozstrzygnięte 2026-09-17.** To pismo **nie czeka** na odpowiedź
+prawnika; idzie równolegle z pytaniami z `pytania_do_prawnika.md`, w których pytanie 1 jest
+wydzielone jako pilne. Zdanie „przed wysłaniem warto pokazać pismo prawnikowi", które stało tu
+do 2026-09-17, ustawiało na ścieżce krytycznej pozycję o koszcie tygodni przed pozycją o koszcie
+14 dni — czyli najdroższy możliwy układ harmonogramu, ten sam, przed którym ostrzega
+`docs/pomiary.md`. Świadomie przyjęte ryzyko: jeżeli warunki określone przez Urząd w odpowiedzi
+będą wiązać wstecz, dowiemy się o tym po złożeniu wniosku.
 
 ---
 

@@ -1,0 +1,163 @@
+# Kontrakt kanału `atlas` — jedyne miejsce, z którego `channel.py` bierze adresy i nazwy pól
+# (reguła 17; strażnikiem jest skan reguły 22 w `tests/test_boundaries.py`). Każde oczekiwanie
+# niesie własne `zrodlo` z datą, bo „dokumentacja dostawcy" i „własny odczyt z datą" to dwa
+# różne statusy dowodowe i ich niezgodność znaczy co innego (zasada 7.1 audytu).
+#
+# Pola `role:` i `pomiary:` czytają strażniki bez parsera YAML (`role_zadeklarowane`
+# w `test_boundaries.py`, `pomiary_zadeklarowane` w `test_bramki_faz.py`): lista w nawiasie,
+# w jednej linii, bez komentarza w tej linii. Pisownia wielolinijkowa daje im zbiór pusty,
+# czyli zamkniętą bramkę.
+
+kanal: atlas
+role: [masowa]
+pomiary: [3a, 23]
+
+licencja:
+  nazwa: CC BY 4.0
+  atrybucja: "Źródło: Atlas Przetargów (https://atlasprzetargow.pl)"
+  zrodlo: >-
+    odczytane u dostawcy 2026-09-18 ze strony https://atlasprzetargow.pl/dokumentacja-api
+    („Ostatnia aktualizacja: 10 września 2026"), SHA-256 strony
+    79b1e0562002cc37edbd19fdc0b88b89b5da9e2d98a3635b4316b3d60d497f48 — pomiar 23
+    w `docs/decisions.md`. Licencja dotyczy opracowania Atlasu; dane źródłowe strona nazywa
+    informacją publiczną — rozróżnienie zapisane, nie rozstrzygnięte (nie jest to opinia prawna)
+
+# ADR-0001 2.2: slug jest sygnaturą główną małymi literami (`kio-1205-20` ↔ `KIO 1205/20`),
+# alfabet `[a-z0-9-]`, 9–11 znaków, 100 na 100 rekordów pomiaru 3a. Dwie pisownie dałyby dwa
+# klucze główne na jeden dokument — minę 1 z CEIDG — więc `doc_id` sprowadza referencję do
+# małych liter. Adres dokumentu dostaje slug tak, jak przyszedł.
+ref_case: lower
+
+baza: https://atlasprzetargow.pl
+punkty:
+  lista: /api/kio
+  # Slug doklejany jako ostatni segment ścieżki, po kontroli `httpclient.powod_odrzucenia_segmentu`
+  # (slug `..` szedł do serwisu jako `GET /api` — znalezisko testera 2026-09-18).
+  dokument: /api/kio
+  zrodlo: >-
+    dokumentacja Atlasu odczytana 2026-09-18; oba punkty wywołane własnym klientem 2026-09-18
+    (pomiar 3a, `sonda-20260918T103525Z`, 2 żądania, oba 200)
+
+parametry_listy:
+  od: date_from
+  do: date_to
+  sortowanie: sort
+  sortowanie_wartosc: oldest
+  strona: page
+  na_strone: per_page
+  # Pole kryteriów (`criteria.py`, nasza nazwa) → parametr listy Atlasu. Jedyne miejsce tego
+  # mapowania (reguła 22): `criteria.py` nie zna nazw parametrów serwisu, a `Scope.filtry`
+  # niesie klucze z lewej kolumny. Filtr, którego tu nie ma, potok odrzuca przed pierwszym
+  # żądaniem — nie wysyła go pod zgadywaną nazwą.
+  filtry:
+    fraza: search
+    rozstrzygniecie: outcome
+    rodzaj: ruling_kind
+    przepis: law_article
+    przewodniczacy: chairperson
+    strona: party
+  zrodlo: >-
+    dokumentacja Atlasu odczytana 2026-09-18; `per_page`, `page` i `sort=oldest` wywołane
+    własnym klientem 2026-09-18 (pomiar 3a). `date_from`/`date_to` pochodzą z dokumentacji
+    i własnego wywołania jeszcze nie miały — pierwszy przebieg jest ich pomiarem, a `ruling_date`
+    bywa w Atlasie błędne (9 ze 100 rekordów), więc filtr po dacie może gubić dokumenty
+    z pomyloną datą; to jest cena zapisana, nie ukryta. Filtry `search`, `outcome`,
+    `ruling_kind`, `law_article`, `chairperson`, `party` z tej samej dokumentacji (lista
+    w ADR-0004 §4, kolumna zdolności, odczyt 2026-09-18); żaden nie miał własnego wywołania,
+    a semantyka `search` (metadane czy treść — mina 2 audytu) jest niezmierzona: pierwszy
+    przebieg z filtrem jest jego pomiarem
+
+tempo:
+  # Odstęp 1,0 s jak w sondzie (`zadanie.ODSTEP_POSREDNIK_S`). Pośrednik publikuje limity, więc
+  # okna są tu uzasadnione — ale zawężone poniżej publikowanych, bo limit jest nakładany na adres
+  # IP i zużywa go także ruch spoza limitera (sonda, ręczne wywołanie, druga maszyna); rezerwę na
+  # to niesie też `RateLimiter.note_budget` z nagłówków niżej.
+  odstep_s: 1.0
+  okna:
+    - {limit: 450, sekund: 60}
+    - {limit: 1400, sekund: 86400}
+  naglowki_budzetu:
+    limit: X-RateLimit-Limit
+    pozostalo: X-RateLimit-Remaining
+    reset: X-RateLimit-Reset
+  klucz_api:
+    naglowek: X-Api-Key
+    zmienna: KIO_TOOL_ATLAS_KEY
+  zrodlo: >-
+    dokumentacja Atlasu odczytana 2026-09-18: 1500 żądań/dobę/IP bez klucza (5000 z kontem),
+    500/min/IP, nagłówki `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`,
+    klucz `X-Api-Key` opcjonalny. Wartości nagłówków nikt tu jeszcze nie odczytał (sonda
+    zapisuje treść, nie nagłówki — `## Pomiar 3a`), więc postać `X-RateLimit-Reset` (znacznik
+    epoch czy sekundy do resetu) jest niezmierzona; adapter czyta obie i mówi o tym
+    w `channel.py` (`PROG_EPOCH`)
+
+strony:
+  na_strone: 100
+  # 29 580 dokumentów / 100 = 296 stron (`total`, zmierzone 2026-09-18). Twardy limit z zapasem
+  # na dopływ; przekroczenie znaczy, że `has_more` nigdy nie zgasło — to pętla, nie zbiór.
+  max_stron: 400
+  zrodlo: >-
+    `per_page` maksymalnie 100 z dokumentacji Atlasu (odczyt 2026-09-18); `total` 29 580
+    z własnego odczytu listy 2026-09-18 (pomiar 3a)
+
+ksztalt:
+  lista:
+    klucz: data
+    ma_wiecej: has_more
+    licznik: total
+    rekord:
+      referencja: slug
+      sygnatury: signatures
+      sygnatura_glowna: primary_signature
+      data_wydania: ruling_date
+    zrodlo: >-
+      własny odczyt 2026-09-18 (pomiar 3a): `tests/examples/atlas/lista_20260918T103525Z.json`,
+      SHA-256 0034a634ca2c98f94dbd0cb68ef3aba2ad16abfa27ed5f1485953e01470feec0 — korzeń `data`
+      (100 rekordów), `has_more: true`, `total: 29580`; rekord listy ma 23 pola, w tym `slug`,
+      `primary_signature`, `signatures` (lista, pierwszy element równy `primary_signature`),
+      `ruling_date`. `ruling_date` bywa błędne (9 ze 100) i zapisuje się tak, jak przyszło
+      (reguła 19, ADR-0005 Z-5)
+  dokument:
+    pola_wymagane: [slug, primary_signature]
+    pole_tresci: full_text
+    # Pola metadanych rekordu dokumentu — nasza nazwa → nazwa u dostawcy. Czyta je
+    # `parser/details.py` przez `MapaPol` zbudowaną w `pipeline` z tego kontraktu; `store.py`
+    # nie zna żadnej z tych nazw. Pola opracowania Atlasu (`related_by_entity`,
+    # `similar_rulings`, `cited_by`, `cites`, `related_tenders`) i pola odrzucone (`thesis*`)
+    # celowo nie mają tu wiersza — nie wchodzą do tabel pochodnych ani do eksportu.
+    pola_metadanych:
+      sygnatura_glowna: primary_signature
+      sygnatury: signatures
+      data_wydania: ruling_date
+      data_rozprawy: hearing_date
+      rodzaj: ruling_kind
+      rozstrzygniecie: outcome
+      rozstrzygniecie_surowe: outcome_raw
+      przewodniczacy: chairperson
+      odwolujacy: appellant_raw
+      zamawiajacy: procuring_entity_raw
+      przepisy: law_articles
+      koszty: costs_total
+      url_zrodla: source_url
+    zrodlo: >-
+      własny odczyt 2026-09-18 (pomiar 3a): `tests/examples/atlas/dokument_20260918T103526Z.json`,
+      SHA-256 d29338bd88146731dc2e06271a407cecf595e5b616ea4bc7d88055faab5c574e — 34 pola,
+      najdłuższe pole tekstowe `full_text` (3 021 znaków); pola metadanych odczytane z tego
+      samego dokumentu i ze stu rekordów listy (`law_articles` lista napisów, `costs_total`
+      liczba albo null, `outcome_raw` bywa null)
+
+# Reguła 19 w brzmieniu ADR-0005 Z-5: surowe bajty zapisują się w całości (`raw_versions`),
+# a pole o nieznanym pochodzeniu nie wchodzi do tabel pochodnych, wyszukiwania ani eksportu —
+# `Candidate` w `source/protocol.py` nie ma na nie miejsca. Parametr `with_thesis` z dokumentacji
+# jest filtrem listy o niezmierzonej semantyce: nie wiadomo, czy „bez tezy" znaczy „bez pola",
+# czy „bez dokumentów, które tezę mają" — adapter go nie wysyła, żeby nie zgubić dokumentów.
+pola_odrzucone:
+  - pole: thesis
+    powod: >-
+      pochodzenie nieznane — dokumentacja Atlasu (odczyt 2026-09-18) nie mówi, czy teza jest
+      opracowaniem redakcyjnym, czy tekstem od modelu; w dokumencie z pomiaru 3a pole jest `null`
+    data: 2026-09-18
+  - pole: thesis_snippet
+    powod: >-
+      skrót pola `thesis` — to samo nieznane pochodzenie, obecne w rekordzie listy i dokumentu
+    data: 2026-09-18

@@ -1,0 +1,27 @@
+{
+  "zrodlo": "GET https://atlasprzetargow.pl/api/kio?per_page=100&page=1&sort=oldest, zmierzone 2026-09-18, sonda-20260918T103525Z, poziom anonimowy",
+  "przejrzany": "2026-09-18 — odczyt pól i pierwszego rekordu okiem przed zapisem; uwaga: ruling_date pierwszego rekordu (2004-01-29) niezgodne z treścią dokumentu (16 czerwca 2020 r.)",
+  "sha256": "0034a634ca2c98f94dbd0cb68ef3aba2ad16abfa27ed5f1485953e01470feec0",
+  "klucz_listy": "data",
+  "rekordow": 100,
+  "has_more": true,
+  "page": 1,
+  "per_page": 100,
+  "total": 29580,
+  "pola_rekordu": [
+    "appellant_raw", "bzp_numbers", "chairperson", "cited_rulings", "costs_total", "hearing_date",
+    "law_articles", "outcome", "outcome_raw", "panel", "primary_signature", "procuring_entity_raw",
+    "protocolant", "ruling_date", "ruling_kind", "signatures", "slug", "source_url", "subject",
+    "ted_numbers", "tender_id", "thesis_snippet", "url"
+  ],
+  "pierwszy": {
+    "slug": "kio-1205-20",
+    "primary_signature": "KIO 1205/20",
+    "signatures": ["KIO 1205/20"],
+    "ruling_date": "2004-01-29",
+    "ruling_kind": "postanowienie"
+  },
+  "ostatni_slug": "kio-2344-10",
+  "sygnatur_wielokrotnych": {"2": 6, "3": 1},
+  "sufiksy_sygnatur": {"10": 91, "17": 4, "20": 5}
+}

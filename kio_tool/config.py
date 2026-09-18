@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
+
+from platformdirs import user_data_dir
 
 from . import __version__
 from .errors import ConfigError
@@ -22,10 +25,13 @@ UZP_HOSTS = frozenset({"orzeczenia.uzp.gov.pl"})
 ATLAS_HOSTS = frozenset({"atlasprzetargow.pl"})
 SAOS_HOSTS = frozenset({"www.saos.org.pl"})
 
-# Suma zbiorów jako wartość domyślna: wywołanie bez argumentu ma pozostać bezpieczne, a nie
-# wygodne. Sondy fazy 0 dotykają wszystkich trzech hostów i to jest jedyne uzasadnione użycie
-# tej wartości; każdy adapter podaje swój zbiór jawnie.
-ALLOWED_HOSTS = UZP_HOSTS | ATLAS_HOSTS | SAOS_HOSTS
+# Sumy tych zbiorów **nie ma** i to jest rozstrzygnięcie z 2026-09-17, a nie przeoczenie.
+# Do tego dnia stała `ALLOWED_HOSTS` była wartością domyślną `build_http_client(allowed=…)`,
+# a komentarz przy niej twierdził, że używają jej sondy fazy 0. Nie używały: sonda podaje
+# zbiór jawnie przy każdym pomiarze, więc suma nie miała ani jednego wywołującego poza własną
+# sygnaturą — czyli uzasadnienie opisywało użycie nieobecne w drzewie. Kto naprawdę potrzebuje
+# dotknąć dwóch kanałów jednym klientem, składa sumę w miejscu wywołania i wtedy widać ją
+# w przeglądzie kodu.
 
 CONTACT_ENV = "KIO_TOOL_CONTACT"
 
@@ -69,6 +75,62 @@ def user_agent() -> str:
     if contact.startswith("kio-tool/"):
         return contact
     return f"kio-tool/{__version__} ({contact})"
+
+
+# --- baza korpusu ---
+NAZWA_APLIKACJI = "kio-tool"
+PLIK_BAZY = "korpus.sqlite"
+
+
+def default_db_path() -> Path:
+    """Domyślna ścieżka bazy korpusu — w katalogu danych użytkownika, **poza repozytorium**.
+
+    Powód stoi w `.gitignore` i nie jest rozmiarowy: orzeczenia niosą pełne nazwiska składu
+    orzekającego i protokolantów (audyt 3.3), a operator narzędzia jest dla nich administratorem
+    danych. Repozytorium przechowuje kod i dowody, nie korpus — więc domyślna ścieżka nie ma prawa
+    wskazywać do drzewa źródłowego, nawet gdy wzorzec `*.sqlite` w `.gitignore` by ją ukrył.
+    Operator podaje inną flagą `--baza`.
+    """
+    return Path(user_data_dir(NAZWA_APLIKACJI)) / PLIK_BAZY
+
+
+KATALOG_WYNIKOW = "wyniki"
+
+
+def default_output_dir() -> Path:
+    """Domyślny katalog eksportów — obok bazy, z tego samego powodu poza repozytorium:
+    arkusz niesie te same nazwiska składu, co korpus. Operator podaje inną flagą `--out`."""
+    return Path(user_data_dir(NAZWA_APLIKACJI)) / KATALOG_WYNIKOW
+
+
+# Znaki niedozwolone w nazwie pliku na Windowsie i w POSIX-ie razem, plus białe znaki — nazwa
+# powstaje z kryteriów operatora (`describe()`), czyli z tekstu, który ktoś wpisał.
+_FILENAME_FORBIDDEN = re.compile(r'[<>:"/\\|?*\x00-\x1f\s]+')
+MAX_FILENAME_STEM = 80
+"""Ścieżka w katalogu danych użytkownika ma już kilkadziesiąt znaków; limit 260 na Windowsie
+liczy się od korzenia (wzorzec z `ceidg-tool`)."""
+
+
+def safe_filename(stem: str, suffix: str = "") -> str:
+    """Nazwa pliku bez znaków ścieżki, o ograniczonej długości; pusty rdzeń daje `kio`."""
+    cleaned = _FILENAME_FORBIDDEN.sub("_", stem).strip("_.")
+    cleaned = re.sub(r"_+", "_", cleaned) or NAZWA_APLIKACJI.split("-")[0]
+    return cleaned[:MAX_FILENAME_STEM] + suffix
+
+
+def klucz_api(zmienna: str) -> str | None:
+    """Klucz API z podanej zmiennej środowiskowej, zgłoszony do maskowania; `None`, gdy brak.
+
+    Nazwa zmiennej przychodzi z `contract.yaml` kanału (dla Atlasu `KIO_TOOL_ATLAS_KEY`), bo
+    klucz jest sprawą kanału, a nie narzędzia. Jedno miejsce, które klucz wczytuje, woła
+    `register_secret` — tak mówi docstring tamtej funkcji — i odmawia przy kluczu za krótkim
+    do zamaskowania, zanim ten trafi do jakiegokolwiek nagłówka.
+    """
+    wartosc = (os.environ.get(zmienna) or "").strip()
+    if not wartosc:
+        return None
+    register_secret(wartosc)
+    return wartosc
 
 
 # --- maskowanie sekretów ---

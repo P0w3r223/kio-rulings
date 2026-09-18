@@ -106,11 +106,18 @@ class LimiterStalledError(ResumableError):
 
 @dataclass(frozen=True)
 class RequestStamp:
-    """Jedno żądanie w historii: czas ścienny (epoch), punkt końcowy, status (None = w toku)."""
+    """Jedno żądanie w historii: czas ścienny (epoch), punkt końcowy, status (None = w toku).
+
+    `retry_after_s` to prośba serwisu z nagłówka `Retry-After` przy tym żądaniu — od 2026-09-18
+    część znacznika, nie tylko pamięci procesu. Znalezisko testera: `requests_log` pamiętało sam
+    fakt „tu było 429", więc przebieg wznowiony po odmowie z `Retry-After: 300` ruszał po własnej
+    blokadzie 60 s — pięć razy wcześniej, niż serwis prosił, dokładnie po tym, jak odmówił.
+    """
 
     ts_epoch: float
     endpoint: str
     status: int | None = None
+    retry_after_s: float | None = None
 
 
 class RequestHistory(Protocol):
@@ -124,7 +131,7 @@ class RequestHistory(Protocol):
 
     def record(self, ts_epoch: float, endpoint: str) -> None: ...
 
-    def mark(self, ts_epoch: float, status: int) -> None: ...
+    def mark(self, ts_epoch: float, status: int, retry_after_s: float | None = None) -> None: ...
 
 
 class InMemoryHistory:
@@ -139,10 +146,12 @@ class InMemoryHistory:
     def record(self, ts_epoch: float, endpoint: str) -> None:
         self._items.append(RequestStamp(ts_epoch, endpoint))
 
-    def mark(self, ts_epoch: float, status: int) -> None:
+    def mark(self, ts_epoch: float, status: int, retry_after_s: float | None = None) -> None:
         for i in range(len(self._items) - 1, -1, -1):
             if self._items[i].ts_epoch == ts_epoch:
-                self._items[i] = RequestStamp(ts_epoch, self._items[i].endpoint, status)
+                self._items[i] = RequestStamp(
+                    ts_epoch, self._items[i].endpoint, status, retry_after_s
+                )
                 return
 
     def __len__(self) -> int:
@@ -277,7 +286,7 @@ class RateLimiter:
         warunków (architektura 4.7).
         """
         if self._last_attempt_wall is not None:
-            self._history.mark(self._last_attempt_wall, status)
+            self._history.mark(self._last_attempt_wall, status, retry_after_s)
         if self._own:
             mono, wall, _ = self._own[-1]
             self._own[-1] = (mono, wall, status)
@@ -336,18 +345,20 @@ class RateLimiter:
 
         # Znaczniki cudze (inny proces) z historii przeliczamy do dziedziny monotonicznej;
         # „przyszłe" (skok zegara) pomijamy. Własne bierzemy wprost z pamięci procesu.
-        history_mono: list[tuple[float, int | None]] = [
-            (max(0.0, mono_now - (wall_now - s.ts_epoch)), s.status)
+        history_mono: list[tuple[float, int | None, float | None]] = [
+            (max(0.0, mono_now - (wall_now - s.ts_epoch)), s.status, s.retry_after_s)
             for s in self._history.recent(since)
             if s.ts_epoch <= wall_now and s.ts_epoch not in own_walls
         ]
-        history_mono.extend((mono, status) for mono, _, status in self._own)
-        history_mono.sort(key=lambda pair: pair[0])
+        # Własne znaczniki nie niosą `Retry-After`: dla nich blokadę ustawił już `note_response`
+        # w `_blocked_until_mono`; nagłówek z historii cudzej (poprzedni proces) idzie niżej.
+        history_mono.extend((mono, status, None) for mono, _, status in self._own)
+        history_mono.sort(key=lambda trojka: trojka[0])
 
         earliest = mono_now
         reason = ""
 
-        last_mono = max((t for t, _ in history_mono), default=None)
+        last_mono = max((t for t, _, _ in history_mono), default=None)
         if self._last_attempt_mono is not None:
             last_mono = (
                 self._last_attempt_mono
@@ -381,16 +392,18 @@ class RateLimiter:
             # „wypuść": czekanie o nanosekundę za długo nie widzi nikt, a wysłanie o jedno
             # żądanie za dużo widzi cudzy serwer.
             margines = span * _MARGINES_OKNA_WZGLEDNY
-            in_window = [t for t, _ in history_mono if t > mono_now - span - margines]
+            in_window = [t for t, _, _ in history_mono if t > mono_now - span - margines]
             if len(in_window) >= limit:
                 candidate = in_window[-limit] + span + margines
                 if candidate > earliest:
                     earliest, reason = candidate, REASON_WINDOW
 
         blocked = self._blocked_until_mono
-        for t, status in history_mono:
+        for t, status, retry_after_s in history_mono:
             if status == 429:
-                candidate = t + self._cooldown_s
+                # Prośba serwisu z historii honorowana tak samo jak w procesie, w którym przyszła
+                # (`note_response`): dłuższa z dwóch — własnej blokady i `Retry-After`.
+                candidate = t + max(self._cooldown_s, retry_after_s or 0.0)
                 blocked = candidate if blocked is None else max(blocked, candidate)
         if blocked is not None and blocked > earliest:
             earliest, reason = blocked, REASON_COOLDOWN

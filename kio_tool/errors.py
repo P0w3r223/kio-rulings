@@ -1,7 +1,8 @@
 """Taksonomia wyjątków narzędzia.
 
 Kody wyjścia: 1 = błąd nieodwracalny w tym uruchomieniu, 2 = błąd wznawialny
-(harmonogram może ponowić), 3 = błąd konfiguracji lub autoryzacji.
+(harmonogram może ponowić), 3 = błąd konfiguracji lub autoryzacji, 130 = przerwanie przez
+operatora (konwencja powłoki dla sygnału przerwania; stała `KOD_WYJSCIA_PRZERWANIE`).
 
 Kształt przeniesiony z `ceidg-tool`; treść jest własna, bo wrogie zdarzenia są tu inne.
 Najważniejsza różnica to `SourceContractBroken` — w CEIDG nie miała odpowiednika, bo tam
@@ -9,6 +10,10 @@ Najważniejsza różnica to `SourceContractBroken` — w CEIDG nie miała odpowi
 """
 
 from __future__ import annotations
+
+KOD_WYJSCIA_PRZERWANIE = 130
+"""Kod powłoki dla przebiegu przerwanego `Ctrl+C`. Jedno miejsce, bo `cli` i sonda mają mówić
+powłoce to samo — a przerwany przebieg nie jest ani błędem konfiguracji, ani błędem kodu."""
 
 
 class KioError(Exception):
@@ -119,6 +124,17 @@ class StoreLockedError(StoreError):
     """Inny proces pisze do tego samego korpusu."""
 
 
+class RunNotFoundError(StoreError):
+    """Nie ma przebiegu o podanym identyfikatorze — pomyłka w wywołaniu, nie awaria bazy.
+
+    Identyfikator jest napisem przepisywanym z ekranu (`atlas-969ac406dd8f`), więc literówka
+    jest pomyłką spodziewaną, nie wyjątkową: kod 3 jak przy złej fladze, a zdanie ma mówić,
+    skąd wziąć poprawny identyfikator (tester 2026-09-18: kod 1 i zero wskazówki).
+    """
+
+    exit_code = 3
+
+
 class ResumableError(KioError):
     """Błąd, po którym warto wznowić przebieg."""
 
@@ -139,3 +155,12 @@ class RateLimitError(ResumableError):
 
 class ExportError(KioError):
     """Nie da się zapisać wyniku (np. przekroczony limit wierszy arkusza)."""
+
+
+class ParseError(KioError):
+    """Surowa wersja dokumentu nie daje się odczytać do metadanych i treści.
+
+    Surowe bajty są już w `raw_versions` (reguła 19: zapis przed parsowaniem), więc ten błąd
+    nie gubi niczego — mówi, że tabele pochodne dla tej wersji nie powstały, i ma być
+    **policzony** w raporcie `przelicz`, a nie przemilczany.
+    """

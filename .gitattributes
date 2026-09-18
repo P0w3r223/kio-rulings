@@ -1,0 +1,9 @@
+# Jedno zakończenie wiersza w repozytorium: LF. Dopisane 2026-09-18 po przeglądzie kodu —
+# `core.autocrlf=false` i mieszanka CRLF/LF sprawiały, że `git diff` pokazywał 2 626 zmienionych
+# linii w pliku, w którym realnych było 42. Pliki Windows (`.bat`, `.cmd`, `.ps1`) zostają CRLF.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sqlite binary
+*.xlsx binary

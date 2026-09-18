@@ -14,6 +14,30 @@ wykonuje masowo. Pytania 1–3 są pilne w tym sensie; pytanie 4 dotyczy fazy 4 
 ale jego odpowiedź wpływa na to, co wolno napisać w opisie przeznaczenia narzędzia — a ten
 ma powstać **przed** warstwą modelu, nie po niej.
 
+### Które pytanie blokuje co (rozstrzygnięcie właściciela, 2026-09-17)
+
+Cztery pytania nie mają jednej wagi czasowej i warto, żeby prawnik o tym wiedział przy
+układaniu własnej kolejki:
+
+| Pytanie | Co blokuje | Kiedy potrzebna odpowiedź |
+|---|---|---|
+| **1** — czy wniosek z art. 39 czegoś nie przesądza | nic nie zatrzymuje; wniosek idzie **równolegle** | im wcześniej, tym lepiej — odpowiedź może zmienić sposób pobierania w okresie oczekiwania na decyzję Urzędu |
+| **2** — bazy *sui generis* | wejście do **fazy 1**; wejście bramki fazy 0 **tylko** w gałęzi, w której pomiary 2a i 3a wypadną negatywnie | przed pierwszym przebiegiem masowym |
+| **3** — obowiązki administratora danych | fazę 1 (kształt magazynu i eksportu) | przed pierwszym zapisem korpusu |
+| **4** — AI Act | fazę 4 | przed warstwą modelu |
+
+Trzy dokumenty tego projektu mówiły o kolejności pism trzy różne rzeczy: `docs/pomiary.md`
+nazywał je „niezależnymi od siebie nawzajem", `ARCHITEKTURA_KIO_TOOL.md` decyzja 2 ustawiała
+prawnika **przed** wnioskiem, a sam projekt wniosku radził pokazać pismo prawnikowi przed
+wysłaniem. Różnica między pierwszym a drugim odczytem to ~14 dni wobec ~3 miesięcy ścieżki
+krytycznej. Właściciel rozstrzygnął 2026-09-17: **wniosek idzie równolegle**, a pytanie 1
+zostaje wydzielone jako pilne, bo dotyczy pisma, które już leży gotowe.
+
+Świadomie przyjęte ryzyko tego rozstrzygnięcia: jeżeli odpowiedź na pytanie 1 wypadnie tak, że
+warunki określone przez Urząd wiążą wstecz, dowiemy się o tym **po** złożeniu wniosku. Cena
+ostrożności była wyższa — dwa i pół miesiąca zatrzymania pozycji, której kosztem jest cudzy
+kalendarz, a nie nasza praca.
+
 Każde pytanie ma trzy części: co ustaliliśmy sami i skąd, czego nie wiemy, i jaka decyzja
 projektowa od odpowiedzi zależy. Ostatnia część jest najważniejsza — bez niej prawnik nie wie,
 która z możliwych odpowiedzi jest dla nas kosztowna.
@@ -67,6 +91,12 @@ warunków); i czy warunki określone przez Urząd w odpowiedzi będą wiązać w
 
 **Od czego to zależy decyzyjnie.** Czy wysyłamy wniosek **przed** pierwszym pobraniem, czy
 równolegle. Projekt pisma: `docs/pisma/wniosek_uzp_art39.md`.
+
+**Stan na 2026-09-17: wniosek idzie równolegle, przed odpowiedzią na to pytanie** (decyzja
+właściciela). Odpowiedź jest więc potrzebna nie po to, żeby zdecydować o wysłaniu, tylko po to,
+żeby wiedzieć, **czy w okresie oczekiwania na decyzję Urzędu wolno pobierać istniejącymi
+środkami** — a ten okres to 14 dni ustawowo, do 2 miesięcy przy zawiadomieniu. To jest pytanie
+o teraz, nie o później.
 
 ## Pytanie 2 — ochrona baz danych *sui generis* wobec ustawowego prawa reużycia
 

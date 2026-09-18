@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 import pytest
+import yaml
 
 from kio_tool.docid import normalize_source_name
 from kio_tool.errors import IdentityError
@@ -173,8 +174,9 @@ def test_skan_importow_widzi_obie_pisownie_tej_samej_zaleznosci(
 
 # Reguła 1 po poprawce z ADR-0003 sekcja 4: lista modułów czystych spoza `parser/` jest
 # wyliczona wprost, a `parser/` wchodzi w całości i rekursywnie. `config.py` do listy
-# **nie** należy — importuje `os` i ma do tego powód (`CONTACT_ENV`).
-MODULY_CZYSTE_WPROST = ("docid.py", "safetext.py")
+# **nie** należy — importuje `os` i ma do tego powód (`CONTACT_ENV`). `criteria.py` doszedł
+# 2026-09-18 (etap IV) — reguła 1 wymienia go z nazwy od pierwszego brzmienia.
+MODULY_CZYSTE_WPROST = ("criteria.py", "docid.py", "safetext.py")
 
 # Reguła 1: moduł czysty nie zna wejścia/wyjścia ani systemu.
 ZAKAZANE_REGULA_1 = frozenset({"httpx", "sqlite3", "openpyxl", "rich", "os"})
@@ -258,6 +260,71 @@ def pliki_pakietu() -> tuple[Path, ...]:
     return moduly_py(PAKIET)
 
 
+ROLE_KANALU = frozenset({"masowa", "weryfikacja", "doplyw"})
+"""Zamknięta lista ról z reguły 23. Rola spoza listy jest błędem, nie rozszerzeniem."""
+
+ROLA_ZAKAZANA_DLA = {"uzp": "masowa"}
+"""Dostawca → rola, której nie wolno zadeklarować kanałowi tego dostawcy (reguła 23, decyzja B
+właściciela 2026-09-17).
+
+Jeden wpis i to nie jest niedopatrzenie. Powód jest **per dostawca i zmierzony**: pomiar 14
+(2026-09-15) wykazał, że dla `orzeczenia.uzp.gov.pl` nie ma warunków ponownego wykorzystywania
+ani informacji o ich braku, a projekt zrezygnował z opinii prawnej (decyzja A). Kanał, który
+reuse licencjonuje wprost, rolę masową mieć może — zakaz ogólny byłby regułą bez powodu.
+
+Klucz jest **przedrostkiem nazwy katalogu**, nie pełną nazwą (przegląd kodu 2026-09-18): decyzja
+B mówi o dostawcy, a tabela ADR-0004 zna drugi kanał tego samego dostawcy, `uzp_zrzut` — odpadł
+decyzją A, ale gdyby kiedyś powstał z `role: [masowa]`, dopasowanie po pełnej nazwie przepuściłoby
+go bez jednego czerwonego testu. Dopasowanie po hoście z kontraktu przyjdzie z pierwszym
+`contract.yaml`, który hosty nazywa. Tablica, a nie napis w teście, bo drugi dostawca bez
+licencji trafi tutaj razem ze swoją datą.
+"""
+
+
+def rola_zakazana(kanal: str) -> str:
+    """Rola zakazana dla kanału: nazwa równa kluczowi albo zaczynająca się od `<klucz>_`."""
+    for dostawca, rola in ROLA_ZAKAZANA_DLA.items():
+        if kanal == dostawca or kanal.startswith(f"{dostawca}_"):
+            return rola
+    return ""
+
+
+def contract_yaml_kanalow() -> dict[str, Path]:
+    """Kanał → jego `contract.yaml`, o ile istnieje. Przy pustym `source/` pusty słownik."""
+    if not SOURCE.is_dir():
+        return {}
+    return {
+        katalog.name: katalog / "contract.yaml"
+        for katalog in sorted(SOURCE.iterdir())
+        if katalog.is_dir()
+        and katalog.name != "__pycache__"
+        and (katalog / "contract.yaml").is_file()
+    }
+
+
+def role_zadeklarowane(contract: Path) -> frozenset[str]:
+    """Role z pola `role:` kontraktu — odczyt tekstowy, bez zależności od parsera YAML.
+
+    Kontrakt jest dziś plikiem, którego nikt nie napisał, a `pyproject.toml` nie ma zależności
+    od biblioteki YAML: wybór parsera jest odroczony do pierwszego prawdziwego `contract.yaml`
+    (reguła 17). Skan czyta więc linię `role:` i wartości w postaci listy w nawiasie
+    kwadratowym albo po przecinku — węziej niż YAML, ale bez udawania, że rozumie cały format.
+    Kontrakt, którego ten odczyt nie zrozumie, daje zbiór pusty i zapala regułę jako brak `role`.
+    """
+    for linia in contract.read_text(encoding="utf-8").splitlines():
+        if not linia.startswith("role:"):
+            continue
+        # Komentarz po `#` odcięty (przegląd kodu 2026-09-18): `role: [masowa]  # …` dawał zbiór
+        # `{"masowa]  # …"}`, więc zakaz z decyzji B nie trafiał, a suita zostawała czerwona tylko
+        # ubocznie — przez test zamkniętej listy, z innym komunikatem. Ten sam odczyt co
+        # `pomiary_zadeklarowane` w `test_bramki_faz.py`.
+        wartosc = linia.removeprefix("role:").split("#", 1)[0].strip().strip("[]")
+        return frozenset(
+            czesc.strip().strip("\"'") for czesc in wartosc.split(",") if czesc.strip()
+        )
+    return frozenset()
+
+
 def pliki_ui() -> tuple[Path, ...]:
     return moduly_py(PAKIET / "ui")
 
@@ -307,10 +374,10 @@ def test_regula_4_kanaly_i_baza_nie_rysuja() -> None:
 def test_regula_5_tylko_pipeline_widzi_naraz_siec_i_baze() -> None:
     """Reguła 5 — ta, na której stoi wznawianie.
 
-    Zawieranie, a nie równość, i to z tego samego powodu co w ADR-0003 5.4: `pipeline.py`
-    jeszcze nie istnieje, więc równość byłaby czerwona od pierwszego uruchomienia. Przejdzie
-    w równość razem z fazą 1; do tego czasu pilnuje tego, co pilnować można — że drugiego
-    takiego modułu nie ma.
+    Równość, nie zawieranie — od etapu III (2026-09-18), kiedy `pipeline.py` powstał. Do tego
+    dnia stało tu zawieranie z powodu z ADR-0003 5.4: równość byłaby czerwona przy pustym
+    drzewie. Teraz pilnuje obu kierunków: że drugiego takiego modułu nie ma **i** że ten jeden
+    nadal łączy sieć z bazą — gdyby przestał, wznawianie działoby się gdzie indziej albo nigdzie.
     """
     obaj = {
         path.relative_to(ROOT).as_posix()
@@ -318,7 +385,7 @@ def test_regula_5_tylko_pipeline_widzi_naraz_siec_i_baze() -> None:
         if {"source", "store"} <= package_targets(path)
     }
 
-    assert obaj <= {"kio_tool/pipeline.py"}, (
+    assert obaj == {"kio_tool/pipeline.py"}, (
         f"drugi moduł łączący sieć z bazą: {sorted(obaj)}. Druga ścieżka od żądania do zapisu "
         "to drugi checkpoint do pogodzenia — a niezmiennik „rekordy strony i checkpoint jedną "
         "transakcją” żyje tylko dopóki wszystko idzie przez `pipeline`."
@@ -398,16 +465,20 @@ def test_regula_7_pytajacy_siedzi_w_jednym_module() -> None:
     assert uzytkownicy("questionary") <= MODULY_QUESTIONARY
 
 
-def test_regula_7_ma_dzis_przynajmniej_jednego_zywego_uzytkownika_rich() -> None:
+def test_regula_7_kazdy_modul_rysujacy_naprawde_zna_rich() -> None:
     """Zawieranie przechodzi także dla zbioru pustego — stąd ta asercja obok.
 
     Bez niej reguła 7 zrobiłaby się zielona przez zniknięcie `richtext.py`, czyli przez
     zdarzenie, które powinno być najgłośniejsze z możliwych. To jest metatest 5.1 punkt 3
-    w miejscu, w którym reguła ma dziś żywego właściciela.
+    w miejscu, w którym reguła ma żywych właścicieli. Do etapu IV (2026-09-18) `rich` znał
+    dokładnie jeden moduł i test asertował `{"richtext.py"}`; z powstaniem `ui/render.py`
+    przeszedł w równość z `MODULY_RICH`, tak jak zapowiadał ADR-0003 5.4 — `console.py` dostał
+    wtedy konsolę z `richtext.make_console`, żeby tabela i wiersz pulsu szły jednym strumieniem.
     """
-    assert uzytkownicy("rich") == {"richtext.py"}, (
-        "Dziś `rich` zna dokładnie jeden moduł. Jeżeli powstał `ui/render.py` albo "
-        "`console.py`, ten test ma zostać zamieniony na równość z `MODULY_RICH` (ADR-0003 5.4)."
+    assert uzytkownicy("rich") == MODULY_RICH, (
+        f"`rich` znają: {sorted(uzytkownicy('rich'))}, a reguła 7 wymienia {sorted(MODULY_RICH)}. "
+        "Moduł z listy, który przestał importować `rich`, jest wpisem martwym; moduł spoza listy "
+        "jest naruszeniem łapanym przez test wyżej."
     )
 
 
@@ -532,8 +603,8 @@ def test_regula_10_do_rich_trafia_wylacznie_napis_zneutralizowany() -> None:
 
     Skan jest składniowy i taki ma być. Jedna zależność, której nie widzi: reguła 9 („`cli.py`
     nie pisze żadnego zdania”) jest warunkiem, przy którym to sprawdzenie da się prowadzić
-    modułami zamiast analizą przepływu przez cały pakiet. Dopóki `cli.py` nie istnieje, reguła
-    9 jest wyzwalaczem w `POZA_SKANEM` — i ma zapalić się w dniu, w którym plik powstanie.
+    modułami zamiast analizą przepływu przez cały pakiet. Reguła 9 ma własny skan niżej
+    (od 2026-09-18, dnia powstania `cli.py`; do tego dnia była wyzwalaczem w `POZA_SKANEM`).
     """
     naruszenia: list[str] = []
     for path in pliki_rich():
@@ -605,6 +676,244 @@ def test_fabryka_ktora_uswieca_napis_jest_sama_skanowana() -> None:
     tak wyglądało znalezisko z przeglądu — dwa razy z rzędu.
     """
     assert FABRYKI_WIDOKU <= TEKSTONOSNE_WYWOLANIA
+
+
+# ------------------------------------------------- reguła 9: `cli.py` nie drukuje niczym sam
+
+
+# `cli.py` nie drukuje **niczym**. `typer.echo` jest w programie na `typer` odruchem pierwszym,
+# a `console.log` odruchem przy szukaniu błędu — skan pilnujący samego `console.print` dałby
+# fałszywe poczucie domknięcia reguły 9. Każdy kanał ekranu z reguły 10 jest tu zakazany
+# (`test_kazdy_kanal_ekranu_z_reguly_10_jest_zakazany_w_cli`). Skan przeniesiony z `ceidg-tool`
+# w dniu powstania `cli.py` (2026-09-18) — do tego dnia reguła 9 stała w `POZA_SKANEM` z uwagą,
+# że „połowiczny skan byłby gorszy niż jego brak"; obie połowy (kanały wyjścia i układanie treści
+# pytań) są tu razem.
+WYWOLANIA_WYJSCIA = TEKSTONOSNE_WYWOLANIA | {"echo", "secho"}
+
+# Korzenie, po których poznajemy zapis wprost do strumienia — także po `from sys import stdout`.
+KORZENIE_STRUMIENI = frozenset({"sys", "stdout", "stderr"})
+
+# Pytania też drukują, ale ich zakazać nie można: przyszłe `typer.prompt(hide_input=True)` musi
+# zostać w `cli.py`, bo tylko ono umie ukryć wpisywany klucz. Reguła 9 zabrania więc nie samego
+# pytania, lecz **ułożenia jego treści** na miejscu.
+WYWOLANIA_PYTAJACE = frozenset({"prompt", "confirm"})
+
+# Słowo kluczowe, którym `typer` przyjmuje zdanie pomocy — też jest zdaniem do użytkownika.
+SLOWO_POMOCY = "help"
+MODUL_TEKSTOW = "texts"
+
+
+def _korzen_odbiorcy(node: ast.Attribute) -> str:
+    """Korzeń łańcucha `sys.stdout.write` — po to, żeby nie mylić go z `path.write_text`.
+
+    Sam `stdout` też jest korzeniem: po `from sys import stdout` łańcuch nie zaczyna się od `sys`.
+    """
+    wartosc: ast.expr = node.value
+    while isinstance(wartosc, ast.Attribute):
+        wartosc = wartosc.value
+    return wartosc.id if isinstance(wartosc, ast.Name) else ""
+
+
+def wywolania_wyjscia(tree: ast.Module) -> list[int]:
+    """Linie, w których moduł drukuje czymkolwiek: `rich`, `print`, `typer.echo`, `sys.stdout`."""
+    linie: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        nazwa = nazwa_wywolania(node)
+        if nazwa == "write":
+            if (
+                isinstance(node.func, ast.Attribute)
+                and _korzen_odbiorcy(node.func) in KORZENIE_STRUMIENI
+            ):
+                linie.append(node.lineno)
+        elif nazwa in WYWOLANIA_WYJSCIA:
+            linie.append(node.lineno)
+    return linie
+
+
+def _ulozony(node: ast.expr) -> bool:
+    """Czy wyrażenie układa napis: f-string, sklejenie, `%` (oba to `BinOp`) albo `.format`."""
+    return isinstance(node, ast.JoinedStr | ast.BinOp) or (
+        isinstance(node, ast.Call) and nazwa_wywolania(node) == "format"
+    )
+
+
+def _nazwy_ulozone(tree: ast.Module) -> set[str]:
+    """Nazwy związane z ułożonym napisem — `linia = f"…"` i dopiero potem `prompt(linia)`.
+
+    Ten sam obchód, którym reguła 10 rozpoznaje nazwy bezpieczne, tylko w drugą stronę:
+    tam szukamy neutralizatora, tu autora zdania.
+    """
+    nazwy: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and _ulozony(node.value):
+            nazwy.update(cel.id for cel in node.targets if isinstance(cel, ast.Name))
+    return nazwy
+
+
+def argumenty_ulozone(tree: ast.Module) -> list[int]:
+    """Argumenty pytań, których treść powstaje na miejscu: f-string, sklejenie, `format`, `%`.
+
+    Przekazanie `texts.X` dalej jest w porządku — to `ui` jest autorem zdania. Dopisanie do
+    niego czegokolwiek w `cli.py` czyni autorem `cli.py`, czyli łamie regułę 9. Także słowa
+    kluczowe: pierwszy parametr `typer.prompt` nazywa się `text`, więc `typer.prompt(text=f"…")`
+    omijało skan patrzący wyłącznie na argumenty pozycyjne (znalezisko z `ceidg-tool`).
+    """
+    ulozone_tu = _nazwy_ulozone(tree)
+    linie: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or nazwa_wywolania(node) not in WYWOLANIA_PYTAJACE:
+            continue
+        kandydaci = [*node.args, *(kw.value for kw in node.keywords)]
+        linie.extend(
+            argument.lineno
+            for argument in kandydaci
+            if _ulozony(argument) or (isinstance(argument, ast.Name) and argument.id in ulozone_tu)
+        )
+    return linie
+
+
+def pomoce_spoza_tekstow(tree: ast.Module) -> list[int]:
+    """Linie, w których `help=` nie jest atrybutem modułu `texts`.
+
+    Zdanie pomocy przy fladze jest zdaniem do użytkownika tak samo jak komunikat — a `typer`
+    przyjmuje je słowem kluczowym, którego żaden skan wywołań wyjścia nie widzi.
+    """
+    linie: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        for kw in node.keywords:
+            if kw.arg != SLOWO_POMOCY:
+                continue
+            wartosc = kw.value
+            if not (
+                isinstance(wartosc, ast.Attribute)
+                and isinstance(wartosc.value, ast.Name)
+                and wartosc.value.id == MODUL_TEKSTOW
+            ):
+                linie.append(wartosc.lineno)
+    return linie
+
+
+def pliki_cli() -> tuple[Path, ...]:
+    return istniejace("kio_tool/cli.py")
+
+
+def _naruszenia_w_cli(skan: Callable[[ast.Module], list[int]]) -> list[str]:
+    return [
+        f"{path.relative_to(ROOT).as_posix()}:{linia}"
+        for path in pliki_cli()
+        for linia in skan(drzewo(path))
+    ]
+
+
+def test_regula_9_cli_nie_drukuje_niczym_sam() -> None:
+    """Reguła 9: `cli.py` nie ma własnego kanału wyjścia — zdania idą przez `ui/texts.py`,
+    a druk przez `console.wypisz`.
+
+    To jest warunek, który czyni regułę 10 sprawdzalną skanem: dopóki `cli.py` drukował sam,
+    „każdy napis z zewnątrz przechodzi przez `safe`” wymagałoby analizy przepływu danych przez
+    cały pakiet. Sprawdzamy wszystkie kanały, nie tylko `rich`: w programie na `typer` pierwszym
+    odruchem jest `typer.echo`, a nie `console.print`.
+    """
+    assert _naruszenia_w_cli(wywolania_wyjscia) == [], "`cli.py` drukuje sam"
+
+
+def test_regula_9_cli_nie_uklada_tresci_pytan() -> None:
+    """Reguła 9 obejmuje też pytania, nie tylko komunikaty (w `ceidg-tool` `_confirm` doklejał
+    w `cli.py` klamrę `[t/N]` do zdania z `texts` — dokładnie to, czego reguła zabrania)."""
+    assert _naruszenia_w_cli(argumenty_ulozone) == [], "`cli.py` układa treść pytania sam"
+
+
+def test_regula_9_pomoc_flag_pochodzi_z_texts() -> None:
+    """Zdanie pomocy przy fladze jest zdaniem do użytkownika — jego autorem jest `ui/texts.py`."""
+    assert _naruszenia_w_cli(pomoce_spoza_tekstow) == [], "`cli.py` pisze pomoc flagi sam"
+
+
+@pytest.mark.parametrize(
+    ("zrodlo", "naruszenia"),
+    [
+        ("wypisz(texts.PRZERWANE)", 0),
+        ("sciezka.write_text(dane, encoding='utf-8')", 0),
+        ("typer.confirm(texts.PYTANIE, default=False)", 0),
+        ('print("cokolwiek")', 1),
+        ("typer.echo(rekord)", 1),
+        ('typer.secho(f"Sygnatura: {sygnatura}")', 1),
+        ("sys.stdout.write(sygnatura)", 1),
+        ("stdout.write(sygnatura)", 1),
+        ("console.log(rekord)", 1),
+        ("console.print(safe(sygnatura))", 1),
+    ],
+    ids=[
+        "wypisz_z_texts",
+        "zapis_do_pliku_nie_jest_drukiem",
+        "pytanie_z_texts",
+        "print",
+        "typer_echo",
+        "typer_secho",
+        "sys_stdout",
+        "stdout_z_importu",
+        "console_log",
+        "console_print_nawet_zneutralizowany",
+    ],
+)
+def test_skan_reguly_9_widzi_kazdy_kanal_wyjscia(zrodlo: str, naruszenia: int) -> None:
+    """`cli.py` ma nie drukować niczym — także `print`, `typer.echo` i `sys.stdout`.
+
+    Ostatni przypadek jest z rozmysłem naruszeniem: w `cli.py` nawet zneutralizowany
+    `console.print` jest zdaniem napisanym poza `ui/texts.py`, czyli złamaniem reguły 9.
+    """
+    assert len(wywolania_wyjscia(ast.parse(zrodlo))) == naruszenia
+
+
+@pytest.mark.parametrize(
+    ("zrodlo", "naruszenia"),
+    [
+        ("typer.prompt(texts.PYTANIE_O_KLUCZ, hide_input=True)", 0),
+        ("typer.confirm(texts.PYTANIE, default=False)", 0),
+        ('typer.prompt(f"{pytanie} [t/N]")', 1),
+        ('typer.confirm(texts.PYTANIE + " (t/n)")', 1),
+        ('typer.prompt("{} [t/N]".format(pytanie))', 1),
+        ('typer.prompt(text=f"{pytanie} [t/N]")', 1),
+        ("linia = f'{p} [t/N]'\ntyper.prompt(linia)", 1),
+    ],
+    ids=[
+        "zdanie_z_texts",
+        "potwierdzenie_z_texts",
+        "f_string",
+        "sklejenie",
+        "format",
+        "slowo_kluczowe_text",
+        "nazwa_zwiazana_wczesniej",
+    ],
+)
+def test_skan_reguly_9_odroznia_przekazanie_zdania_od_ulozenia_go(
+    zrodlo: str, naruszenia: int
+) -> None:
+    """Granica przebiega między „przekazać zdanie z `ui`” a „ułożyć je tutaj”."""
+    assert len(argumenty_ulozone(ast.parse(zrodlo))) == naruszenia
+
+
+@pytest.mark.parametrize(
+    ("zrodlo", "naruszenia"),
+    [
+        ('typer.Option("--od", help=texts.POMOC_OD)', 0),
+        ('typer.Option("--od", help="początek zakresu")', 1),
+        ('typer.Option("--od", help=f"{texts.POMOC_OD} (RRRR-MM-DD)")', 1),
+        ('typer.Option("--od")', 0),
+    ],
+    ids=["z_texts", "wprost", "ulozona_z_texts", "bez_pomocy"],
+)
+def test_skan_reguly_9_widzi_pomoc_flagi_pisana_na_miejscu(zrodlo: str, naruszenia: int) -> None:
+    assert len(pomoce_spoza_tekstow(ast.parse(zrodlo))) == naruszenia
+
+
+def test_kazdy_kanal_ekranu_z_reguly_10_jest_zakazany_w_cli() -> None:
+    """Kanał, który liczy się w regule 10, ma się liczyć i w regule 9 — rozjazd między zbiorami
+    oznaczałby, że jedna reguła łapie `console.log`, a druga nie."""
+    assert TEKSTONOSNE_WYWOLANIA <= WYWOLANIA_WYJSCIA
 
 
 # ----------------------------------------- reguła 11: jeden właściciel na protokół wyjścia
@@ -734,7 +1043,7 @@ def test_regula_11_konstrukt_wyjscia_buduje_wylacznie_jego_wlasciciel() -> None:
 
     `httpx` z `trust_env=True` i bez podanego transportu bierze `HTTPS_PROXY` ze środowiska
     (0.28.1, `_client.py`: `allow_env_proxies = trust_env and transport is None`), więc żądanie
-    wychodzi przez host, którego nikt nie porównał z `ALLOWED_HOSTS`. „Żadne połączenie nie
+    wychodzi przez host, którego nikt nie porównał ze zbiorem `allowed`. „Żadne połączenie nie
     idzie poza listę” da się sprawdzić przeczytaniem jednego modułu dopóty, dopóki klient
     powstaje w jednym miejscu; drugi konstruktor zamienia to zdanie w analizę całego pakietu.
     """
@@ -1215,10 +1524,14 @@ def braki_zlotych_plikow(kanaly: frozenset[str], przyklady: Path) -> dict[str, l
         if not katalog.is_dir():
             braki[kanal] = ["brak katalogu tests/examples/<kanal>/"]
             continue
+        # `ZRODLO.md` jest opisem katalogu (licencja, data odczytu, SHA-256 — ADR-0005 Z-6),
+        # nie surową odpowiedzią, więc pary `.compare.json` nie ma i mieć nie musi.
         surowe = [
             p
             for p in sorted(katalog.iterdir())
-            if p.is_file() and p.name != ".gitkeep" and not p.name.endswith(".compare.json")
+            if p.is_file()
+            and p.name not in {".gitkeep", "ZRODLO.md"}
+            and not p.name.endswith(".compare.json")
         ]
         if not surowe:
             braki[kanal] = ["katalog złotych plików bez ani jednej surowej odpowiedzi"]
@@ -1253,6 +1566,8 @@ def test_skan_reguly_17_zauwaza_zloty_plik_bez_przejrzanej_pary(tmp_path: Path) 
     (tmp_path / "atlas").mkdir()
     (tmp_path / "atlas" / "lista_2026-09-15.json").write_text("{}", encoding="utf-8")
     (tmp_path / "atlas" / "lista_2026-09-15.compare.json").write_text("{}", encoding="utf-8")
+    # Opis katalogu nie jest złotym plikiem i nie ma prawa zapalić reguły (ADR-0005 Z-6).
+    (tmp_path / "atlas" / "ZRODLO.md").write_text("# licencja\n", encoding="utf-8")
 
     braki = braki_zlotych_plikow(frozenset({"uzp", "atlas", "saos"}), tmp_path)
 
@@ -1308,6 +1623,184 @@ def literaly_adresow(path: Path) -> list[tuple[int, str]]:
         if WZORZEC_ADRESU.match(node.value) or WZORZEC_SCIEZKI.match(node.value):
             znalezione.append((node.lineno, node.value))
     return znalezione
+
+
+# ------------- reguła 19: pole o nieznanym pochodzeniu stoi w kontrakcie z powodem i datą
+
+
+POLE_ODRZUCONYCH = "pola_odrzucone"
+KLUCZE_WPISU_ODRZUCONEGO = ("pole", "powod", "data")
+
+
+def pola_odrzucone_bez_powodu(contract: Path) -> list[str]:
+    """Zarzuty do `pola_odrzucone:` kontraktu: brak pola, zły kształt, wpis bez powodu albo daty.
+
+    Reguła 19 w brzmieniu ADR-0005 Z-5: granica przebiega na wyjściu z kanału, a pole o nieznanym
+    pochodzeniu stoi w kontrakcie **z powodem i datą** — wpis bez nich jest listą wyjątków, czyli
+    miejscem, w którym reguła cicho przestaje obowiązywać. Lista może być pusta (kanał bez takich
+    pól), ale ma być zadeklarowana: brak deklaracji i „nie pomyślałem" wyglądają tak samo.
+
+    Odczyt przez `yaml.safe_load`, nie tekstowy jak `role_zadeklarowane`: to pole jest listą
+    słowników, a od 2026-09-18 `pyyaml` jest zależnością pakietu (`source/contract.py`). Czytniki
+    tekstowe `role:` i `pomiary:` zostają — te pola są płaskie, a ich odczyt bez parsera jest
+    częścią kontraktu z `test_bramki_faz.py`.
+    """
+    dane = yaml.safe_load(contract.read_text(encoding="utf-8"))
+    if not isinstance(dane, dict) or POLE_ODRZUCONYCH not in dane:
+        return [f"brak pola `{POLE_ODRZUCONYCH}:` (lista może być pusta, ale ma być zadeklarowana)"]
+    wpisy = dane[POLE_ODRZUCONYCH]
+    if not isinstance(wpisy, list):
+        return [f"`{POLE_ODRZUCONYCH}:` nie jest listą"]
+    zarzuty: list[str] = []
+    for numer, wpis in enumerate(wpisy):
+        if not isinstance(wpis, dict):
+            zarzuty.append(f"wpis {numer}: nie jest słownikiem")
+            continue
+        for klucz in KLUCZE_WPISU_ODRZUCONEGO:
+            if not wpis.get(klucz):
+                zarzuty.append(f"wpis {numer} (`{wpis.get('pole', '?')}`): brak `{klucz}`")
+    return zarzuty
+
+
+def test_regula_19_kazdy_kontrakt_deklaruje_pola_odrzucone_z_powodem_i_data() -> None:
+    """Reguła 19, część kontraktowa. Część zapisu (bajty w całości, skrót z tego, co zapisano)
+    pilnuje `tests/test_store.py` — `test_metatest_regula_19_ma_zywego_strazniska_zapisu`."""
+    zarzuty = {
+        kanal: pola_odrzucone_bez_powodu(contract)
+        for kanal, contract in contract_yaml_kanalow().items()
+        if pola_odrzucone_bez_powodu(contract)
+    }
+
+    assert zarzuty == {}, f"kontrakt z polem odrzuconym bez powodu albo daty: {zarzuty}"
+
+
+@pytest.mark.parametrize(
+    ("tresc", "oczekiwane_zarzuty"),
+    [
+        ("pola_odrzucone: []\n", 0),
+        ("pola_odrzucone:\n  - {pole: thesis, powod: nieznane, data: 2026-09-18}\n", 0),
+        ("kanal: x\n", 1),
+        ("pola_odrzucone: thesis\n", 1),
+        ("pola_odrzucone:\n  - {pole: thesis, data: 2026-09-18}\n", 1),
+        ("pola_odrzucone:\n  - {pole: thesis, powod: nieznane}\n", 1),
+        ("pola_odrzucone:\n  - {pole: thesis, powod: '', data: 2026-09-18}\n", 1),
+        ("pola_odrzucone:\n  - thesis\n", 1),
+    ],
+    ids=[
+        "pusta_lista",
+        "komplet",
+        "brak_pola",
+        "nie_lista",
+        "bez_powodu",
+        "bez_daty",
+        "pusty_powod",
+        "wpis_bez_slownika",
+    ],
+)
+def test_skan_reguly_19_zauwaza_wpis_bez_powodu_albo_daty(
+    tmp_path: Path, tresc: str, oczekiwane_zarzuty: int
+) -> None:
+    contract = tmp_path / "contract.yaml"
+    contract.write_text(tresc, encoding="utf-8")
+
+    assert len(pola_odrzucone_bez_powodu(contract)) == oczekiwane_zarzuty
+
+
+def test_regula_23_uzp_nie_deklaruje_roli_masowej() -> None:
+    """Reguła 23 na prawdziwym drzewie. Dziś `source/` jest puste i to jest prawda o fazie 0.
+
+    Decyzja B właściciela (2026-09-17) brzmi „UZP nigdy nie pełni roli kanału masowego" i jest
+    **zamiennikiem pytania do prawnika**, którego projekt nie zada (decyzja A). Zamiennik bez
+    strażnika byłby jednak gorszy od pytania: pytanie przynajmniej wraca, a zdanie w dokumencie
+    nie. Skan daje tej decyzji obserwatora w dniu, w którym powstanie pierwszy `contract.yaml`.
+
+    Dowód działania niosą samosprawdzenia niżej — tutaj, przy pustym `source/`, nie ma czego
+    czytać i zielony wynik znaczy wyłącznie „kanałów nie ma".
+    """
+    naruszenia = {
+        kanal: sorted(role_zadeklarowane(contract))
+        for kanal, contract in contract_yaml_kanalow().items()
+        if rola_zakazana(kanal) in role_zadeklarowane(contract)
+    }
+
+    assert naruszenia == {}, (
+        f"kanał deklaruje rolę, której mieć nie może: {naruszenia}. Reguła 23 stoi na pomiarze "
+        "14 (brak warunków ponownego wykorzystywania dla `orzeczenia.uzp.gov.pl`, zmierzone "
+        "2026-09-15) i na decyzji B właściciela. Zmiana roli wymaga zapisania decyzji "
+        "w `docs/decisions.md`, a nie edycji tablicy w teście."
+    )
+
+
+def test_regula_23_kazdy_kontrakt_deklaruje_role_z_zamknietej_listy() -> None:
+    """Druga połowa reguły 23: brak `role:` jest naruszeniem tak samo jak rola zakazana.
+
+    Bez tej połowy zakaz byłby do obejścia przez **pominięcie** pola — kanał bez zadeklarowanej
+    roli nie deklaruje roli masowej, więc przechodziłby przez test wyżej. To jest ten sam kształt
+    obejścia, który w tym pliku zamknęła reguła 11 przy `httpx2`: strażnik patrzący na obecność
+    złego napisu zamiast na obecność dobrego.
+    """
+    bledy = {
+        kanal: sorted(role_zadeklarowane(contract) - ROLE_KANALU) or "brak pola `role:`"
+        for kanal, contract in contract_yaml_kanalow().items()
+        if not role_zadeklarowane(contract) or role_zadeklarowane(contract) - ROLE_KANALU
+    }
+
+    assert bledy == {}, (
+        f"kontrakt bez poprawnej deklaracji ról: {bledy}. Dozwolone role: {sorted(ROLE_KANALU)}."
+    )
+
+
+@pytest.mark.parametrize(
+    ("opis", "tresc", "kanal", "narusza"),
+    [
+        ("uzp z rolą masową", "role: [masowa]\n", "uzp", True),
+        ("uzp z rolą masową wśród innych", "role: [weryfikacja, masowa]\n", "uzp", True),
+        ("uzp bez cudzysłowów i nawiasów", "role: masowa\n", "uzp", True),
+        ("uzp w dozwolonych rolach", "role: [weryfikacja, doplyw]\n", "uzp", False),
+        ("uzp z komentarzem YAML po roli", "role: [masowa]  # kanal masowy\n", "uzp", True),
+        ("uzp_zrzut — ten sam dostawca, ten sam zakaz", "role: [masowa]\n", "uzp_zrzut", True),
+        ("uzpx — inna nazwa, nie ten dostawca", "role: [masowa]\n", "uzpx", False),
+        ("atlas z rolą masową — wolno, licencja jest", "role: [masowa]\n", "atlas", False),
+        ("saos z rolą masową — wolno", "role: [masowa, weryfikacja]\n", "saos", False),
+    ],
+)
+def test_samosprawdzenie_reguly_23(
+    opis: str,
+    tresc: str,
+    kanal: str,
+    narusza: bool,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Skan sprawdzony na kontraktach podrzuconych, bo na prawdziwym drzewie nie ma żadnego.
+
+    Sprawdzane **w obie strony**: kanał z licencją ma prawo do roli masowej i ten przypadek jest
+    tu tak samo ważny jak zakaz. Strażnik, który zapala się na każdym kanale, nie pilnuje
+    decyzji B — pilnuje tego, żeby nikt nie pobierał niczego.
+    """
+    source = tmp_path / "kio_tool" / "source" / kanal
+    source.mkdir(parents=True)
+    (source / "contract.yaml").write_text(tresc, encoding="utf-8")
+    monkeypatch.setattr("tests.test_boundaries.SOURCE", tmp_path / "kio_tool" / "source")
+
+    kontrakty = contract_yaml_kanalow()
+    role = role_zadeklarowane(kontrakty[kanal])
+    zakazana = rola_zakazana(kanal)
+
+    assert (zakazana in role) is narusza, f"{opis}: role odczytane jako {sorted(role)}"
+    assert role <= ROLE_KANALU, f"{opis}: rola spoza zamkniętej listy"
+
+
+def test_samosprawdzenie_kontrakt_bez_pola_role_jest_naruszeniem(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pominięcie pola nie jest drogą ucieczki przed regułą 23."""
+    source = tmp_path / "kio_tool" / "source" / "uzp"
+    source.mkdir(parents=True)
+    (source / "contract.yaml").write_text("base: https://example.org\n", encoding="utf-8")
+    monkeypatch.setattr("tests.test_boundaries.SOURCE", tmp_path / "kio_tool" / "source")
+
+    assert role_zadeklarowane(contract_yaml_kanalow()["uzp"]) == frozenset()
 
 
 def test_regula_22_kod_kanalu_nie_niesie_adresu_ani_sciezki_wprost() -> None:
@@ -1403,7 +1896,12 @@ def _objete_kanaly() -> frozenset[str]:
 REGULY: tuple[Regula, ...] = (
     Regula(
         1,
-        ("kio_tool/docid.py", "kio_tool/safetext.py", "kio_tool/parser/**/*.py"),
+        (
+            "kio_tool/criteria.py",
+            "kio_tool/docid.py",
+            "kio_tool/safetext.py",
+            "kio_tool/parser/**/*.py",
+        ),
         lambda: wzgledne(pliki_czyste()),
     ),
     Regula(2, ("kio_tool/source/**/*.py",), lambda: wzgledne(pliki_source())),
@@ -1416,7 +1914,12 @@ REGULY: tuple[Regula, ...] = (
     Regula(5, ("kio_tool/pipeline.py",), lambda: wzgledne(pliki_pakietu())),
     Regula(
         6,
-        ("kio_tool/docid.py", "kio_tool/safetext.py", "kio_tool/ui/texts.py"),
+        (
+            "kio_tool/criteria.py",
+            "kio_tool/docid.py",
+            "kio_tool/safetext.py",
+            "kio_tool/ui/texts.py",
+        ),
         lambda: wzgledne((*pliki_czyste(), *istniejace("kio_tool/ui/texts.py"))),
     ),
     Regula(
@@ -1430,6 +1933,7 @@ REGULY: tuple[Regula, ...] = (
         lambda: wzgledne(pliki_pakietu()),
     ),
     Regula(8, ("kio_tool/ui/**/*.py",), lambda: wzgledne(pliki_ui())),
+    Regula(9, ("kio_tool/cli.py",), lambda: wzgledne(pliki_cli())),
     Regula(
         10,
         ("kio_tool/richtext.py", "kio_tool/console.py", "kio_tool/ui/render.py"),
@@ -1444,11 +1948,21 @@ REGULY: tuple[Regula, ...] = (
     Regula(13, ("kio_tool/mcp_server.py",), lambda: wzgledne(istniejace("kio_tool/mcp_server.py"))),
     Regula(17, ("kio_tool/source/*/channel.py",), _objete_kanaly),
     Regula(
+        19,
+        ("kio_tool/source/*/contract.yaml",),
+        lambda: wzgledne(contract_yaml_kanalow().values()),
+    ),
+    Regula(
         21,
         ("kio_tool/source/*.py", "kio_tool/source/*/channel.py", "kio_tool/source/*/contract.yaml"),
         _objete_source,
     ),
     Regula(22, ("kio_tool/source/**/*.py",), lambda: wzgledne(pliki_source())),
+    Regula(
+        23,
+        ("kio_tool/source/*/contract.yaml",),
+        lambda: wzgledne(contract_yaml_kanalow().values()),
+    ),
 )
 
 
@@ -1462,15 +1976,6 @@ class PozaSkanem(NamedTuple):
 
 POZA_SKANEM: tuple[PozaSkanem, ...] = (
     PozaSkanem(
-        9,
-        ("kio_tool/cli.py",),
-        "Reguła 9 („`cli.py` nie pisze żadnego zdania; każdy blok pochodzi z `ui/texts.py`”) ma "
-        "dwie połowy — kanały wyjścia i układanie treści pytań — i obie wymagają własnego skanu. "
-        "`cli.py` nie istnieje, więc reguła jest wyzwalaczem; w dniu, w którym powstanie, ten "
-        "metatest jest czerwony i wymusza przeniesienie skanu z `ceidg-tool`. Połowiczny skan "
-        "byłby gorszy niż jego brak: raportowałby się jako domknięty.",
-    ),
-    PozaSkanem(
         14,
         (),
         "Reguła 14 (jeden producent kanonicznej tożsamości) jest niesiona przez `mypy --strict` "
@@ -1479,10 +1984,12 @@ POZA_SKANEM: tuple[PozaSkanem, ...] = (
     ),
     PozaSkanem(
         15,
-        ("kio_tool/exporter.py",),
+        (),
         "Reguła 15 (każdy eksport i widok cytujący orzeczenie niesie sygnaturę, datę wydania "
-        "i oznaczenie organu) jest warunkiem ustawowym z art. 15 ust. 1 pkt 4 i ma mieć test "
-        "zachowania eksportu, nie skan granic. Wyzwalaczem jest powstanie `exporter.py`.",
+        "i oznaczenie organu) jest warunkiem ustawowym z art. 15 ust. 1 pkt 4 i ma test "
+        "zachowania eksportu, nie skan granic: `tests/test_attribution.py` sprawdza każdy format "
+        "z `exporter.FORMATY`. Do 2026-09-18 wyzwalaczem było powstanie `exporter.py`; od etapu IV "
+        "obecność strażnika sprawdza `test_metatest_regula_15_ma_zywego_strazniska_atrybucji`.",
     ),
     PozaSkanem(
         16,
@@ -1495,20 +2002,29 @@ POZA_SKANEM: tuple[PozaSkanem, ...] = (
         ("kio_tool/source/*/channel.py",),
         "Reguła 17 jest tu **częściowo**: część filesystemowa (złote pliki i ich przejrzane "
         "pary) ma skan wyżej, a część behawioralna — adapter rzuca `SourceContractBroken` "
-        "zamiast zwracać pustą listę — wymaga adaptera i testu dymnego na złotym pliku.",
+        "zamiast zwracać pustą listę — mieszka w teście dymnym kanału na złotym pliku, "
+        "`tests/test_source_<kanał>.py`; jego istnienie sprawdza "
+        "`test_metatest_regula_17_kazdy_kanal_ma_test_dymny_na_zlotym_pliku`.",
     ),
     PozaSkanem(
         18,
-        ("kio_tool/source/*/channel.py",),
+        # Wyzwalaczem jest adapter **UZP**, nie dowolny kanał — reguła mówi o `Details/{id}`
+        # i `ContentHtml/{id}`, czyli o kontrakcie jednego dostawcy. Do 2026-09-18 wzorzec brzmiał
+        # `source/*/channel.py`, bo kanał nie był wybrany; w dniu powstania `source/atlas/`
+        # zapaliłby regułę o punktach końcowych, których Atlas nie ma.
+        ("kio_tool/source/uzp/channel.py",),
         "Reguła 18 (metadane z `Details/{id}`, treść z `ContentHtml/{id}`, oba jako bajty) jest "
-        "kontraktem adaptera UZP, a kanał nie jest wybrany przed bramką fazy 0.",
+        "kontraktem adaptera UZP; kanał `uzp` wraca w fazie 2 w rolach weryfikacji i dopływu "
+        "(ADR-0005 Z-3) i wtedy ta reguła dostaje skan albo test dymny.",
     ),
     PozaSkanem(
         19,
         ("kio_tool/store.py",),
-        "Reguła 19 (każdy rekord niesie pochodzenie; zbiór od modelu ma sufiks `-derived` "
-        "i własny manifest) jest własnością zapisu, nie krawędzi importu. Wyzwalaczem jest "
-        "powstanie `store.py`.",
+        "Reguła 19 jest tu **częściowo**: część kontraktowa (`pola_odrzucone:` z powodem "
+        "i datą) ma skan wyżej, a część zapisu — bajty w całości, `content_sha256` z tego, co "
+        "zapisano — jest własnością `store.py` i mieszka w `tests/test_store.py`; jego "
+        "istnienie sprawdza `test_metatest_regula_19_ma_zywego_strazniska_zapisu`. Sufiks "
+        "`-derived` i manifest zbioru od modelu czekają na fazę 4.",
     ),
     PozaSkanem(
         20,
@@ -1520,10 +2036,52 @@ POZA_SKANEM: tuple[PozaSkanem, ...] = (
     ),
 )
 
-# Reguła 17 stoi świadomie w obu tablicach: część filesystemowa jest skanowana, część
-# behawioralna czeka na adapter. Każde inne nałożenie się tablic byłoby niechlujstwem.
-REGULY_CZESCIOWE = frozenset({17})
-NUMERY_REGUL = frozenset(range(1, 23))
+# Reguły 17 i 19 stoją świadomie w obu tablicach: część każdej z nich jest skanem (złote pliki;
+# `pola_odrzucone:` w kontrakcie), a część zachowaniem z własnym testem poza tym plikiem (test
+# dymny adaptera; zapis bajtów w całości). Każde inne nałożenie się tablic byłoby niechlujstwem.
+REGULY_CZESCIOWE = frozenset({17, 19})
+AUDYT = ROOT / "docs" / "AUDYT_KIO_ORZECZENIA.md"
+ARCHITEKTURA = ROOT / "docs" / "ARCHITEKTURA_KIO_TOOL.md"
+"""Dwa dokumenty, w których mieszkają reguły granic — jedyne źródło ich numerów."""
+
+
+def numery_regul_z_dokumentow() -> frozenset[int]:
+    """Numery reguł **odczytane z dokumentów**, a nie wypisane tutaj zakresem.
+
+    Do 2026-09-17 stała tu liczba: `frozenset(range(1, 23))`. Docstring metatestu przyznawał
+    wprost, że „reguła dopisana do dokumentów i tu pominięta nie jest przez ten test widziana" —
+    czyli jedyne miejsce w tym pliku, w którym doktryna „reguła bez strażnika jest życzeniem"
+    nie miała strażnika samej siebie. Tego samego dnia dopisano regułę 23 i granica natychmiast
+    okazała się realna: reguła istniała w architekturze i w skanie, a metatest o niej nie wiedział.
+
+    Reguły mieszkają w dwóch sekcjach i to jest podział historyczny, nie przypadkowy: 1–16
+    przeniesione z `ceidg-tool` (audyt 8.3), 17 i dalsze dopisane w tym projekcie
+    (architektura 4.1). Skan czyta obie i sumuje.
+
+    **Pusty odczyt jest błędem, nie zerem.** Gdyby nagłówek sekcji się zmienił, wyrażenie
+    przestałoby dopasowywać cokolwiek, zbiór byłby pusty i metatest przechodziłby zielono przy
+    każdej tablicy — czyli parsowanie markdownu zamieniłoby się w wyłącznik strażnika. Dlatego
+    obie sekcje muszą dać niepusty wynik, a reguła 1 i ostatnia dopisana muszą się znaleźć.
+    """
+    numery: set[int] = set()
+    for sciezka, naglowek, konczy, wzorzec in (
+        (AUDYT, "### 8.3 Reguły granic", "## 9.", r"^(\d+)\. "),
+        (ARCHITEKTURA, "## 4. Architektura", "## 5.", r"^(\d+)\. \*\*"),
+    ):
+        tresc = sciezka.read_text(encoding="utf-8")
+        assert naglowek in tresc, f"{sciezka.name}: nie ma sekcji `{naglowek}` z regułami"
+        sekcja = tresc.split(naglowek, 1)[1].split(konczy, 1)[0]
+        znalezione = {int(m) for m in re.findall(wzorzec, sekcja, re.MULTILINE)}
+        assert znalezione, (
+            f"{sciezka.name}: w sekcji `{naglowek}` nie odczytano ani jednego numeru reguły. "
+            "Pusty odczyt wyłączyłby metatest zamiast go zasilić — popraw wzorzec albo nagłówek."
+        )
+        numery |= znalezione
+    assert 1 in numery, "odczyt reguł nie objął reguły 1 — sekcje czytają się inaczej niż zakładano"
+    return frozenset(numery)
+
+
+NUMERY_REGUL = numery_regul_z_dokumentow()
 
 
 def rozwin(wzorzec: str) -> frozenset[str]:
@@ -1615,6 +2173,82 @@ def test_metatest_regula_20_ma_zywego_strazniska_poza_tym_plikiem() -> None:
     assert (TESTY / "test_pomiar21_blokada_sieci.py").is_file(), (
         "zniknął pomiar 21 — a to on, a nie ten plik, pokazuje, że blokada jest zamkiem "
         "na gnieździe, czyli że reguła 20 obejmuje także kanał spoza HTTP."
+    )
+
+
+PLIK_EKSPORTERA = PAKIET / "exporter.py"
+PLIK_TESTU_ATRYBUCJI = TESTY / "test_attribution.py"
+OZNACZENIE_ORGANU = "Krajowa Izba Odwoławcza"
+
+
+def test_metatest_regula_15_ma_zywego_strazniska_atrybucji() -> None:
+    """Reguła 15 mieszka w teście zachowania eksportu — ten test pilnuje, że tamten istnieje,
+    zna oznaczenie organu i mówi o każdym formacie, a nie o jednym wybranym.
+
+    Wpis „pilnuje tego coś innego" jest zdaniem bez pokrycia, dopóki nikt nie sprawdza, czy to
+    coś innego wciąż tam jest — ten sam kształt co dla reguł 17, 19 i 20 wyżej. Formaty czytane
+    są z `FORMATY` w `exporter.py` **ze składni**, nie importem: reguła ma zapalać się także
+    wtedy, gdy eksporter jest w połowie napisany.
+    """
+    assert PLIK_EKSPORTERA.is_file(), "`exporter.py` zniknął — reguła 15 nie ma przedmiotu"
+    assert PLIK_TESTU_ATRYBUCJI.is_file(), (
+        "`exporter.py` istnieje, a `tests/test_attribution.py` nie — reguła 15 bez strażnika"
+    )
+    tresc = PLIK_TESTU_ATRYBUCJI.read_text(encoding="utf-8")
+    assert OZNACZENIE_ORGANU in tresc, "strażnik reguły 15 nie zna oznaczenia organu"
+    formaty = _formaty_eksportera(PLIK_EKSPORTERA)
+    assert formaty, "nie odczytano `FORMATY` z `exporter.py` — pusty odczyt wyłączyłby ten test"
+    brakujace = sorted(fmt for fmt in formaty if f'"{fmt}"' not in tresc)
+    assert brakujace == [], f"strażnik reguły 15 nie wymienia formatów: {brakujace}"
+
+
+def _formaty_eksportera(path: Path) -> frozenset[str]:
+    """Wartości literału `FORMATY = (...)` w `exporter.py`, odczytane z drzewa składniowego."""
+    for node in ast.walk(drzewo(path)):
+        cele: list[ast.expr]
+        if isinstance(node, ast.AnnAssign):
+            cele = [node.target]
+        elif isinstance(node, ast.Assign):
+            cele = list(node.targets)
+        else:
+            continue
+        if not any(isinstance(cel, ast.Name) and cel.id == "FORMATY" for cel in cele):
+            continue
+        if isinstance(node.value, ast.Tuple):
+            return frozenset(
+                e.value
+                for e in node.value.elts
+                if isinstance(e, ast.Constant) and isinstance(e.value, str)
+            )
+    return frozenset()
+
+
+def test_metatest_regula_17_kazdy_kanal_ma_test_dymny_na_zlotym_pliku() -> None:
+    """Część behawioralna reguły 17 mieszka poza tym plikiem — to zdanie ma tu obserwatora.
+
+    Wpis w `POZA_SKANEM` mówi „pilnuje tego test dymny kanału"; dopóki nikt nie sprawdza, czy ten
+    test istnieje i czy w ogóle zna `SourceContractBroken`, jest to zdanie bez pokrycia — ten sam
+    kształt, który dla reguły 20 zamyka test wyżej.
+    """
+    for kanal in sorted(katalogi_kanalow()):
+        plik = TESTY / f"test_source_{kanal}.py"
+        assert plik.is_file(), f"kanał {kanal!r} ma adapter, a nie ma testu dymnego {plik.name}"
+        assert "SourceContractBroken" in plik.read_text(encoding="utf-8"), (
+            f"{plik.name} nie zna `SourceContractBroken` — część behawioralna reguły 17 "
+            "(status zgodny, kształt niezgodny → wyjątek, nie pusta lista) nie ma tam obserwatora"
+        )
+
+
+def test_metatest_regula_19_ma_zywego_strazniska_zapisu() -> None:
+    """Część zapisu reguły 19 („bajty w całości, skrót z tego, co zapisano") mieszka
+    w `tests/test_store.py`; ten test pilnuje, że tamten plik istnieje i mówi o skrócie."""
+    plik = TESTY / "test_store.py"
+
+    assert plik.is_file(), (
+        "`store.py` istnieje, a `tests/test_store.py` nie — reguła 19 bez strażnika"
+    )
+    assert "sha256" in plik.read_text(encoding="utf-8"), (
+        "`tests/test_store.py` nie wspomina o `sha256` — część zapisu reguły 19 nie ma obserwatora"
     )
 
 

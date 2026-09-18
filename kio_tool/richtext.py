@@ -15,12 +15,13 @@ from .config import mask_tokens
 from .safetext import strip_control
 
 
-def make_console() -> Console:
+def make_console(*, stderr: bool = False) -> Console:
     """Konsola programu — bez `file=`, bez interpretacji znaczników, bez podświetlania.
 
-    `rich` sięga po `sys.stdout` przy każdym zapisie, więc konsola zbudowana bez `file=`
-    trafia tam, gdzie akurat wskazuje strumień. Podanie `file=sys.stdout` zamroziłoby
-    strumień z chwili importu i przechwytywanie wyjścia w testach CLI przestałoby działać.
+    `rich` sięga po `sys.stdout` (albo `sys.stderr` przy `stderr=True`) przy każdym zapisie,
+    więc konsola zbudowana bez `file=` trafia tam, gdzie akurat wskazuje strumień. Podanie
+    `file=sys.stdout` zamroziłoby strumień z chwili importu i przechwytywanie wyjścia w testach
+    CLI przestałoby działać.
 
     **`markup=False` i `highlight=False` to rozstrzygnięcie z 2026-09-15, nie ostrożność.**
     Reguła 10 mówi, że napis spoza programu staje się drukowalny wyłącznie przez `safe`, a jej
@@ -39,7 +40,7 @@ def make_console() -> Console:
     `safe` zostaje mimo to i nie jest przez to zbędne: neutralizuje znaki sterujące i maskuje
     sekrety, czego wyłączenie znaczników nie robi. Dwa zamki na dwie różne dziury.
     """
-    return Console(markup=False, highlight=False)
+    return Console(markup=False, highlight=False, stderr=stderr)
 
 
 def safe(value: str) -> Text:

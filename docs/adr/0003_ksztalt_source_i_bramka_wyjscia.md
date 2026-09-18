@@ -5,7 +5,7 @@ Status: accepted (2026-09-15, decyzja właściciela)
 Autor: P0w3r223
 Related to: `ARCHITEKTURA_KIO_TOOL.md` (4.1 reguły 17 i 20, 4.2, 4.3, 4.4, 8), `AUDYT_KIO_ORZECZENIA.md` (8.3 reguły 1, 2, 4, 11, 13), `docs/decisions.md` (pomiar 21), `tests/test_pomiar21_blokada_sieci.py`, `kio_tool/httpclient.py`, `kio_tool/docid.py`
 
-ADR-001 (tożsamość dokumentu) i ADR-002 (surowiec, treść do modelu) jeszcze nie powstały; numeracja zostawia im miejsce.
+ADR-0001 (tożsamość dokumentu) i ADR-0002 (surowiec, treść do modelu) jeszcze nie powstały; numeracja zostawia im miejsce.
 
 ---
 
@@ -120,7 +120,9 @@ Przyjmujemy 2B. Kanał FTP **wypada z mapy modułów i z tabeli adapterów** do 
 
 ### Co to znaczy dla `refuse_foreign_host` — zmiana w istniejącym pliku, nie nowy byt
 
-Powiedziane wprost, żeby nie było wątpliwości przy czytaniu za pół roku: **jeżeli** zapadnie decyzja 9 w wariancie (a), to `refuse_foreign_host(scheme, host, allowed: frozenset[str])` z `kio_tool/httpclient.py:41` **zostaje zastąpiona** przez `refuse_foreign_endpoint(scheme, host, allowed: frozenset[tuple[str, str]])` w tym samym pliku, a `UZP_HOSTS` / `ATLAS_HOSTS` / `SAOS_HOSTS` / `ALLOWED_HOSTS` w `kio_tool/config.py:20-27` zmieniają typ na zbiory par `(schemat, host)`. To jest edycja dwóch istniejących plików i jednego istniejącego testu (`test_http_bez_tls_odbija_sie_od_bramki_wyjscia`), nie dopisanie nowego modułu obok.
+Powiedziane wprost, żeby nie było wątpliwości przy czytaniu za pół roku: **jeżeli** zapadnie decyzja 9 w wariancie (a), to `refuse_foreign_host(scheme, host, allowed: frozenset[str])` z `kio_tool/httpclient.py:41` **zostaje zastąpiona** przez `refuse_foreign_endpoint(scheme, host, allowed: frozenset[tuple[str, str]])` w tym samym pliku, a `UZP_HOSTS` / `ATLAS_HOSTS` / `SAOS_HOSTS` w `kio_tool/config.py` zmieniają typ na zbiory par `(schemat, host)`.
+
+> **Dopisek 2026-09-17** (zmiana w dokumencie przyjętym, więc jawna, a nie cicha): zdanie wymieniało tu także `ALLOWED_HOSTS`. Tej stałej **już nie ma** — została usunięta razem z wartością domyślną parametru `allowed` w `build_http_client`, bo miała zero wywołujących, a jej komentarz opisywał użycie nieobecne w drzewie. Powrotu pilnuje `tests/test_bramka_wyjscia.py`. Reszta zdania obowiązuje bez zmian. To jest edycja dwóch istniejących plików i jednego istniejącego testu (`test_http_bez_tls_odbija_sie_od_bramki_wyjscia`), nie dopisanie nowego modułu obok.
 
 Pary, a nie osobny parametr na dozwolone schematy: lista schematów rozłączna z listą hostów pozwoliłaby na `ftp://orzeczenia.uzp.gov.pl` i `https://ftp.uzp.gov.pl`, czyli dokładnie na przypadkowe rozszerzenie, któremu ta reguła ma zapobiegać.
 
@@ -250,5 +252,5 @@ Potem, w kolejności: `tests/test_boundaries.py` (osobny przebieg), `source/prot
 
 - Który kanał wygra. Rozstrzygają pomiary 1, 2a/2b i 3 oraz bramka fazy 0.
 - Czy kaseta HTTP odtworzy się przez wstrzyknięty transport (pomiar 4b).
-- Tożsamości dokumentu — to ADR-001; `docid.document_id` realizuje dziś propozycję z architektury 4.4 i sam o tym mówi.
-- Czy treść orzeczenia wolno wysłać do modelu — to ADR-002.
+- Tożsamości dokumentu — to ADR-0001; `docid.document_id` realizuje dziś propozycję z architektury 4.4 i sam o tym mówi.
+- Czy treść orzeczenia wolno wysłać do modelu — to ADR-0002.

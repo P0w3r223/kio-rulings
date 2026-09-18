@@ -28,7 +28,7 @@ z uzasadnień, czyli o największy dostępny zbiór testowy.
 from __future__ import annotations
 
 import re
-from typing import NewType
+from typing import Literal, NewType
 
 from .errors import IdentityError
 from .safetext import strip_control
@@ -41,6 +41,16 @@ DocId = NewType("DocId", str)
 """Kanoniczny identyfikator dokumentu w korpusie: `"{source}:{source_ref}"`."""
 
 SourceName = NewType("SourceName", str)
+
+RefCase = Literal["lower", "preserve"]
+"""Jak kanał traktuje wielkość liter w referencji — deklaracja z `contract.yaml` (ADR-0001 2.2).
+
+`lower` sprowadza referencję do małych liter, `preserve` zostawia ją tak, jak przyszła.
+Rozstrzygnięcie 3 z 2026-09-15 mówi, że pisownia referencji jest sprawą kanału: „zapisuj tak,
+jak przyszło" jest słuszne dla nieprzezroczystego identyfikatora liczbowego (`uzp:9620`)
+i błędne dla sluga tekstowego, gdzie dwie pisownie dałyby dwa klucze główne na jeden dokument —
+czyli minę 1 z nagłówka tego modułu.
+"""
 
 # `KIO 827/18`, `KIO/UZP 1482/08`, `KIO/KU 97/13` — wszystkie trzy z odczytów z datą.
 #
@@ -137,7 +147,7 @@ def normalize_source_name(source: str) -> SourceName:
     return SourceName(kanal)
 
 
-def document_id(source: SourceName, source_ref: str) -> DocId:
+def document_id(source: SourceName, source_ref: str, *, ref_case: RefCase) -> DocId:
     """Kanoniczny identyfikator dokumentu: `„uzp:9620"`, `„atlas:kio-827-18"`, `„saos:354301"`.
 
     Sygnatura **nie jest** tożsamością dokumentu i to jest rozstrzygnięcie, nie wygoda:
@@ -147,9 +157,11 @@ def document_id(source: SourceName, source_ref: str) -> DocId:
     opisują to samo orzeczenie, jest **stwierdzane** w tabeli `equivalences` przez polecenie
     `porownaj`, nigdy zakładane.
 
-    Rozstrzygnięcie czeka na ADR-001 i na pomiar 7; ta funkcja realizuje propozycję
-    z architektury 4.4 i jest jedynym miejscem, które trzeba będzie zmienić, jeśli ADR
-    zdecyduje inaczej.
+    `ref_case` jest **wymagany i bez wartości domyślnej** (ADR-0001 2.2, przyjęty 2026-09-18):
+    kanał dopisany jutro musi tę decyzję podjąć jawnie, a nie odziedziczyć. Wartość pochodzi
+    z `contract.yaml` kanału; dla `atlas` jest to `lower`, bo slug jest sygnaturą główną małymi
+    literami (100 na 100 rekordów pomiaru 3a) i druga pisownia byłaby drugim kluczem głównym.
+    Kanał sprowadzany jest do małych liter zawsze — po tej stronie nie ma czego deklarować.
     """
     kanal = normalize_source_name(source)
     ref = strip_control(source_ref).strip()
@@ -164,4 +176,6 @@ def document_id(source: SourceName, source_ref: str) -> DocId:
             f"{source_ref!r}. Tożsamość trafia do klucza głównego, do arkusza i na ekran, "
             "więc nie przechodzi przez neutralizator po drodze — musi być czysta u wejścia."
         )
+    if ref_case == "lower":
+        ref = ref.lower()
     return DocId(f"{kanal}:{ref}")
