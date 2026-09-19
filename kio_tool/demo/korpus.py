@@ -156,11 +156,12 @@ def _dokument(
     rozstrzygniecie = _wybierz(los, wzorce.rozstrzygniecia)
     rodzaj = "postanowienie" if rozstrzygniecie in ("umorzono", "odrzucono") else "wyrok"
     przepisy = _przepisy(los, wzorce)
-    cytowane = tuple(
-        d.sygnatury[0]
-        for d in los.sample(list(poprzednie), k=min(2, len(poprzednie)))
-        if los.random() < UDZIAL_CYTOWAN
-    )
+    # Udział liczony per dokument, nie per kandydat: dwa losowania po 43,8 % dawały 68,5 %
+    # dokumentów z cytowaniem — złapane przez `tests/test_demo_cechy.py` (Z-12).
+    cytowane: tuple[str, ...] = ()
+    if poprzednie and los.random() < UDZIAL_CYTOWAN:
+        wybrane = los.sample(list(poprzednie), k=min(los.randint(1, 2), len(poprzednie)))
+        cytowane = tuple(d.sygnatury[0] for d in wybrane)
     rozprawa = dzien - timedelta(days=los.choice((0, 0, 1, 7))) if rodzaj == "wyrok" else None
     osoby = (los.choice(PRZEWODNICZACY), los.choice(PROTOKOLANCI))
     strony = (los.choice(ODWOLUJACY), los.choice(ZAMAWIAJACY))
