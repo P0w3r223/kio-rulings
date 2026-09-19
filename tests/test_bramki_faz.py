@@ -227,6 +227,26 @@ BRAMKI: tuple[Bramka, ...] = (
         ),
     ),
     Bramka(
+        nazwa="ui/wizard.py przed ADR-0008",
+        adr="0008",
+        obecne=_artefakt("kio_tool/ui/wizard.py"),
+        podrzuc=_podrzuc_plik("kio_tool/ui/wizard.py"),
+        powod=(
+            "ADR-0008 Z-17: kreator stoi na decyzji o punkcie zgody (Z-6) i o granicy `Akcje` "
+            "(Z-7) — napisany przed nią trzymałby `Store` albo pytał o zgodę drugim żądaniem"
+        ),
+    ),
+    Bramka(
+        nazwa="demo/ przed ADR-0008",
+        adr="0008",
+        obecne=_artefakt("kio_tool/demo/__init__.py"),
+        podrzuc=_podrzuc_plik("kio_tool/demo/__init__.py"),
+        powod=(
+            "ADR-0008 Z-1…Z-4: tryb pokazowy bez rozstrzygnięcia o znacznikach produkuje "
+            "artefakty nieodróżnialne od prawdziwych — fałszywe cytaty przypisane KIO i Atlasowi"
+        ),
+    ),
+    Bramka(
         nazwa="mcp_server.py przed ADR-0002",
         adr="0002",
         obecne=_artefakt("kio_tool/mcp_server.py"),
@@ -303,9 +323,10 @@ def test_metatest_kazda_bramka_planu_faz_ma_swoj_wiersz() -> None:
     Numery ADR-ów są wypisane, bo bramka usunięta z tablicy przestaje obowiązywać bez jednego
     czerwonego testu — to ta sama cicha awaria, przed którą broni reszta pliku, o poziom wyżej.
     """
-    assert {b.adr for b in BRAMKI} == {"0001", "0002", "0004", "0006"}, (
+    assert {b.adr for b in BRAMKI} == {"0001", "0002", "0004", "0006", "0008"}, (
         f"tablica bramek niesie ADR-y {sorted(b.adr for b in BRAMKI)}; plan faz (audyt 9) stawia "
-        "trzy warunki kolejności, a ADR-0006 Z-14 czwarty — każdy ma tu mieć wiersz"
+        "trzy warunki kolejności, ADR-0006 Z-14 czwarty, ADR-0008 Z-17 piąty — każdy ma tu "
+        "mieć wiersz"
     )
     assert all(b.powod for b in BRAMKI), "bramka bez powodu kolejności jest bramką porzuconą"
     assert len({b.nazwa for b in BRAMKI}) == len(BRAMKI), "dwie bramki o tej samej nazwie"
@@ -875,7 +896,7 @@ def test_samosprawdzenie_kontrakt_w_pisowni_wielolinijkowej_jest_zarzutem(tmp_pa
     assert pomiary_wejsciowe_bramki(korzen) == {"atlas": frozenset()}
 
 
-NUMERY_ADR_OCZEKIWANE = frozenset({"0001", "0002", "0003", "0004", "0005", "0006", "0007"})
+NUMERY_ADR_OCZEKIWANE = frozenset({"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"})
 """Numery, o których ten plik coś wie: trzy bramki, ADR-0003 (kształt `source/`), ADR-0005
 (bramka per kanał, 2026-09-18 — zmienia kryterium, po którym ten plik chodzi) i ADR-0006
 (faza 2, 2026-09-19) i ADR-0007 (polityka ponowień, 2026-09-19). Oba są `proposed`, więc żadnej
