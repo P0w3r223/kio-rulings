@@ -152,7 +152,8 @@ def test_zerwane_polaczenie_zostawia_w_dzienniku_wiersz_o_zadaniu_bez_odpowiedzi
     with pytest.raises(TransportError):
         uruchom(store, serwis)
 
-    assert statusy_zadan(store) == [200, 200, 200, None]
+    # Awaria trwała: trzy próby tego samego dokumentu (`ponowienia.proby`), każda z wierszem.
+    assert statusy_zadan(store) == [200, 200, 200, None, None, None]
     uwaga = store._conn.execute(
         "SELECT ksztalt FROM requests_log ORDER BY rowid DESC LIMIT 1"
     ).fetchone()[0]
@@ -179,7 +180,9 @@ def test_zanik_sieci_na_pierwszej_stronie_listy_zostawia_przebieg_bez_dokumentow
     przebieg = store.get_run(jedyny_przebieg(store))
     assert (przebieg.status, przebieg.ostatnia_strona) == ("przerwany", None)
     assert store.count("documents") == 0 and store.count("run_documents") == 0
-    assert statusy_zadan(store) == [None], "jedyne żądanie nie doszło i ma o tym wiersz"
+    assert statusy_zadan(store) == [None, None, None], (
+        "każda z trzech prób strony nie doszła i każda ma o tym wiersz"
+    )
 
     dokonczony = uruchom(store, SerwisAwaryjny())
 
@@ -459,7 +462,9 @@ def test_zgloszona_liczba_dokumentow_przezywa_przerwanie(store: Store) -> None:
 
     przebieg = store.get_run(jedyny_przebieg(store))
     assert przebieg.dokumentow == 3, "objęci kandydaci są policzeni mimo przerwania"
-    assert przebieg.zadan == 5, "strona listy i cztery żądania po dokument"
+    assert przebieg.zadan == 7, (
+        "strona listy, trzy udane dokumenty i trzy próby czwartego (`ponowienia.proby`)"
+    )
     assert przebieg.zakres.startswith("2024-01-01"), "zakres zostaje przy przerwanym przebiegu"
     assert LISTA[LICZNIK] > przebieg.dokumentow, (
         "kanał zgłosił więcej dokumentów, niż przebieg objął — ta różnica jest tym, "

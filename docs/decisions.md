@@ -611,6 +611,7 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 21 | Blokada sieci w testach wobec wstrzykniętego transportu i wobec gniazda | **wykonany 2026-09-15 w obu połowach — pozytywny** (`## Pomiar 21`) | zamknięty w części „blokada"; odtwarzanie kaset rozstrzyga test dymny adaptera Atlasu (ADR-0005 Z-10) | — |
 | 22 | Gęstość cytowań i udział nieznormalizowanych | niewykonany | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
 | 23 | Warunki ponownego wykorzystywania SAOS i Atlasu, odczytane **u źródła** | **wykonany 2026-09-18 — Atlas: CC BY 4.0 z atrybucją u źródła; SAOS: brak odpowiedzi w 45 s** (`## Pomiar 23`) | **bramka** (`atlas`) — spełnione dla Atlasu; SAOS nieodczytany | `sonda.py licencje` — 3 żądania; SHA-256 każdej strony w `## Pomiar 23` |
+| 24 | Awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | niewykonany — wymaga pierwszego przebiegu kwartalnego po wdrożeniu ponowień | korekta progów bloku `ponowienia` w `contract.yaml` | `requests_log.proba` (schemat 5): ponowienia per klasa i ile skończyło się 200, zero żądań dodatkowych |
 
 ### Dlaczego pomiar 3 jest rozbity na 3a i 3b
 

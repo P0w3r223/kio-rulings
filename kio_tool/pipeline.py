@@ -109,6 +109,8 @@ class Podsumowanie:
     zakres: str
     brakujacych: int = 0
     """Kandydaci z listy, których kanał już nie miał (404) — pominięci, nie zatrzymujący."""
+    ponowien_lacznie: int = 0
+    """Próby od drugiej w całym przebiegu, czytane **z bazy** (ADR-0007 Z-7 ujście 4, Z-8)."""
 
 
 @dataclass(frozen=True)
@@ -129,7 +131,13 @@ class WynikPrzeliczenia:
 
 
 class _Puls:
-    """Otulina `Events`: liczy żądania i pamięta liczbę dokumentów w zakresie, resztę przekazuje."""
+    """Otulina `Events`: pamięta liczbę dokumentów w zakresie i liczbę żądań **wysłanych**.
+
+    `zadan` rośnie w `_SladDoBazy.zanotuj`, nie w `on_request` (ADR-0007 Z-9): `on_request` pada
+    wyłącznie na ścieżce odpowiedzi, więc żądanie, które opuściło proces i nie wróciło, nie
+    liczyło się do progu zgody. Z ponowieniami ta różnica przestaje być ograniczona — przebieg
+    mógłby wysłać ponad `PROG_ZGODY` żądań, nie pytając o zgodę ani razu.
+    """
 
     def __init__(self, inner: Events) -> None:
         self._inner = inner
@@ -137,7 +145,6 @@ class _Puls:
         self.razem: int | None = None
 
     def on_request(self, endpoint: str, status: int, elapsed_s: float) -> None:
-        self.zadan += 1
         self._inner.on_request(endpoint, status, elapsed_s)
 
     def on_page(self, page_index: int, candidates: int, total: int | None) -> None:
@@ -170,12 +177,17 @@ class _Puls:
 class _SladDoBazy:
     """`SladZadan` nad `requests_log`: wiersz w chwili powrotu żądania, nie po całym przebiegu."""
 
-    def __init__(self, store: Store, run_id: str, zegar: Clock) -> None:
+    def __init__(self, store: Store, run_id: str, zegar: Clock, puls: _Puls) -> None:
         self._store = store
         self._run_id = run_id
         self._zegar = zegar
+        self._puls = puls
 
     def zanotuj(self, wynik: Wynik) -> Wynik:
+        # Licznik zgody tutaj, nie w `on_request` (ADR-0007 Z-9): kanał woła `zanotuj` dla
+        # **każdego** żądania, które opuściło proces — z odpowiedzią i bez niej.
+        if wynik.wyslane:
+            self._puls.zadan += 1
         ksztalt = (
             "—"
             if wynik.ksztalt_zgodny is None
@@ -192,6 +204,7 @@ class _SladDoBazy:
             sha256=wynik.sha256,
             ksztalt=ksztalt,
             retry_after_s=wynik.retry_after_s,
+            proba=wynik.proba,
         )
         return wynik
 
@@ -313,7 +326,7 @@ def pobierz(
                 kontrakt,
                 puls,
                 zegar=zegar,
-                slad=_SladDoBazy(store, run_id, zegar),
+                slad=_SladDoBazy(store, run_id, zegar, puls),
                 klucz_api=klucz_api(kontrakt.tempo.klucz_api.zmienna),
             )
             _przebieg(
@@ -368,6 +381,7 @@ def pobierz(
         bledow_odczytu=licznik.bledow_odczytu,
         zakres=scope.etykieta,
         brakujacych=licznik.brakujacych,
+        ponowien_lacznie=store.count_requests(run_id, ponowienia=True),
     )
 
 

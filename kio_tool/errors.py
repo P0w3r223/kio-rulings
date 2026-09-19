@@ -142,11 +142,11 @@ class ResumableError(KioError):
 
 
 class ServerError(ResumableError):
-    """5xx po wyczerpaniu prób."""
+    """5xx po wyczerpaniu prób z `contract.yaml` (`ponowienia.proby`, ADR-0007)."""
 
 
 class TransportError(ResumableError):
-    """Timeout, DNS, zerwane połączenie."""
+    """Timeout, DNS, zerwane połączenie, urwane ciało przy 200 — po wyczerpaniu prób."""
 
 
 class RateLimitError(ResumableError):

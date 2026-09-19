@@ -1,7 +1,7 @@
 # ADR-0006: Faza 2 — parser nad tekstem z PDF-a, pochodzenie w tabelach pochodnych, raport pokrycia jako produkt
 
 Data: 2026-09-19
-Status: proposed — do przyjęcia albo odrzucenia przez właściciela; sekcja 9 wylicza, co czeka
+Status: accepted (2026-09-19, decyzja właściciela — z poprawką liczbową z pomiaru 5, sekcja 10)
 Autor: P0w3r223
 Related to: `docs/AUDYT_KIO_ORZECZENIA.md` (9 — bramka fazy 2; 5.1; 7; 8.2; 10 — pomiary 5 i 10; 11 — miny 1, 2, 4), `docs/ARCHITEKTURA_KIO_TOOL.md` (4.2, 4.4, 4.5, 4.8, 4.9; 6 — pomiary 18 i 22), `docs/adr/0001_tozsamosc_dokumentu.md`, `docs/adr/0005_bramka_per_kanal.md` (Z-3, Z-5), `docs/decisions.md` („Jakość pól Atlasu", „Przebieg 2", „Status pomiarów"), `kio_tool/parser/details.py`, `kio_tool/store.py`, `tests/test_bramki_faz.py`
 
@@ -253,3 +253,20 @@ Bramka jest domknięta, gdy jednocześnie:
 5. złoty zbiór istnieje w postaci z Z-11, jego adnotacje przechodzą wobec korpusu, a raport podaje,
    ile dokumentów złotego zbioru sprawdzono;
 6. właściciel przyjmuje fazę — bo fazę kończy przyjęcie, nie zielona suita (audyt 9).
+
+---
+
+## 10. Przyjęcie (2026-09-19)
+
+Właściciel przyjął ten ADR 2026-09-19 razem z zakresem „fazy 2 i 3 plus ADR-0007" i ze zgodą na
+pobranie korpusu od nowa z Atlasu w tej sesji (korpus z 2026-09-18 nie istnieje na maszynie, na
+której sesja pracuje — repozytorium niesie kod, nie bazę). Trzy rozstrzygnięcia przy przyjęciu:
+
+- **Poprawka liczbowa z pomiaru 5.** Zdanie z §1.1 i wariantu A w §3, że wzorce z architektury 4.5
+  dają korpus „w całości `nieprzypisany`", jest nieprawdziwe: `^Uzasadnienie$` jako osobna linia
+  trafia w 63,0 % dokumentów (`docs/decisions.md`, „Pomiar 5, część lokalna"). Wybór wariantu B
+  stoi mimo to, na mocniejszym argumencie z tego samego pomiaru: `\f` i łamanie wiersza w zdaniu
+  występują w 100 % dokumentów, więc normalizacja przed segmentacją jest warunkiem, nie opcją.
+- **Próbka rocznikowa (Z-3) ma zgodę w tej sesji** — zgoda obejmuje odtworzenie korpusu i próbkę.
+- **Złoty zbiór: postać z Z-11, rozmiar N nie jest przesądzony tym przyjęciem.** Wychodzi
+  z próbki rocznikowej (etap II) i raport pokrycia podaje go liczbą „sprawdzonych z N".

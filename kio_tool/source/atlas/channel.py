@@ -23,6 +23,7 @@ import hashlib
 import json
 import math
 from collections.abc import Callable, Iterator, Mapping
+from dataclasses import dataclass
 from typing import ClassVar
 
 import httpx
@@ -37,6 +38,7 @@ from ...errors import (
     NotFoundError,
     PagingRunawayError,
     RateLimitError,
+    ResumableError,
     ServerError,
     SourceContractBroken,
     TransportError,
@@ -46,7 +48,7 @@ from ...ksztalt import OcenaKsztaltu, json_z_rekordami, json_ze_slownikiem
 from ...logbook import Wynik
 from ...progress import Events, NullEvents
 from ...ratelimit import RateLimiter
-from ..contract import Contract
+from ..contract import Contract, KlasaPonowienia
 from ..protocol import BezSladu, Candidate, RawDocument, Scope, SladZadan
 
 PROG_EPOCH = 1_000_000_000.0
@@ -60,6 +62,18 @@ a 10^9 jako epoch to 2001-09-09, więc żaden prawdziwy znacznik nie jest mniejs
 """
 
 METODA = "GET"
+"""Oba punkty Atlasu są `GET`, więc ponawiane bezpiecznie (ADR-0007 Z-2)."""
+
+
+@dataclass(frozen=True)
+class _Porazka:
+    """Zakończenie próby, które polityka ponowień może powtórzyć (ADR-0007 Z-1)."""
+
+    klasa: KlasaPonowienia
+    wyjatek: ResumableError
+    opis: str
+    """Co się nie udało, dla operatora — „503 od kanału", nie samo słowo „ponowienie" (Z-7)."""
+    retry_after_s: float | None = None
 
 
 class AtlasChannel:
@@ -94,6 +108,9 @@ class AtlasChannel:
         # kontrakt (docstring `json_z_rekordami`). Lista pod innym kluczem nadal nim jest.
         self._ocena_rekordow = json_z_rekordami(contract.ksztalt.lista.klucz, pusta_dozwolona=True)
         self._ocena_dokumentu = json_ze_slownikiem(*contract.ksztalt.dokument.pola_wymagane)
+        self._pod_rzad = 0
+        """Kolejne żądania, które wymagały ponowienia — zeruje je pierwsze udane za pierwszym
+        razem (ADR-0007 Z-6, idiom `pipeline.PROG_404_POD_RZAD`)."""
         self._naglowki: dict[str, str] = {}
         if klucz_api:
             self._naglowki[contract.tempo.klucz_api.naglowek] = klucz_api
@@ -114,6 +131,7 @@ class AtlasChannel:
             odpowiedz = self._zadanie(
                 k.baza + k.punkty.lista,
                 nazwa=k.punkty.lista,
+                etykieta=f"strona {strona} listy",
                 params=params,
                 ocena=self._ocena_listy,
             )
@@ -215,6 +233,7 @@ class AtlasChannel:
         odpowiedz = self._zadanie(
             f"{k.baza}{k.punkty.dokument}/{ref}",
             nazwa=k.punkty.dokument,
+            etykieta=f"dokument {ref}",
             ocena=self._ocena_dokumentu,
         )
         tresc = odpowiedz.content
@@ -233,13 +252,73 @@ class AtlasChannel:
         adres: str,
         *,
         nazwa: str,
+        etykieta: str,
         ocena: Callable[[bytes], OcenaKsztaltu],
         params: Mapping[str, str | int] | None = None,
     ) -> httpx.Response:
+        """Pętla prób wokół `_jedna_proba` — polityka z `contract.yaml`, blok `ponowienia`.
+
+        ADR-0007 Z-3: pętla mieszka tutaj, a nie w `pipeline`, bo stan stronicowania żyje
+        w generatorze `list_candidates`, a klasyfikacja zakończenia zbiega się w jednym miejscu.
+        Ponowienie przechodzi przez limiter jak każde żądanie (`extra_delay_s` może postój
+        wyłącznie wydłużyć), więc nie omija niczego (reguła 16 zabrania obejścia, nie
+        powtórzenia). Po wyczerpaniu prób leci ten sam wyjątek co przed ADR-0007 (Z-10).
+        """
+        pon = self._k.ponowienia
+        proba = 1
+        postoj = 0.0
+        while True:
+            wynik = self._jedna_proba(
+                adres, nazwa=nazwa, ocena=ocena, params=params, proba=proba, postoj_s=postoj
+            )
+            if isinstance(wynik, httpx.Response):
+                if proba == 1:
+                    self._pod_rzad = 0
+                return wynik
+            if wynik.klasa not in pon.klasy:
+                raise wynik.wyjatek
+            limit = pon.proby_429 if wynik.klasa == "odmowa_429" else pon.proby
+            if proba == 1:
+                self._pod_rzad += 1
+            if proba >= limit:
+                raise wynik.wyjatek
+            if self._pod_rzad >= pon.pod_rzad_max:
+                raise type(wynik.wyjatek)(
+                    f"{wynik.wyjatek} Kolejne żądanie z rzędu wymaga ponowienia "
+                    f"({self._pod_rzad} z progu {pon.pod_rzad_max}, `ponowienia.pod_rzad_max`) "
+                    "— serwis leży, nie mruga; zatrzymuję zamiast powtarzać."
+                ) from wynik.wyjatek
+            proba += 1
+            # 429: pełną blokadę trzyma już limiter (`note_response`), backoff byłby nadmiarowy
+            # (Z-4). 5xx z `Retry-After`: prośba serwisu, jeśli dłuższa od naszego backoffu.
+            postoj = (
+                0.0
+                if wynik.klasa == "odmowa_429"
+                else max(pon.postoj_przed(proba), wynik.retry_after_s or 0.0)
+            )
+            self._events.on_message(
+                f"{etykieta}: {wynik.opis}, próba {proba} z {limit}"
+                + (f", czekam {postoj:.0f} s" if postoj > 0 else ", czekam na limiter")
+            )
+
+    def _jedna_proba(
+        self,
+        adres: str,
+        *,
+        nazwa: str,
+        ocena: Callable[[bytes], OcenaKsztaltu],
+        params: Mapping[str, str | int] | None,
+        proba: int,
+        postoj_s: float,
+    ) -> httpx.Response | _Porazka:
         """Przez limiter, przez bramkę wyjścia klienta, ze śladem **w chwili powrotu** i oceną
-        kształtu. Kolejność jak w `scripts/zadanie.wykonaj`, z którego ten szew pochodzi."""
+        kształtu. Kolejność jak w `scripts/zadanie.wykonaj`, z którego ten szew pochodzi.
+
+        Zakończenie ponawialne (ADR-0007 Z-1) wraca jako `_Porazka`, a nie wyjątek — decyzję
+        o kolejnej próbie podejmuje `_zadanie`. Każde inne leci od razu.
+        """
         pelny_adres = str(httpx.URL(adres, params=params)) if params else adres
-        self._limiter.acquire(nazwa)
+        self._limiter.acquire(nazwa, extra_delay_s=postoj_s)
         start = self._zegar.monotonic()
         try:
             odpowiedz = self._klient.get(adres, params=params, headers=self._naglowki)
@@ -254,12 +333,15 @@ class AtlasChannel:
                     czas_s=self._zegar.monotonic() - start,
                     plik=None,
                     uwaga=f"{type(blad).__name__}: {blad}",
+                    proba=proba,
                 )
             )
-            raise TransportError(
+            wyjatek = TransportError(
                 f"Żądanie do kanału {self.name!r} nie doszło do skutku "
                 f"({type(blad).__name__}: {blad}). Przebieg da się wznowić tym samym poleceniem."
-            ) from blad
+            )
+            wyjatek.__cause__ = blad
+            return _Porazka("transport", wyjatek, f"zerwane łącze ({type(blad).__name__})")
         czas = self._zegar.monotonic() - start
         teraz = self._zegar.wall()
         retry_after_s, uwaga_retry = parse_retry_after(
@@ -285,18 +367,29 @@ class AtlasChannel:
                 ksztalt_uwaga="" if wynik_oceny is None else wynik_oceny.uwaga,
                 uwaga=uwaga_retry,
                 retry_after_s=retry_after_s,
+                proba=proba,
             )
         )
-        self._odrzuc_status(odpowiedz.status_code, nazwa)
+        try:
+            self._odrzuc_status(odpowiedz.status_code, nazwa)
+        except ServerError as blad:
+            return _Porazka("serwis_5xx", blad, f"{odpowiedz.status_code} od kanału", retry_after_s)
+        except RateLimitError as blad:
+            return _Porazka("odmowa_429", blad, "429 od kanału", retry_after_s)
         if wynik_oceny is not None and not wynik_oceny.zgodny:
             if wynik_oceny.przejsciowa:
                 # Urwany JSON albo puste ciało przy 200 to zerwane łącze widziane od strony
                 # treści, nie zmiana API — ta sama klasa co `RemoteProtocolError` wyżej
                 # (tester 2026-09-18: dwie drogi jednego zdarzenia, dwa werdykty).
-                raise TransportError(
-                    f"Kanał {self.name!r} odpowiedział 200 na `{nazwa}`, ale odpowiedź przyszła "
-                    f"urwana albo pusta ({wynik_oceny.uwaga}) — to wygląda na zerwane łącze, "
-                    "nie na zmianę u dostawcy. Przebieg da się wznowić tym samym poleceniem."
+                return _Porazka(
+                    "urwana",
+                    TransportError(
+                        f"Kanał {self.name!r} odpowiedział 200 na `{nazwa}`, ale odpowiedź "
+                        f"przyszła urwana albo pusta ({wynik_oceny.uwaga}) — to wygląda na "
+                        "zerwane łącze, nie na zmianę u dostawcy. Przebieg da się wznowić tym "
+                        "samym poleceniem."
+                    ),
+                    "odpowiedź 200 urwana",
                 )
             raise SourceContractBroken(
                 f"Kanał {self.name!r} odpowiedział 200 na `{nazwa}`, ale kształt nie zgadza się "
@@ -305,11 +398,11 @@ class AtlasChannel:
         return odpowiedz
 
     def _odrzuc_status(self, status: int, nazwa: str) -> None:
-        """Status spoza kontraktu kończy przebieg właściwym wyjątkiem — nie ponowieniem.
+        """Status spoza 200 jako właściwy wyjątek; o ponowieniu rozstrzyga `_zadanie`.
 
         Reguła 16: przy odmowie serwisu narzędzie zatrzymuje się i mówi o tym operatorowi. 429
-        też zatrzymuje: limiter dostał już blokadę z `note_response`, a wznowienie tym samym
-        poleceniem odczeka ją z historii żądań, zanim wyśle cokolwiek.
+        dostaje jedno ponowienie **po pełnej blokadzie** limitera (ADR-0007 §2 pkt 3, wariant Z-1)
+        — to samo, co wykonałby `wznow` z historii żądań; drugie 429 pod rząd zatrzymuje przebieg.
         """
         kanal = self.name
         if status == 200:

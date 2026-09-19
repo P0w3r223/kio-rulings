@@ -192,6 +192,7 @@ def podsumowanie(
     zadan_lacznie: int | None = None,
     bledow_odczytu: int = 0,
     brakujacych: int = 0,
+    ponowien_lacznie: int = 0,
 ) -> str:
     """Rachunek przebiegu — liczba żądań wypisana, nie zostawiona do policzenia z ekranu.
 
@@ -226,6 +227,13 @@ def podsumowanie(
         linie.append(
             f"Dokumentów z listy, których kanał już nie ma (404): {brakujacych} — pominięte, "
             "przebieg poszedł dalej"
+        )
+    if ponowien_lacznie:
+        # ADR-0007 Z-7 ujście 4: liczba z bazy, nie z pamięci procesu — to jest też wejście
+        # pomiaru 24, więc ma przeżyć wznowienie tak samo jak `zadan_lacznie`.
+        linie.append(
+            f"Ponowień w całym przebiegu (z bazy): {ponowien_lacznie} — żądania powtórzone "
+            "po zerwanym łączu, 5xx albo 429; każde liczy się do limitów tempa i do zgody"
         )
     linie.append(f"Baza: {baza}")
     return "\n".join(linie)

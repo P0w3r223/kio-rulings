@@ -215,6 +215,7 @@ def _raport_przebiegu(wynik: pipeline.Podsumowanie, baza: Path) -> None:
             zadan_lacznie=wynik.zadan_lacznie,
             bledow_odczytu=wynik.bledow_odczytu,
             brakujacych=wynik.brakujacych,
+            ponowien_lacznie=wynik.ponowien_lacznie,
         )
     )
 

@@ -207,22 +207,30 @@ def test_prog_zgody_dziala_takze_gdy_kanal_nie_zglasza_liczby(store: Store) -> N
 
 
 def test_wpis_w_requests_log_powstaje_w_chwili_powrotu_zadania(store: Store) -> None:
+    """Zerwane łącze na trzecim dokumencie, jednorazowe: od ADR-0007 ponowienie je dokańcza.
+
+    Mierzone jest to samo co przed ponowieniami — żądanie, które nie doszło, ma własny wiersz,
+    zapisany w chwili powrotu, **przed** kolejną próbą — plus kolumna `proba`, bez której dwie
+    próby jednego dokumentu byłyby w dzienniku dwoma różnymi żądaniami (Z-8).
+    """
     serwer = Serwer(
         przerwij_na_dokumencie=3, wyjatek=httpx.ConnectError("zerwane polaczenie (wymyslone)")
     )
 
-    with pytest.raises(TransportError):
-        uruchom(store, serwer)
+    wynik = uruchom(store, serwer)
 
-    statusy = [
-        wiersz[0]
-        for wiersz in store._conn.execute("SELECT status FROM requests_log ORDER BY rowid")
-    ]
-    assert statusy == [200, 200, 200, None], (
-        "lista, dwa dokumenty i żądanie, które nie doszło — każde ze swoim wierszem, "
-        "zanim wyjątek opuścił `pobierz`"
-    )
-    assert store.count("documents") == 2
+    wiersze = store._conn.execute(
+        "SELECT status, proba, url_redacted FROM requests_log ORDER BY rowid"
+    ).fetchall()
+    assert [(w[0], w[1]) for w in wiersze[:5]] == [
+        (200, 1),
+        (200, 1),
+        (200, 1),
+        (None, 1),
+        (200, 2),
+    ], "lista, dwa dokumenty, próba bez odpowiedzi i jej ponowienie — każde ze swoim wierszem"
+    assert wiersze[3][2] == wiersze[4][2], "ponowienie dotyczy tego samego adresu"
+    assert wynik.status == "zakonczony" and wynik.ponowien_lacznie == 1
 
 
 def test_finish_run_zapisuje_koniec_takze_przy_ctrl_c(store: Store) -> None:
@@ -373,8 +381,9 @@ def test_429_zatrzymuje_przebieg_i_zostawia_go_wznawialnym(store: Store) -> None
 
     przebieg = store.get_run(store._conn.execute("SELECT run_id FROM runs").fetchone()[0])
     assert przebieg.status == "przerwany" and przebieg.powod is not None
-    statusy = [w[0] for w in store._conn.execute("SELECT status FROM requests_log ORDER BY rowid")]
-    assert statusy == [200, 200, 200, 429]
+    wiersze = store._conn.execute("SELECT status, proba FROM requests_log ORDER BY rowid")
+    # ADR-0007 wariant Z-1: jedno ponowienie po pełnej blokadzie; drugie 429 pod rząd zatrzymuje.
+    assert [tuple(w) for w in wiersze] == [(200, 1), (200, 1), (200, 1), (429, 1), (429, 2)]
     assert store.count("documents") == 2
 
 

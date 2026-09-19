@@ -35,6 +35,10 @@ zaczepiona o wersję 1 nie zapaliłaby się na bazie stojącej już na 3 — czy
 która lukę ma. Odtworzenie jest dokładne, nie zgadywane; czym stoi, mówi
 `_odtworz_powiazania_sprzed_schematu_2`.
 
+**Schemat 5 (2026-09-19, ADR-0007 Z-8)** dokłada kolumnę `requests_log.proba`: dwie próby jednego
+żądania mają być w dzienniku odróżnialne od dwóch różnych żądań, bo inaczej pomiaru 24
+(skuteczność ponowień) nie dałoby się zrobić bez ponownego obciążenia serwisu.
+
 Czego tu **nie ma** wobec wzorca z `ceidg-tool` (1 208 linii), z powodem przy każdym: dzierżawy
 blokady (jeden operator i jeden proces; wraca razem z harmonogramem), kwarantanny uszkodzonej bazy
 i `integrity_check` przy otwarciu (bez pomiaru, że to się zdarza, byłoby to mechanizmem bez
@@ -59,7 +63,7 @@ from .criteria import Criteria
 from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
 """Stany, z których `resume_run` wraca do pracy: przerwany właściwym wyjątkiem albo osierocony
@@ -122,7 +126,8 @@ CREATE TABLE IF NOT EXISTS requests_log (
   bajtow          INTEGER NOT NULL,
   sha256          TEXT,
   ksztalt         TEXT NOT NULL,
-  retry_after_s   REAL
+  retry_after_s   REAL,
+  proba           INTEGER NOT NULL DEFAULT 1
 )""",
     "CREATE INDEX IF NOT EXISTS requests_log_ts_idx ON requests_log(ts)",
     """
@@ -430,6 +435,8 @@ class Store:
                 self._migruj_do_3()
             if 0 < wersja < 4:
                 self._odtworz_powiazania_sprzed_schematu_2()
+            if 0 < wersja < 5:
+                self._migruj_do_5()
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     def _migruj_1_do_2(self) -> None:
@@ -450,6 +457,18 @@ class Store:
         obecne = {str(w["name"]) for w in self._conn.execute("PRAGMA table_info(requests_log)")}
         if "retry_after_s" not in obecne:
             self._conn.execute("ALTER TABLE requests_log ADD COLUMN retry_after_s REAL")
+
+    def _migruj_do_5(self) -> None:
+        """Kolumna `requests_log.proba` (schemat 5, ADR-0007 Z-8) — numer próby żądania.
+
+        Wiersze sprzed schematu 5 dostają 1 z wartości domyślnej i to jest prawda o nich: przed
+        ADR-0007 żaden kanał nie ponawiał. Obecność kolumny sprawdzana, nie zakładana — jak
+        w `_migruj_do_3`."""
+        obecne = {str(w["name"]) for w in self._conn.execute("PRAGMA table_info(requests_log)")}
+        if "proba" not in obecne:
+            self._conn.execute(
+                "ALTER TABLE requests_log ADD COLUMN proba INTEGER NOT NULL DEFAULT 1"
+            )
 
     def _dopisz_odciski_przebiegom_sprzed_schematu_2(self) -> None:
         """Przebieg sprzed schematu 2 miał wyłącznie zakres dat (`od..do`), więc jego kryteria
@@ -937,10 +956,12 @@ class Store:
             ).fetchone()[0]
         )
 
-    def count_requests(self, run_id: str) -> int:
+    def count_requests(self, run_id: str, *, ponowienia: bool = False) -> int:
+        """Żądania przebiegu z dziennika; `ponowienia=True` liczy wyłącznie próby od drugiej."""
+        warunek = " AND proba > 1" if ponowienia else ""
         return int(
             self._conn.execute(
-                "SELECT COUNT(*) FROM requests_log WHERE run_id = ?", (run_id,)
+                f"SELECT COUNT(*) FROM requests_log WHERE run_id = ?{warunek}", (run_id,)
             ).fetchone()[0]
         )
 
@@ -1016,11 +1037,12 @@ class Store:
         sha256: str | None,
         ksztalt: str,
         retry_after_s: float | None = None,
+        proba: int = 1,
     ) -> None:
         """Jeden wiersz na żądanie, trwały natychmiast — poza `transakcja()` zapis jest atomowy sam."""  # noqa: E501
         self._conn.execute(
             "INSERT INTO requests_log (run_id, ts, metoda, url_redacted, status, ms, bajtow, "
-            "sha256, ksztalt, retry_after_s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "sha256, ksztalt, retry_after_s, proba) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
                 ts,
@@ -1032,6 +1054,7 @@ class Store:
                 sha256,
                 ksztalt,
                 retry_after_s,
+                proba,
             ),
         )
 

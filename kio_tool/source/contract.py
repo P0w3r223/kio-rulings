@@ -86,6 +86,37 @@ class Tempo(_Model):
     zrodlo: str
 
 
+KlasaPonowienia = Literal["transport", "urwana", "serwis_5xx", "odmowa_429"]
+"""Zakończenia żądania, które wolno ponowić (ADR-0007 Z-1) — trzy pierwsze to jedno zdarzenie,
+zerwane łącze, widziane trzema drogami; czwarte to „nie teraz" po pełnej blokadzie limitera."""
+
+
+class Ponowienia(_Model):
+    """Polityka ponowień kanału (ADR-0007 Z-5) — **nasze progi**, nie odczyt u dostawcy.
+
+    Osobny blok, nie pole w `Tempo`: `tempo.zrodlo` dokumentuje limity odczytane u dostawcy,
+    a te liczby są decyzją projektu. Wrzucone pod cudze `zrodlo` spłaszczyłyby dwa statusy
+    dowodowe do jednego (zasada 7.1 audytu).
+    """
+
+    klasy: list[KlasaPonowienia]
+    proby: int = Field(ge=1)
+    """Łączna liczba prób (pierwsza + ponowienia) dla klas innych niż `odmowa_429`."""
+    proby_429: int = Field(ge=1)
+    """Łączna liczba prób po 429 — postój przed ponowieniem trzyma blokada limitera."""
+    podstawa_s: float = Field(ge=0)
+    mnoznik: float = Field(ge=1)
+    pod_rzad_max: int = Field(gt=0)
+    """Tyle kolejnych żądań wymagających ponowienia znaczy „serwis leży", nie „mruga" (Z-6)."""
+    zrodlo: str
+
+    def postoj_przed(self, proba: int) -> float:
+        """Postój przed próbą `proba` (2 = pierwsze ponowienie): `podstawa_s * mnoznik^(n-2)`."""
+        if proba < 2:
+            return 0.0
+        return float(self.podstawa_s * self.mnoznik ** (proba - 2))
+
+
 class Strony(_Model):
     na_strone: int = Field(gt=0)
     max_stron: int = Field(gt=0)
@@ -162,6 +193,7 @@ class Contract(_Model):
     punkty: Punkty
     parametry_listy: ParametryListy
     tempo: Tempo
+    ponowienia: Ponowienia
     strony: Strony
     ksztalt: Ksztalt
     pola_odrzucone: list[PoleOdrzucone]
