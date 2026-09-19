@@ -176,7 +176,7 @@ def test_skan_importow_widzi_obie_pisownie_tej_samej_zaleznosci(
 # wyliczona wprost, a `parser/` wchodzi w całości i rekursywnie. `config.py` do listy
 # **nie** należy — importuje `os` i ma do tego powód (`CONTACT_ENV`). `criteria.py` doszedł
 # 2026-09-18 (etap IV) — reguła 1 wymienia go z nazwy od pierwszego brzmienia.
-MODULY_CZYSTE_WPROST = ("criteria.py", "docid.py", "safetext.py", "wycena.py")
+MODULY_CZYSTE_WPROST = ("criteria.py", "docid.py", "safetext.py", "wycena.py", "demo/korpus.py")
 
 # Reguła 1: moduł czysty nie zna wejścia/wyjścia ani systemu.
 ZAKAZANE_REGULA_1 = frozenset({"httpx", "sqlite3", "openpyxl", "rich", "os"})

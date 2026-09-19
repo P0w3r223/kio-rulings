@@ -85,6 +85,7 @@ sama pułapka, którą `test_piaskownica.py` zamknął 2026-09-18 przy dzienniku
 ORYGINALNE_SCIEZKI = {
     "default_db_path": config.default_db_path,
     "default_output_dir": config.default_output_dir,
+    "katalog_pokazu": config.katalog_pokazu,
 }
 """Funkcje sprzed podstawienia — po nich rozpoznajemy moduł, który zaimportował nazwę.
 
@@ -323,6 +324,14 @@ def stan_raportow() -> Drzewo | None:
     return _drzewo(PRAWDZIWE_RAPORTY)
 
 
+PRAWDZIWY_POKAZ = config.katalog_pokazu()
+"""Prawdziwy katalog trybu pokazowego — zapamiętany przy imporcie, przed podstawieniem."""
+
+
+def stan_pokazu() -> Drzewo | None:
+    return _drzewo(PRAWDZIWY_POKAZ)
+
+
 def stan_prawdziwego_korpusu() -> StanKorpusu:
     """Stan prawdziwej bazy i prawdziwego `wyniki/` — do porównania w `_piaskownica`."""
     return stan_korpusu(PRAWDZIWA_BAZA, PRAWDZIWE_WYNIKI)
@@ -377,6 +386,7 @@ def przekieruj_domyslne_sciezki(monkeypatch: pytest.MonkeyPatch, katalog: Path) 
     zamienniki = {
         "default_db_path": lambda: katalog / config.PLIK_BAZY,
         "default_output_dir": lambda: katalog / config.KATALOG_WYNIKOW,
+        "katalog_pokazu": lambda: katalog / config.KATALOG_POKAZU,
     }
     podstawione: list[str] = []
     for modul in moduly_kio_tool():

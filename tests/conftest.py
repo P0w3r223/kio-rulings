@@ -62,6 +62,7 @@ from tests.wsparcie_sondy import (  # noqa: E402
     Serwis,
     ZegarTestowy,
     przekieruj_domyslne_sciezki,
+    stan_pokazu,
     stan_prawdziwego_korpusu,
     stan_prawdziwych_sciezek,
     stan_raportow,
@@ -93,6 +94,7 @@ def _piaskownica(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pa
     przed = stan_prawdziwych_sciezek()
     przed_korpus = stan_prawdziwego_korpusu()
     przed_raporty = stan_raportow()
+    przed_pokaz = stan_pokazu()
     monkeypatch.setattr(zadanie, "KATALOG_WYJSCIA", tmp_path / "out")
     monkeypatch.setattr(zadanie, "DZIENNIK", tmp_path / "docs" / "dziennik_zadan.md")
     przekieruj_domyslne_sciezki(monkeypatch, tmp_path / "dane")
@@ -110,6 +112,9 @@ def _piaskownica(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pa
     assert stan_raportow() == przed_raporty, (
         "test nadpisał zacommitowany raport pokrycia w `docs/raporty/` — `pokrycie` bez `--cel` "
         "pisze względem katalogu bieżącego, a pod pytestem jest nim korzeń repozytorium."
+    )
+    assert stan_pokazu() == przed_pokaz, (
+        "test ruszył prawdziwy katalog trybu pokazowego — `kio-tool demo` bez przekierowania."
     )
 
 

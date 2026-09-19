@@ -25,9 +25,16 @@ from pydantic import ValidationError
 from . import obsluga, pipeline
 from . import pokrycie as raport_pokrycia
 from .clock import SystemClock, utc_iso
-from .config import default_db_path, user_agent
+from .config import (
+    KATALOG_WYNIKOW,
+    PLIK_BAZY,
+    default_db_path,
+    katalog_pokazu,
+    user_agent,
+)
 from .console import PulsKonsoli
 from .criteria import Criteria, bledy_po_polsku
+from .demo import Pokaz, zbuduj_pokaz
 from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, KioError
 from .exporter import FORMATY
 from .parser.details import PARSE_VERSION
@@ -192,6 +199,64 @@ def _uruchom_kreator(*, baza: Path | None, prompter: Prompter | None = None) -> 
         with _otworz_baze(sciezka, zegar) as store:
             akcje = obsluga.AkcjeKreatora(view, store, sciezka, zegar)
             wizard.uruchom(prompter or KonsolaPrompter(), akcje, view)
+
+
+OpcjaOdNowa = Annotated[bool, typer.Option("--od-nowa", help=texts.POMOC_OD_NOWA)]
+
+
+@app.command(help=texts.POMOC_DEMO)
+def demo(od_nowa: OpcjaOdNowa = False) -> None:
+    _uruchom_pokaz(od_nowa=od_nowa)
+
+
+def _uruchom_pokaz(
+    *, od_nowa: bool, prompter: Prompter | None = None, pokaz: Pokaz | None = None
+) -> None:
+    """Kreator nad bazą pokazową (ADR-0008 Z-1, Z-8): atrapa Atlasu jako transport, osobny
+    katalog danych, znacznik w pliku bazy. Bez `KIO_TOOL_CONTACT` i bez klucza (Z-14)."""
+    pokaz = pokaz or zbuduj_pokaz()
+    katalog = katalog_pokazu()
+    sciezka = katalog / PLIK_BAZY
+    with _obsluga_bledow():
+        if od_nowa:
+            _usun_baze_pokazowa(sciezka)
+        with Store.open(sciezka, clock=pokaz.zegar, pokazowa=True) as store:
+            przestarzale = store.count_indexed() < store.count("documents")
+            if przestarzale or any(True for _ in store.versions_to_index(PARSE_VERSION)):
+                pipeline.przelicz(store)
+            akcje = obsluga.AkcjeKreatora(
+                view,
+                store,
+                sciezka,
+                pokaz.zegar,
+                klient_factory=pokaz.klient_factory,
+                tozsamosc=lambda: pokaz.user_agent,
+                czas_pokazu=pokaz.czas_pokazu,
+                klucz_z_srodowiska=False,
+                katalog_wynikow=_katalog(katalog / KATALOG_WYNIKOW),
+            )
+            wizard.uruchom(prompter or KonsolaPrompter(), akcje, view, pokaz=True)
+
+
+def _katalog(sciezka: Path) -> Path:
+    """Katalog wyników pokazu, założony z góry — `eksportuj` traktuje istniejący katalog `--out`
+    jako miejsce na plik o nazwie domyślnej (z przedrostkiem `DEMO_`)."""
+    sciezka.mkdir(parents=True, exist_ok=True)
+    return sciezka
+
+
+def _usun_baze_pokazowa(sciezka: Path) -> None:
+    """`--od-nowa` kasuje **wyłącznie** plik ze znacznikiem pokazu (ADR-0008 Z-2)."""
+    if not sciezka.exists():
+        return
+    with Store.open(sciezka, clock=SystemClock(), pokazowa=True):
+        pass  # otwarcie z `pokazowa=True` odmawia pliku bez znacznika — to jest ta kontrola
+    for plik in (
+        sciezka,
+        sciezka.with_name(sciezka.name + "-wal"),
+        sciezka.with_name(sciezka.name + "-shm"),
+    ):
+        plik.unlink(missing_ok=True)
 
 
 @app.command(help=texts.POMOC_POBIERZ)

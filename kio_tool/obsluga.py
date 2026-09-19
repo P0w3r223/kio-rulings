@@ -152,6 +152,8 @@ class AkcjeKreatora:
         tozsamosc: Callable[[], str] = user_agent,
         czas_pokazu: Callable[[float], float] | None = None,
         limit_trafien: int = 20,
+        klucz_z_srodowiska: bool = True,
+        katalog_wynikow: Path | None = None,
     ) -> None:
         self._view = view
         self._store = store
@@ -161,6 +163,9 @@ class AkcjeKreatora:
         self._tozsamosc = tozsamosc
         self.czas_pokazu = czas_pokazu
         self._limit = limit_trafien
+        self._klucz = klucz_z_srodowiska
+        self._wyniki = katalog_wynikow
+        """Pokaz eksportuje do własnego katalogu (Z-3, znacznik 4), nigdy do `wyniki/` operatora."""
 
     def brak_kontaktu(self) -> str | None:
         try:
@@ -186,6 +191,7 @@ class AkcjeKreatora:
             user_agent=self._tozsamosc(),
             decyzja=decyzja,
             klient_factory=self._klient_factory,
+            klucz_z_srodowiska=self._klucz,
             zegar=self._zegar,
         )
         raport_przebiegu(self._view, wynik, self._sciezka)
@@ -200,6 +206,7 @@ class AkcjeKreatora:
             user_agent=self._tozsamosc(),
             decyzja=decyzja,
             klient_factory=self._klient_factory,
+            klucz_z_srodowiska=self._klucz,
             zegar=self._zegar,
         )
         raport_przebiegu(self._view, wynik, self._sciezka)
@@ -217,7 +224,7 @@ class AkcjeKreatora:
             run_ids=run_ids,
             kryteria=None if run_ids else kryteria,
             formaty=(format,),
-            out=None,
+            out=self._wyniki,
             cel=None,
             zegar=self._zegar,
         )

@@ -1,0 +1,102 @@
+# Wygenerowane przez scripts/zbuduj_wzorce_demo.py — NIE EDYTOWAĆ RĘCZNIE.
+# Dane odniesienia korpusu pokazowego (ADR-0008 Z-11): wyłącznie rozkłady i etykiety
+# przepisów z bazy operatora, bez pól osobowych. Odświeżenie = ponowne uruchomienie.
+zrodlo:
+  data: '2026-09-19'
+  dokumentow: 443
+  sha256_wejscia: bcb3fe4f3223d43609527b173d351e780651ff94d5b4bfb52acd894d181cb82c
+  opis: scripts/zbuduj_wzorce_demo.py nad bazą operatora, 0 żądań
+rozstrzygniecia:
+  umorzono: 168
+  oddalono: 116
+  uwzglednione: 110
+  inne: 36
+  odrzucono: 13
+rodzaje:
+  wyrok: 225
+  postanowienie: 218
+etykiety_przepisow:
+- etykieta: art. 528 Pzp
+  liczba: 112
+- etykieta: art. 505 ust. 1 Pzp
+  liczba: 103
+- etykieta: art. 16 Pzp
+  liczba: 83
+- etykieta: art. 575 Pzp
+  liczba: 72
+- etykieta: art. 226 ust. 1 pkt 5 Pzp
+  liczba: 64
+- etykieta: art. 16 pkt 1 Pzp
+  liczba: 58
+- etykieta: art. 239 ust. 1 Pzp
+  liczba: 55
+- etykieta: art. 557 Pzp
+  liczba: 51
+- etykieta: art. 128 ust. 1 Pzp
+  liczba: 46
+- etykieta: art. 226 ust. 1 pkt 8 Pzp
+  liczba: 43
+- etykieta: art. 224 ust. 1 Pzp
+  liczba: 41
+- etykieta: art. 223 ust. 1 Pzp
+  liczba: 40
+- etykieta: art. 554 ust. 1 pkt 1 Pzp
+  liczba: 39
+- etykieta: art. 568 pkt 2 Pzp
+  liczba: 38
+- etykieta: art. 224 ust. 6 Pzp
+  liczba: 37
+- etykieta: art. 8 ust. 1 Pzp
+  liczba: 36
+- etykieta: art. 568 pkt 1 Pzp
+  liczba: 36
+- etykieta: art. 7 ust. 1 Pzp
+  liczba: 31
+- etykieta: art. 517 ust. 1 Pzp
+  liczba: 29
+- etykieta: art. 517 ust. 2 Pzp
+  liczba: 29
+- etykieta: art. 518 ust. 1 Pzp
+  liczba: 29
+- etykieta: art. 519 ust. 1 Pzp
+  liczba: 29
+- etykieta: art. 522 ust. 1 Pzp
+  liczba: 28
+- etykieta: art. 179 ust. 1 Pzp
+  liczba: 27
+- etykieta: art. 555 Pzp
+  liczba: 27
+- etykieta: art. 17 ust. 2 Pzp
+  liczba: 26
+- etykieta: art. 3 ust. 3 Pzp
+  liczba: 26
+- etykieta: art. 525 ust. 1 Pzp
+  liczba: 26
+- etykieta: art. 3 Pzp
+  liczba: 25
+- etykieta: art. 89 ust. 1 pkt 2 Pzp
+  liczba: 24
+- etykieta: art. 568 pkt 3 Pzp
+  liczba: 22
+- etykieta: art. 128 ust. 4 Pzp
+  liczba: 21
+- etykieta: art. 99 ust. 1 Pzp
+  liczba: 20
+- etykieta: art. 224 Pzp
+  liczba: 20
+- etykieta: art. 520 ust. 1 Pzp
+  liczba: 20
+- etykieta: art. 239 Pzp
+  liczba: 19
+- etykieta: art. 224 ust. 5 Pzp
+  liczba: 19
+- etykieta: art. 87 ust. 1 Pzp
+  liczba: 18
+- etykieta: art. 552 ust. 1 Pzp
+  liczba: 18
+- etykieta: art. 574 Pzp
+  liczba: 18
+ustawy_pzp:
+  pzp2019: 258
+  nieustalone: 116
+  pzp2004: 69

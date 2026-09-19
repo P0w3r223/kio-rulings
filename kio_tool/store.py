@@ -69,6 +69,12 @@ from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
 SCHEMA_VERSION = 6
+ID_BAZY_POKAZOWEJ = 0x4B494F44
+"""`PRAGMA application_id` bazy trybu pokazowego („KIOD") — znacznik w samym pliku (ADR-0008 Z-2).
+
+Jedzie z plikiem przy kopiowaniu i zmianie nazwy, więc `--baza` wskazujące plik pokazowy nie
+otworzy go po cichu w trybie produkcyjnym (wtedy `pobierz` dopisywałby prawdziwe orzeczenia do
+fikcyjnych), a `kio-tool demo` nie zacznie pisać fikcji do niepustej bazy operatora."""
 _W = TypeVar("_W")
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
@@ -498,7 +504,7 @@ def blad_bazy(sciezka: str, blad: sqlite3.Error) -> KioError:
 class Store:
     """Baza lokalna korpusu. `open` tworzy katalog i schemat; `":memory:"` do testów."""
 
-    def __init__(self, path: Path | str, *, clock: Clock) -> None:
+    def __init__(self, path: Path | str, *, clock: Clock, pokazowa: bool = False) -> None:
         self._path = str(path)
         self._clock = clock
         self.nowa = self._path != ":memory:" and not Path(self._path).exists()
@@ -531,11 +537,34 @@ class Store:
             else:
                 self.journal_mode = "memory"
             self._migruj()
+            self.pokazowa = self._sprawdz_tryb(pokazowa)
         except KioError:
             # `with Store.open(...)` nie wchodzi w `__exit__`, gdy `__init__` rzuci — bez tego
             # plik bazy zostawał zajęty na Windowsie po nieudanej migracji (przegląd 2026-09-18).
             polaczenie.close()
             raise
+
+    def _sprawdz_tryb(self, pokazowa: bool) -> bool:
+        """Znacznik bazy pokazowej zgodny z trybem otwarcia — albo `StoreError` ze zdaniem."""
+        znacznik = int(self._conn.execute("PRAGMA application_id").fetchone()[0])
+        if not pokazowa:
+            if znacznik == ID_BAZY_POKAZOWEJ:
+                raise StoreError(
+                    f"Baza {self._path} jest bazą trybu pokazowego (dane fikcyjne). Otwórz ją "
+                    "przez `kio-tool demo`; tryb produkcyjny nie dopisze do niej prawdziwych "
+                    "orzeczeń."
+                )
+            return False
+        if znacznik == ID_BAZY_POKAZOWEJ:
+            return True
+        pusta = self.count("documents") == 0 and self.count("runs") == 0
+        if znacznik != 0 or not pusta:
+            raise StoreError(
+                f"Baza {self._path} nie jest bazą pokazową i nie jest pusta — tryb pokazowy nie "
+                "zapisze fikcji do korpusu operatora."
+            )
+        self._conn.execute(f"PRAGMA application_id = {ID_BAZY_POKAZOWEJ}")
+        return True
 
     def _migruj(self) -> None:
         """Schemat do wersji `SCHEMA_VERSION` w jednej transakcji — bez utraty danych.
@@ -680,8 +709,8 @@ class Store:
                 self.link_run_document(run_id, str(wiersz["doc_id"]), position=position, nowy=True)
 
     @classmethod
-    def open(cls, path: Path | str, *, clock: Clock) -> Store:
-        return cls(path, clock=clock)
+    def open(cls, path: Path | str, *, clock: Clock, pokazowa: bool = False) -> Store:
+        return cls(path, clock=clock, pokazowa=pokazowa)
 
     def close(self) -> None:
         self._conn.close()

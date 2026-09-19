@@ -42,7 +42,7 @@ from .errors import (
     SourceContractBroken,
     StoreError,
 )
-from .exporter import FORMATY, Wpis
+from .exporter import ATRYBUCJA_POKAZU, FORMATY, PRZEDROSTEK_POKAZU, Wpis
 from .exporter import eksportuj as zapisz_eksport
 from .httpclient import build_http_client
 from .logbook import Wynik
@@ -281,6 +281,7 @@ def pobierz(
     user_agent: str,
     decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
+    klucz_z_srodowiska: bool = True,
     zegar: Clock | None = None,
     wznow_run_id: str | None = None,
 ) -> Podsumowanie:
@@ -360,7 +361,12 @@ def pobierz(
                 puls,
                 zegar=zegar,
                 slad=_SladDoBazy(store, run_id, zegar, puls),
-                klucz_api=klucz_api(kontrakt.tempo.klucz_api.zmienna),
+                # Pokaz nie czyta klucza (ADR-0008 Z-14): `register_secret` odmawia sekretu
+                # krótszego niż 12 znaków, więc zły klucz w środowisku blokowałby pokaz, który
+                # klucza nie potrzebuje.
+                klucz_api=(
+                    klucz_api(kontrakt.tempo.klucz_api.zmienna) if klucz_z_srodowiska else None
+                ),
                 # ADR-0007 Z-9: ponowienie jest żądaniem jak każde inne, więc przed nim też
                 # pada pytanie o zgodę — inaczej pętla prób przekraczała próg o `proby - 1`.
                 przed_ponowieniem=lambda: _wymagaj_zgody(stan.jest, puls, kryteria.maks),
@@ -649,6 +655,7 @@ def wznow(
     user_agent: str,
     decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
+    klucz_z_srodowiska: bool = True,
     zegar: Clock | None = None,
 ) -> Podsumowanie:
     wybrany, kryteria = do_wznowienia(store, run_id)
@@ -662,6 +669,7 @@ def wznow(
         user_agent=user_agent,
         decyzja=decyzja,
         klient_factory=klient_factory,
+        klucz_z_srodowiska=klucz_z_srodowiska,
         zegar=zegar,
         wznow_run_id=wybrany,
     )
@@ -687,6 +695,7 @@ def eksportuj(
     bez przebiegu są błędem, a zero dokumentów nie tworzy pliku — plik pusty wyglądałby na wynik.
     """
     zegar = zegar or SystemClock()
+    pokaz = store.pokazowa
     for fmt in formaty:
         if fmt not in FORMATY:
             raise ConfigError(f"Nieznany format {fmt!r}; dostępne: {', '.join(FORMATY)}.")
@@ -713,7 +722,7 @@ def eksportuj(
 
     def zrodlo() -> Iterator[Wpis]:
         for dokument in dokumenty():
-            yield _wpis(dokument, mapy)
+            yield _wpis(dokument, mapy, pokaz=pokaz)
 
     # Pierwsze przejście liczy dokumenty **i** ładuje kontrakty kanałów, które w eksporcie
     # wystąpią — atrybucja per kanał ma trafić do `Metadane`, a te powstają przed zapisem.
@@ -733,8 +742,11 @@ def eksportuj(
         cel=cel,
         zegar=zegar,
         atrybucje=mapy.atrybucje(),
+        pokaz=pokaz,
     )
     nazwa = _nazwa_eksportu(run_ids, kryteria, zegar)
+    if pokaz:
+        nazwa = PRZEDROSTEK_POKAZU + nazwa
     # `--out` wskazujące istniejący katalog: plik o nazwie domyślnej **w środku**, nie obok —
     # pomoc flagi mówiła o katalogu `wyniki/`, więc operator podawał katalog i dostawał
     # `wyniki.xlsx` przy pustym `wyniki\` (tester 2026-09-18).
@@ -744,6 +756,9 @@ def eksportuj(
         rdzen = out / nazwa
     else:
         rdzen = out
+    if pokaz and not rdzen.name.startswith(PRZEDROSTEK_POKAZU):
+        # Także pod `--out`: nazwa podana przez operatora nie zdejmuje znacznika (Z-3, pkt 3).
+        rdzen = rdzen.with_name(PRZEDROSTEK_POKAZU + rdzen.name)
     sciezki = zapisz_eksport(rdzen, zrodlo, formaty=formaty, metadane=metadane, events=events)
     return WynikEksportu(tuple(sciezki), dokumentow, tuple(formaty), tuple(run_ids), bez_daty)
 
@@ -766,7 +781,7 @@ class _MapyPol:
         return dict(self._atrybucje)
 
 
-def _wpis(dokument: Dokument, mapy: _MapyPol) -> Wpis:
+def _wpis(dokument: Dokument, mapy: _MapyPol, *, pokaz: bool = False) -> Wpis:
     mapa, atrybucja = mapy.dla(dokument.source)
     try:
         rekord = rekord_z_bajtow(dokument.content_bytes)
@@ -785,7 +800,8 @@ def _wpis(dokument: Dokument, mapy: _MapyPol) -> Wpis:
         fetched_at=dokument.fetched_at,
         szczegoly=wyczytaj(rekord, mapa),
         rekord=rekord,
-        atrybucja=atrybucja,
+        atrybucja=ATRYBUCJA_POKAZU if pokaz else atrybucja,
+        pokaz=pokaz,
     )
 
 
@@ -806,6 +822,7 @@ def build_metadata(
     cel: str | None,
     zegar: Clock,
     atrybucje: dict[str, str],
+    pokaz: bool = False,
 ) -> list[tuple[str, object]]:
     """Arkusz `Metadane`: kryteria, przebiegi, liczby z bazy, licencja, wersja narzędzia.
 
@@ -813,7 +830,11 @@ def build_metadata(
     (`total` z listy), drugie naszą (`run_documents`) — ich różnica jest informacją, nie błędem.
     """
     przebiegi = [store.get_run(r) for r in run_ids]
-    meta: list[tuple[str, object]] = []
+    # Wiersz `tryb` pierwszy i zawsze — także w eksporcie produkcyjnym, żeby jego brak nie był
+    # jedynym sposobem odróżnienia arkusza pokazowego (ADR-0008 Z-3, znacznik 2).
+    meta: list[tuple[str, object]] = [
+        ("tryb", "POKAZOWY — dane fikcyjne" if pokaz else "produkcyjny")
+    ]
     if kryteria is not None:
         meta.append(("kryteria", kryteria.describe()))
         meta.append(("kryteria_json", kryteria.canonical_json()))

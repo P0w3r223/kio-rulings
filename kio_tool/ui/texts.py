@@ -85,6 +85,11 @@ POMOC_KREATOR = (
     "Kreator dla operatora: menu, pytania i tabela kosztów przed każdym pobraniem. To samo "
     "otwiera `kio-tool` bez polecenia na terminalu."
 )
+POMOC_DEMO = (
+    "Tryb pokazowy: kreator nad fikcyjnym korpusem generowanym w procesie — bez sieci, bez adresu "
+    "kontaktowego, w osobnym katalogu danych. Ta sama ścieżka co na danych prawdziwych."
+)
+POMOC_OD_NOWA = "zacznij pokaz od pustej bazy (kasuje wyłącznie bazę trybu pokazowego)"
 POMOC_PRZELICZ = (
     "Przelicza metadane i indeks pełnotekstowy z surowych wersji w bazie — zero żądań do sieci."
 )

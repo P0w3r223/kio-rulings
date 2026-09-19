@@ -95,12 +95,19 @@ def default_db_path() -> Path:
 
 
 KATALOG_WYNIKOW = "wyniki"
+KATALOG_POKAZU = "pokaz"
 
 
 def default_output_dir() -> Path:
     """Domyślny katalog eksportów — obok bazy, z tego samego powodu poza repozytorium:
     arkusz niesie te same nazwiska składu, co korpus. Operator podaje inną flagą `--out`."""
     return Path(user_data_dir(NAZWA_APLIKACJI)) / KATALOG_WYNIKOW
+
+
+def katalog_pokazu() -> Path:
+    """Osobny katalog danych trybu pokazowego (ADR-0008 Z-3, znacznik 4) — baza i eksporty
+    pokazu nigdy nie leżą obok korpusu operatora."""
+    return Path(user_data_dir(NAZWA_APLIKACJI)) / KATALOG_POKAZU
 
 
 # Znaki niedozwolone w nazwie pliku na Windowsie i w POSIX-ie razem, plus białe znaki — nazwa

@@ -62,7 +62,7 @@ include = ["kio_tool*"]
 # „brak pliku" w środowisku, w którym testy z drzewa źródłowego są zielone.
 
 [tool.setuptools.package-data]
-kio_tool = ["source/*/contract.yaml"]
+kio_tool = ["source/*/contract.yaml", "demo/wzorce.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
