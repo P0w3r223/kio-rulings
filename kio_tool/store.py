@@ -27,6 +27,14 @@ wersji). Migracja 1 → 2 jest **dopisaniem**, nie przebudową: kolumny `ALTER T
 zakresu — przebieg przerwany pod schematem 1 wznawia się pod schematem 2 tym samym poleceniem.
 Nazw pól kanału ten moduł nie zna: `Metryka` przychodzi gotowa z `parser/details.py`.
 
+**Schemat 4 (2026-09-19)** nie zmienia ani jednej tabeli — jest wyłącznie backfillem: odtwarza
+`run_documents` przebiegom sprzed schematu 2, którym migracja 1 → 2 dopisała odcisk kryteriów,
+ale powiązań nie. Numer wersji niesie ten backfill, bo alternatywy są gorsze: skan przy każdym
+otwarciu bazy kosztowałby przy każdym poleceniu, a beneficjenta ma tylko raz, zaś migracja
+zaczepiona o wersję 1 nie zapaliłaby się na bazie stojącej już na 3 — czyli dokładnie na tej,
+która lukę ma. Odtworzenie jest dokładne, nie zgadywane; czym stoi, mówi
+`_odtworz_powiazania_sprzed_schematu_2`.
+
 Czego tu **nie ma** wobec wzorca z `ceidg-tool` (1 208 linii), z powodem przy każdym: dzierżawy
 blokady (jeden operator i jeden proces; wraca razem z harmonogramem), kwarantanny uszkodzonej bazy
 i `integrity_check` przy otwarciu (bez pomiaru, że to się zdarza, byłoby to mechanizmem bez
@@ -51,7 +59,7 @@ from .criteria import Criteria
 from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
 """Stany, z których `resume_run` wraca do pracy: przerwany właściwym wyjątkiem albo osierocony
@@ -420,6 +428,8 @@ class Store:
                 self._dopisz_odciski_przebiegom_sprzed_schematu_2()
             if 0 < wersja < 3:
                 self._migruj_do_3()
+            if 0 < wersja < 4:
+                self._odtworz_powiazania_sprzed_schematu_2()
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     def _migruj_1_do_2(self) -> None:
@@ -457,6 +467,72 @@ class Store:
                 "UPDATE runs SET kryteria = ?, fingerprint = ? WHERE run_id = ?",
                 (kryteria.canonical_json(), kryteria.fingerprint(), wiersz["run_id"]),
             )
+
+    def _odtworz_powiazania_sprzed_schematu_2(self) -> None:
+        """`run_documents` dla przebiegów sprzed schematu 2 — odtworzone z dziennika żądań.
+
+        Przebieg zapisany pod schematem 1 nie ma ani jednego wiersza powiązania, więc
+        `eksportuj --run-id` zwraca dla niego zero dokumentów, choć jego dokumenty leżą
+        w korpusie. Migracja 1 → 2 dopisała wtedy odciski kryteriów, ale powiązań nie — i to
+        jest druga luka po tamtej, nie ta sama.
+
+        **Zasięg jest węższy, niż brzmi, i to jest wybór.** Przebieg przerwany pod schematem 1
+        i wznowiony pod schematem 2 ma powiązania **częściowe** — tylko dla kandydatów obsłużonych
+        po wznowieniu. Taki przebieg ta migracja pomija w całości, bo warunek `NOT EXISTS` jest
+        per przebieg: dopisywanie brakujących wierszy do przebiegu, który część ma pierwotną,
+        mieszałoby wartości pierwotne z rekonstruowanymi w jednej tabeli i bez znacznika, który
+        by je rozróżnił. Jawna luka jest tu tańsza niż niejawna mieszanina (znalezisko testera
+        2026-09-19; `test_przebieg_z_czescia_powiazan_zostaje_pominiety_w_calosci` przypina ten
+        zasięg, więc jego zmiana nie przejdzie po cichu).
+
+        Łączenie idzie po `requests_log.sha256` = `raw_versions.content_sha256`, a **nie** po
+        adresie: `store.py` nie zna kształtu adresów kanału (reguła 22) i nie zacznie go tutaj
+        poznawać. Skrót odpowiedzi jest przy tym mocniejszym łącznikiem niż adres — mówi, że ten
+        przebieg przywiózł dokładnie te bajty, a nie że pytał o ten zasób. Odpowiedzi listy
+        odpadają same, bo ich skrót nie ma wiersza w `raw_versions`.
+
+        `nowy = 1` nie jest założeniem: potok nie wysyła żądania za dokument, który już jest
+        w bazie — pomija go bez żądania i wiąże z `nowy = 0` — więc żądanie zakończone wersją
+        w `raw_versions` znaczy, że dokument był dla tego przebiegu nowy. `position` odtwarza się
+        z kolejności żądań i jest **rekonstrukcją, nie wartością pierwotną**: numeracja wychodzi
+        ciągła (1..N), a pierwotna mogła mieć przerwy po wznowieniu, bo liczyła także kandydatów
+        pominiętych. Dla przebiegu bez pominięć obie są tym samym ciągiem.
+
+        Przebieg, który **ma** już powiązania, zostaje nietknięty: tam wartości są pierwotne,
+        a rekonstrukcja byłaby ich pogorszeniem. Przebieg bez dokumentów (pomiar filtru, który
+        zwrócił zero trafień) nie dostaje nic i to jest poprawne — jego `rd = 0` jest prawdą
+        o wyniku, a nie luką po migracji.
+
+        Skrót wskazujący na **więcej niż jeden** dokument jest odrzucany, nie zgadywany:
+        `raw_versions` ma klucz `(doc_id, content_sha256)`, więc dwa dokumenty o identycznej
+        treści są stanem reprezentowalnym, a złączenie bez tego warunku dopisałoby przebiegowi
+        dokument, o który nigdy nie pytał (znalezisko testera 2026-09-19, zmierzone na bazie
+        jednorazowej). Że w korpusie operatora takich skrótów nie ma, jest faktem o **tych
+        danych**, nie własnością kodu — i dlatego warunek stoi w zapytaniu, a nie w zdaniu niżej.
+
+        Zmierzone 2026-09-19 na bazie operatora: jeden przebieg z luką (299 żądań), 295
+        dokumentów odtworzonych, 4 strony listy odrzucone przez brak wersji, zero
+        niejednoznacznych skrótów, zgodność 295/295 z niezależnym odniesieniem — te same
+        dokumenty powiązane z późniejszym przebiegiem na tym samym zakresie.
+        """
+        osierocone = [
+            str(w["run_id"])
+            for w in self._conn.execute(
+                "SELECT run_id FROM runs r WHERE NOT EXISTS "
+                "(SELECT 1 FROM run_documents rd WHERE rd.run_id = r.run_id)"
+            )
+        ]
+        for run_id in osierocone:
+            wiersze = self._conn.execute(
+                "SELECT v.doc_id AS doc_id, MIN(q.ts) AS pierwsze FROM requests_log q "
+                "JOIN raw_versions v ON v.content_sha256 = q.sha256 "
+                "WHERE q.run_id = ? AND (SELECT COUNT(DISTINCT v2.doc_id) FROM raw_versions v2 "
+                "WHERE v2.content_sha256 = q.sha256) = 1 "
+                "GROUP BY v.doc_id ORDER BY pierwsze",
+                (run_id,),
+            ).fetchall()
+            for position, wiersz in enumerate(wiersze, start=1):
+                self.link_run_document(run_id, str(wiersz["doc_id"]), position=position, nowy=True)
 
     @classmethod
     def open(cls, path: Path | str, *, clock: Clock) -> Store:

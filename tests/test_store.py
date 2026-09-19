@@ -435,6 +435,308 @@ def test_przerwana_migracja_nie_zostawia_bazy_w_polowie(tmp_path: Path) -> None:
         assert store.get_run("atlas-stary").fingerprint is not None
 
 
+# --- schemat 4: `run_documents` odtworzone z dziennika żądań ----------------------------------
+
+SHA_LISTY = hashlib.sha256(b'{"data": [], "has_more": false}').hexdigest()
+"""Skrót odpowiedzi listy. Wiersza w `raw_versions` nie ma i mieć nie będzie, bo lista nie jest
+dokumentem — odtworzenie ma ją odrzucić brakiem wersji, a nie listą wyjątków po adresie."""
+
+TRESCI = {
+    "atlas:a": b'{"slug": "wymyslony-a", "full_text": "tresc wymyslona a"}',
+    "atlas:b": b'{"slug": "wymyslony-b", "full_text": "tresc wymyslona b"}',
+    "atlas:c": b'{"slug": "wymyslony-c", "full_text": "tresc wymyslona c"}',
+}
+
+
+def sha(doc_id: str) -> str:
+    return hashlib.sha256(TRESCI[doc_id]).hexdigest()
+
+
+def chwila(minuta: int) -> str:
+    return f"2026-09-18T12:{minuta:02d}:00Z"
+
+
+def baza_schematu_1_z_pobranymi(sciezka: Path) -> None:
+    """Schemat 1 z trzema dokumentami i dziennikiem, który pamięta, kto je przywiózł.
+
+    Adres jest w każdym wierszu dziennika ten sam (`'u'`): `url_redacted` nie jest łącznikiem
+    (reguła 22), więc implementacja, która by się o niego oparła, nie ma tu czego rozróżnić.
+    Kolejność żądań (b, a, c) różni się od kolejności wersji w `raw_versions` (a, b, c), żeby
+    `position` odtworzone z kolejności żądań nie mogło wyjść przypadkiem. `atlas:a` ma dwa
+    żądania, bo pierwsze zerwało się po drodze — dokument jest jeden i wiersz ma być jeden.
+
+    Trzy przebiegi: `stary` pobrał trzy dokumenty, `obcy` jeden, `pusty` sam listing.
+    """
+    with sqlite3.connect(sciezka) as p:
+        p.executescript(SCHEMAT_1)
+        for doc_id, tresc in TRESCI.items():
+            p.execute(
+                "INSERT INTO documents VALUES (?, 'atlas', ?, '[\"(napis wymyslony)\"]', "
+                "'2024-01-15', ?, ?, ?)",
+                (doc_id, doc_id.split(":")[1], TS, TS, sha(doc_id)),
+            )
+            p.execute(
+                "INSERT INTO raw_versions VALUES (?, ?, ?, ?, '{}')",
+                (doc_id, sha(doc_id), TS, tresc),
+            )
+        for run_id, zakres, status in (
+            ("stary", "2024-01-01..2024-01-31", "przerwany"),
+            ("obcy", "2024-02-01..2024-02-05", "zakonczony"),
+            ("pusty", "2024-03-01..2024-03-02", "zakonczony"),
+        ):
+            p.execute(
+                "INSERT INTO runs VALUES (?, 'atlas', ?, ?, ?, ?, NULL, NULL)",
+                (run_id, zakres, TS, TS, status),
+            )
+        for run_id, minuta, skrot in (
+            ("stary", 1, SHA_LISTY),
+            ("stary", 2, sha("atlas:b")),
+            ("stary", 3, sha("atlas:a")),
+            ("stary", 4, sha("atlas:a")),
+            ("stary", 5, sha("atlas:c")),
+            ("obcy", 6, sha("atlas:c")),
+            ("pusty", 7, SHA_LISTY),
+        ):
+            p.execute(
+                "INSERT INTO requests_log VALUES (?, ?, 'GET', 'u', 200, 5, 10, ?, 'zgodny')",
+                (run_id, chwila(minuta), skrot),
+            )
+
+
+def baza_schematu_3_z_luka(sciezka: Path) -> None:
+    """Ta sama luka, ale na bazie stojącej już na wersji 3 — czyli tam, gdzie ona naprawdę jest.
+
+    Budowana przez `Store` i cofnięta do wersji 3, nie z dosłownej kopii schematu 3: schemat 3
+    różni się od bieżącego `_SCHEMA` wyłącznie numerem, więc kopia powtarzałaby `_SCHEMA` bez
+    różnicy — inaczej niż `SCHEMAT_1`, który opisuje kształt, jakiego w kodzie już nie ma.
+    """
+    baza_schematu_1_z_pobranymi(sciezka)
+    with Store.open(sciezka, clock=ZegarTestowy()):
+        pass
+    with sqlite3.connect(sciezka) as p:
+        p.execute("DELETE FROM run_documents")
+        p.execute("PRAGMA user_version = 3")
+
+
+def powiazania(store: Store, run_id: str) -> list[tuple[str, int, int]]:
+    return [
+        (str(w["doc_id"]), int(w["position"]), int(w["nowy"]))
+        for w in store._conn.execute(
+            "SELECT doc_id, position, nowy FROM run_documents WHERE run_id = ? ORDER BY position",
+            (run_id,),
+        )
+    ]
+
+
+def test_backfill_odtwarza_dokumenty_przebiegu_w_kolejnosci_zadan(tmp_path: Path) -> None:
+    """`eksportuj --run-id` dla przebiegu sprzed schematu 2 ma wreszcie co wydać.
+
+    Pozycje wychodzą ciągłe od 1, kolejność bierze się z pierwszego żądania za dokument
+    (b, a, c), a dwa żądania za `atlas:a` dają jeden wiersz, nie dwa.
+    """
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "stary") == [
+            ("atlas:b", 1, 1),
+            ("atlas:a", 2, 1),
+            ("atlas:c", 3, 1),
+        ]
+        assert list(store.iter_run_documents("stary")) == ["atlas:b", "atlas:a", "atlas:c"]
+        assert store.get_run("stary").dokumentow == 3
+
+
+def test_odtworzony_dokument_jest_dla_przebiegu_nowy(tmp_path: Path) -> None:
+    """`nowy = 1` nie jest założeniem: potok nie wysyła żądania za dokument, który już jest
+    w bazie, więc żądanie zakończone wersją znaczy, że dokument był dla tego przebiegu nowy."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.count_run_documents("stary", nowe=True) == 3
+        assert store.count_run_documents("stary", nowe=False) == 0
+
+
+def test_odpowiedz_listy_odpada_przez_brak_wersji_a_nie_przez_adres(tmp_path: Path) -> None:
+    """Pięć żądań, trzy dokumenty: listing nie ma wiersza w `raw_versions`, więc wypada sam."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.count_requests("stary") == 5
+        assert store.count_run_documents("stary") == 3
+        wersje = {
+            str(w["content_sha256"])
+            for w in store._conn.execute("SELECT content_sha256 FROM raw_versions")
+        }
+        assert SHA_LISTY not in wersje
+
+
+def test_przebieg_bez_dokumentow_nie_dostaje_ani_jednego_wiersza(tmp_path: Path) -> None:
+    """Pomiar filtru, który zwrócił zero trafień: `dokumentow = 0` jest prawdą o wyniku,
+    a nie luką po migracji — i po backfillu ma nią zostać."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.get_run("pusty").zadan == 1
+        assert store.count_run_documents("pusty") == 0
+
+
+def test_dokument_wraca_do_kazdego_przebiegu_ktory_o_niego_pytal(tmp_path: Path) -> None:
+    """Odtworzenie idzie per przebieg: `obcy` dostaje swój jeden dokument z własną numeracją."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "obcy") == [("atlas:c", 1, 1)]
+        assert powiazania(store, "stary")[2] == ("atlas:c", 3, 1)
+
+
+def test_backfill_zapala_sie_na_bazie_stojacej_juz_na_schemacie_3(tmp_path: Path) -> None:
+    """Baza w wersji 3 to dokładnie ta, która lukę ma — migracja zaczepiona o wersję 1
+    przeszłaby obok niej (nagłówek `store.py`, „Schemat 4")."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_3_z_luka(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.count_run_documents("stary") == 3
+        assert store.count_run_documents("obcy") == 1
+
+
+def test_przebieg_z_powiazaniami_zachowuje_swoje_wartosci_pierwotne(tmp_path: Path) -> None:
+    """Tam, gdzie `position` i `nowy` są pierwotne, rekonstrukcja byłaby ich pogorszeniem:
+    odtworzenie dałoby `obcy` pozycję 1 i `nowy = 1`, a pierwotne są 7 i 0."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_3_z_luka(sciezka)
+    with sqlite3.connect(sciezka) as p:
+        p.execute("INSERT INTO run_documents VALUES ('obcy', 'atlas:c', 7, 0)")
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "obcy") == [("atlas:c", 7, 0)]
+        assert store.count_run_documents("stary") == 3
+
+
+def test_przebieg_z_czescia_powiazan_zostaje_pominiety_w_calosci(tmp_path: Path) -> None:
+    """Przypięcie decyzji o zasięgu: `NOT EXISTS` obejmuje cały przebieg, nie brakujący wiersz.
+
+    `stary` ma tu jedno powiązanie z trzech — kształt przebiegu przerwanego pod schematem 1
+    i wznowionego pod schematem 2, który powiązał wyłącznie to, co przeszło po wznowieniu.
+    Backfill takiego przebiegu **świadomie** nie podejmuje i luka po `atlas:a` oraz `atlas:b`
+    zostaje: dopisanie brakujących wierszy zmieszałoby w jednej tabeli wartości pierwotne
+    z rekonstruowanymi, a znacznika, który by je rozróżnił, `run_documents` nie ma (powód
+    stoi w docstringu `store._odtworz_powiazania_sprzed_schematu_2`, „Zasięg jest węższy").
+    Jawna luka jest tańsza niż niejawna mieszanina — i to jest wybór do obalenia ADR-em,
+    a nie stan zastany, więc jego zmiana ma się tu zapalić.
+    """
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_3_z_luka(sciezka)
+    with sqlite3.connect(sciezka) as p:
+        p.execute("INSERT INTO run_documents VALUES ('stary', 'atlas:c', 3, 1)")
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "stary") == [("atlas:c", 3, 1)]
+
+
+def baza_z_blizniakiem(sciezka: Path) -> None:
+    """Schemat 1, w którym `atlas:blizniak` niesie **te same bajty** co `atlas:a`.
+
+    Klucz `raw_versions` to `(doc_id, content_sha256)`, więc dwa dokumenty o identycznej treści
+    są stanem reprezentowalnym — a żądanie, które te bajty przywiozło, przestaje wskazywać
+    jeden dokument. W dzienniku `stary` nic się nie zmienia: to ta sama baza co wszędzie wyżej,
+    plus jeden wiersz w `documents` i jeden w `raw_versions`.
+    """
+    baza_schematu_1_z_pobranymi(sciezka)
+    with sqlite3.connect(sciezka) as p:
+        p.execute(
+            "INSERT INTO documents VALUES ('atlas:blizniak', 'atlas', 'blizniak', "
+            "'[\"(napis wymyslony)\"]', '2024-01-15', ?, ?, ?)",
+            (TS, TS, sha("atlas:a")),
+        )
+        p.execute(
+            "INSERT INTO raw_versions VALUES ('atlas:blizniak', ?, ?, ?, '{}')",
+            (sha("atlas:a"), TS, TRESCI["atlas:a"]),
+        )
+
+
+def test_skrot_wskazujacy_na_dwa_dokumenty_nie_daje_zadnego_wiersza(tmp_path: Path) -> None:
+    """Skrót niejednoznaczny odpada w całości: ani dokument zgadnięty, ani oba.
+
+    Obie wersje leżą w korpusie i obie są prawdziwe — to żądanie przestało je rozróżniać.
+    Przypięcie decyzji, nie stanu zastanego: jawna luka jest w tym projekcie tańsza od
+    zgadnięcia, bo powiązanie z dokumentem, o który przebieg nie pytał, byłoby zdaniem
+    prawdziwie wyglądającym i fałszywym (docstring `_odtworz_powiazania_sprzed_schematu_2`).
+    """
+    sciezka = tmp_path / "stary.sqlite"
+    baza_z_blizniakiem(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.has_document("atlas:blizniak") and store.count("raw_versions") == 4
+        zwiazane = {
+            str(w["doc_id"]) for w in store._conn.execute("SELECT doc_id FROM run_documents")
+        }
+        assert "atlas:a" not in zwiazane, "zgadnięty pierwowzór byłby zgadnięciem"
+        assert "atlas:blizniak" not in zwiazane, "bliźniak też"
+
+
+def test_niejednoznaczny_skrot_zabiera_swoj_dokument_a_nie_caly_przebieg(
+    tmp_path: Path,
+) -> None:
+    """Odrzucenie jest per skrót: `atlas:b` i `atlas:c` wracają, numeracja jest ciągła po tym,
+    co zostało (1, 2), a nie dziurawa po tym, co odpadło."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_z_blizniakiem(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "stary") == [("atlas:b", 1, 1), ("atlas:c", 2, 1)]
+        assert powiazania(store, "obcy") == [("atlas:c", 1, 1)]
+
+
+def test_backfill_jest_idempotentny_przy_kolejnym_otwarciu(tmp_path: Path) -> None:
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        pierwsze = powiazania(store, "stary")
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert powiazania(store, "stary") == pierwsze
+        assert store.count("run_documents") == 4
+    with sqlite3.connect(sciezka) as p:
+        assert p.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+
+
+def test_nieudany_backfill_cofa_caly_lancuch_migracji(tmp_path: Path) -> None:
+    """Backfill stoi w tej samej transakcji co `CREATE TABLE` i `ALTER TABLE` przed nim.
+
+    Awaria przy drugim powiązaniu zostawia bazę w wersji 1 z nietkniętymi danymi, a nie
+    w wersji, której żaden numer nie opisuje: bez tabeli `run_documents`, bez kolumny
+    `runs.fingerprint` i z trzema wersjami surowymi na miejscu.
+    """
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1_z_pobranymi(sciezka)
+    oryginalne = Store.link_run_document
+    wywolania: list[str] = []
+
+    def pekajace(self: Store, run_id: str, doc_id: str, *, position: int, nowy: bool) -> None:
+        wywolania.append(doc_id)
+        if len(wywolania) == 2:
+            raise sqlite3.OperationalError("database or disk is full")
+        oryginalne(self, run_id, doc_id, position=position, nowy=nowy)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(Store, "link_run_document", pekajace)
+        with pytest.raises(StoreError, match="Baza"):
+            Store.open(sciezka, clock=ZegarTestowy())
+
+    with sqlite3.connect(sciezka) as p:
+        assert p.execute("PRAGMA user_version").fetchone()[0] == 1
+        tabele = {str(w[0]) for w in p.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert "run_documents" not in tabele
+        assert "fingerprint" not in {str(w[1]) for w in p.execute("PRAGMA table_info(runs)")}
+        assert p.execute("SELECT COUNT(*) FROM raw_versions").fetchone()[0] == 3
+
+
 # --- run_documents: każdy kandydat związany z przebiegiem, nowy i pominięty --------------------
 
 

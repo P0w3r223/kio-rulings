@@ -15,6 +15,7 @@ gdy przebieg wywrócił się w pół.
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections.abc import Mapping
 from datetime import date
 from functools import partial
@@ -865,3 +866,34 @@ def test_wznow_przebiegu_sprzed_schematu_2_bez_kryteriow_mowi_co_zrobic(store: S
 
     with pytest.raises(ConfigError, match="pobierz"):
         pipeline.do_wznowienia(store, run_id)
+
+
+# --- schemat 4: odtworzenie powiązań sprawdzone na wyniku prawdziwego przebiegu ---------------
+
+
+def test_odtworzone_powiazania_zgadzaja_sie_z_tym_co_zapisal_przebieg(tmp_path: Path) -> None:
+    """Zgodność odtworzenia z zapisem pierwotnym — na bazie z potoku, nie z ręki.
+
+    Backfill schematu 4 (`store._odtworz_powiazania_sprzed_schematu_2`) łączy
+    `requests_log.sha256` z `raw_versions.content_sha256` — dwie kolumny wypełniane w dwóch
+    różnych miejscach produkcji (`_Slad.zanotuj` w tym module i `Store.add_raw_version`).
+    Baza ułożona w teście ręcznie potwierdzałaby wyłącznie założenie testu o tych kolumnach,
+    więc ta pochodzi z `pipeline.pobierz`: sto dokumentów i sto dwa żądania, z dwoma żądaniami
+    listy, które mają odpaść. Po skasowaniu powiązań i cofnięciu wersji schematu odtworzenie
+    ma wrócić z tą samą listą doc_id w tej samej kolejności — to jest ta sama miara, którą
+    właściciel zmierzył 2026-09-19 na swoim korpusie jako „zgodność 295/295".
+    """
+    sciezka = tmp_path / "korpus.sqlite"
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        wynik = uruchom(store, Serwer())
+        pierwotne = list(store.iter_run_documents(wynik.run_id))
+    assert len(pierwotne) == 100
+
+    with sqlite3.connect(sciezka) as p:
+        p.execute("DELETE FROM run_documents")
+        p.execute("PRAGMA user_version = 3")
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert list(store.iter_run_documents(wynik.run_id)) == pierwotne
+        assert store.count_run_documents(wynik.run_id, nowe=True) == 100
+        assert store.count_requests(wynik.run_id) == 102

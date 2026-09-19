@@ -478,6 +478,96 @@ rozstrzygnięte.
 
 ---
 
+## Pomiar 5, część lokalna — kształt tekstu w korpusie (etap I fazy 2)
+
+**Policzone 2026-09-19 z bazy operatora, 0 żądań.** 341 dokumentów, każdy odczytany z bieżącej
+wersji w `raw_versions`; 0 bez treści, 0 nieodczytanych. Długość `full_text` w znakach: min 2 348,
+mediana 11 416, max 355 527, suma 9 487 501.
+
+**Cztery cechy materiału po ekstrakcji z PDF-a** (ADR-0006 §1.1 nazwał je z jednego dokumentu;
+tu są policzone na całym korpusie):
+
+| Cecha | Dokumentów | % korpusu | Wystąpień |
+|---|---|---|---|
+| wysuw strony `\f` | 341 | 100,0 % | 2 110 |
+| łamanie wiersza w środku zdania | 341 | 100,0 % | 60 090 |
+| sklejenie po dwukropku (`:` + wielka litera) | 211 | 61,9 % | 276 |
+| nagłówek rozstrzelony spacjami | 88 | 25,8 % | 178 |
+
+**Kotwice struktury — w ilu dokumentach w ogóle występują:**
+
+| Kotwica | Dokumentów | % korpusu |
+|---|---|---|
+| `WYROK` albo `POSTANOWIENIE` | 341 | 100,0 % |
+| `orzeka:` albo `postanawia:` | 340 | 99,7 % |
+| `przysługuje skarga` (pouczenie) | 337 | 98,8 % |
+| `Sygn. akt` | 325 | 95,3 % |
+| `Przewodniczący` | 312 | 91,5 % |
+| słowo „uzasadnieni…" gdziekolwiek | 280 | 82,1 % |
+| `O kosztach postępowania` | 224 | 65,7 % |
+| **`^Uzasadnienie$` jako osobna linia** | **215** | **63,0 %** |
+
+**Sprostowanie do ADR-0006 §1.1.** Ten ADR twierdzi, że wzorce z architektury 4.5 „przyłożone do
+tego materiału dają korpus w całości `nieprzypisany`". Pomiar tego nie potwierdza: `^Uzasadnienie$`
+jako osobna linia trafia w **63,0 %** dokumentów, a nie w zero. Teza powstała z jednego dokumentu
+(`dokument_20260918T103526Z.json`, rocznik 2020) i jest przykładem dokładnie tego, przed czym
+ostrzega doktryna 7.1. Problem jest **realny, ale inny co do wielkości**: wzorce oparte wyłącznie na
+nagłówkach zgubiłyby około 37 % korpusu, nie 100 %. Kierunek rozwiązania z ADR-0006 (normalizacja
+przed segmentacją, kotwice z pomiaru, offsety w oryginale) pomiar potwierdza — uzasadnienie liczbowe
+w ADR-ze wymaga poprawki przy przyjęciu.
+
+**Co z tego wynika dla etapu III.** Kotwice nośne to `WYROK`/`POSTANOWIENIE`, `orzeka:`/`postanawia:`
+i pouczenie o skardze — wszystkie powyżej 98 %. `Sygn. akt` zawodzi w 16 dokumentach, `Przewodniczący`
+w 29. Łamanie wiersza w zdaniu dotyczy **każdego** dokumentu (60 090 wystąpień), więc normalizacja
+przed segmentacją nie jest opcją, tylko warunkiem — i to jest jedyna cecha z tej tabeli, której
+żaden wzorzec nagłówkowy nie obejdzie.
+
+**Rocznik z sygnatury głównej:** `23` — 185, `24` — 154, `25` — **2**. Dwa dokumenty z rocznikiem 25
+w korpusie ograniczonym datą wydania do stycznia i 1–5 lutego 2024 są anomalią do wyjaśnienia:
+albo `ruling_date` jest tam błędne (defekt znany z pomiaru 3a, 9 na 100), albo sygnatura ma postać,
+której odczyt rocznika nie obsługuje. Nie rozstrzygnięte — zapisane.
+
+**Zastrzeżenie metody.** „Nagłówek rozstrzelony" i „łamanie w zdaniu" są liczone wyrażeniami
+regularnymi zbudowanymi pod te cechy, nie miarą kanoniczną: pierwsze wymaga co najmniej czterech
+kolejnych grup jedno- lub dwuliterowych, drugie — małej litery albo przecinka przed końcem wiersza
+i małej litery po nim. Obie liczby są dolnym oszacowaniem i tak mają być czytane.
+
+---
+
+## Pomiar 3b — opóźnienie publikacji u pośrednika (w toku, jeden kanał)
+
+**Stan 2026-09-19: procedura ustalona, zero odczytów.** Ta sekcja gromadzi kolejne odczyty;
+wynik pojawi się wtedy, gdy szereg będzie miał co powiedzieć, a nie przy pierwszym wierszu.
+
+**Dlaczego brzmienie pierwotne jest niewykonalne.** Audyt 10 opisuje pomiar 3 metodą „pobrać tę
+samą sprawę z Atlasu i z UZP, porównać treść i datę pojawienia się". Kanał `uzp` nie istnieje,
+a decyzja B odbiera mu rolę masową — drugiej połowy porównania nie ma skąd wziąć. Droga przez
+pytanie do dostawcy jest zamknięta decyzją A. Zostaje obserwacja jednego kanału w czasie i to
+jest zmiana definicji pomiaru, nie jego wykonanie: zapisana tutaj, żeby nikt nie wziął jednej
+wielkości za drugą.
+
+**Co mierzy wersja jednokanałowa — i czego nie mierzy.** Mierzy **wiek najświeższego orzeczenia
+w Atlasie**: różnicę między dniem odczytu a najpóźniejszą datą wydania, dla której Atlas ma
+jakikolwiek dokument, oraz to, jak liczność świeżych dni rośnie przy kolejnych odczytach
+(dopełnianie wstecz). **Nie mierzy** opóźnienia Atlasu względem UZP — to jest inna wielkość
+i ta procedura jej nie zastępuje. Odpowiada natomiast na pytanie, które projekt ma naprawdę:
+jak świeży jest korpus, jeśli pobiorę go dzisiaj.
+
+**Procedura — jeden odczyt dziennie, jedno żądanie.**
+`GET /api/kio?date_from={dziś−14}&date_to={dziś}&sort=oldest&per_page=100`, bez pobierania
+dokumentów. Z odpowiedzi zapisuje się: dzień odczytu, `total`, najpóźniejszą `ruling_date`
+w `data[]` oraz liczność per dzień dla ostatnich czternastu dni. Okno czternastodniowe, bo
+krótsze nie pokaże dopełniania wstecz, a dłuższe kosztuje kolejne strony. Zastrzeżenie
+przeniesione z pomiaru 3a: `ruling_date` bywa błędne (9 na 100 rekordów), więc „najpóźniejsza
+data wydania" bywa datą pomyłki, a nie datą publikacji — dlatego obok niej stoi liczność,
+której pojedyncza pomyłka nie przesuwa.
+
+| Dzień odczytu | `total` | Najpóźniejsza `ruling_date` | Wiek w dniach | Uwaga |
+|---|---|---|---|---|
+| — | — | — | — | pierwszy odczyt czeka na adres kontaktowy operatora |
+
+---
+
 ## Status pomiarów
 
 **Ta sekcja zastępuje `docs/pomiary.md`** (istniał od 2026-09-17 do 2026-09-18; ADR-0005, Z-8).
@@ -499,10 +589,10 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 2a | Własny klient do Dump API SAOS | niewykonany | odłożony (kanał `saos`, po bramce fazy 1) | `sonda.py saos-dump` |
 | 2b | Czy Dump API filtruje po `courtType` | niewykonany | odłożony (jak 2a) | `sonda.py saos-dump` |
 | 3a | Czy Atlas zwraca pełny tekst (lista + dokument `/api/kio/{slug}`); od kiedy sięga zbiór | **wykonany 2026-09-18 — pozytywny: `full_text`, zbiór ≥ rocznik 2010, `ruling_date` bywa błędne** (`## Pomiar 3a`) | **bramka** (`atlas`) — spełnione | `sonda.py atlas` — 2 żądania |
-| 3b | Opóźnienie publikacji u pośrednika | niewykonany | faza 1 | **wyłącznie obserwacja w czasie** — ta sama sprawa z dwóch kanałów w odstępie dni; droga przez pytanie do dostawcy zamknięta decyzją A |
+| 3b | Opóźnienie publikacji u pośrednika | **w toku od 2026-09-19 — procedura ustalona, zero odczytów** (`## Pomiar 3b`) | faza 1 | obserwacja **jednokanałowa**, 1 żądanie dziennie; brzmienie pierwotne (ta sama sprawa z dwóch kanałów) jest niewykonalne bez kanału `uzp` — powód i nowa definicja w `## Pomiar 3b` |
 | 4 | Kontrakt wyszukiwarki UZP | **wykonany strukturalnie** (`Move` → `Details` własnym odczytem; `GetResults` z dwóch cudzych kolektorów) | — | — |
 | 4b | Własny `POST /Home/GetResults` i pierwsza kaseta | niewykonany | odłożony (kanał `uzp` w rolach weryfikacji i dopływu, faza 2) | `sonda.py uzp-getresults` |
-| 5 | Warstwa tekstowa w próbce ~50 dokumentów | niewykonany | faza 2 | próbka staje się zalążkiem `tests/gold/` |
+| 5 | Warstwa tekstowa w próbce ~50 dokumentów | **część lokalna wykonana 2026-09-19 na 341 dokumentach, 0 żądań** (`## Pomiar 5`); część rocznikowa niewykonana | faza 2 (ADR-0006 Z-3, etapy I–II) | część rocznikowa: próbka stratyfikowana 2010–2026, ~119 żądań, zgoda w sesji; próbka staje się zalążkiem `tests/gold/` |
 | 6 | Granice przestrzeni identyfikatorów | z drugiej ręki (~33 366 w kwietniu 2026) | faza 1 | dwa odczyty `Details` + pomiar 16 |
 | 7 | Sprostowania: nowy rekord czy nadpisanie | niewykonany | polityka wersji kanału `uzp` (ADR-0005 Z-4) | `GetResults` dla sprawy ze znanym sprostowaniem |
 | 8 | Dokumenty wielosygnaturowe w wyszukiwarce | potwierdzone strukturalnie | ADR-0001 | jeden odczyt `Details` sprawy z listingu FTP |
