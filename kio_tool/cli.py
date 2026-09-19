@@ -34,6 +34,7 @@ from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
 from .ui import texts
 from .ui.render import ConsoleView
+from .wycena import Wycena
 
 app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False, no_args_is_help=True)
 view = ConsoleView()
@@ -222,6 +223,17 @@ def _raport_przebiegu(wynik: pipeline.Podsumowanie, baza: Path) -> None:
     )
 
 
+def _decyzja_flag(zgoda: bool) -> pipeline.Decyzja:
+    """Ścieżka flag: tabela kosztów zawsze na ekranie, werdykt z `--zgoda` (ADR-0008 Z-6)."""
+    polityka = pipeline.decyzja_z_flagi(zgoda)
+
+    def decyzja(wycena: Wycena) -> pipeline.Werdykt:
+        view.block(texts.tabela_kosztow(wycena, prog_zgody=pipeline.PROG_ZGODY))
+        return polityka(wycena)
+
+    return decyzja
+
+
 @app.command(help=texts.POMOC_POBIERZ)
 def pobierz(
     od: OpcjaOd = None,
@@ -272,6 +284,7 @@ def pobierz(
                 PulsKonsoli(),
                 zgoda=zgoda,
                 user_agent=tozsamosc,
+                decyzja=_decyzja_flag(zgoda),
                 zegar=zegar,
             )
             _raport_przebiegu(wynik, sciezka)
@@ -313,7 +326,13 @@ def wznow(
                 texts.start_przebiegu(przebieg.kanal, kryteria.describe(), str(sciezka), tozsamosc)
             )
             wynik = pipeline.wznow(
-                store, wybrany, PulsKonsoli(), zgoda=zgoda, user_agent=tozsamosc, zegar=zegar
+                store,
+                wybrany,
+                PulsKonsoli(),
+                zgoda=zgoda,
+                user_agent=tozsamosc,
+                decyzja=_decyzja_flag(zgoda),
+                zegar=zegar,
             )
             _raport_przebiegu(wynik, sciezka)
             _eksport_i_raport(

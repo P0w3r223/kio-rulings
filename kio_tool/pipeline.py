@@ -24,6 +24,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import httpx
 
@@ -60,6 +61,7 @@ from .store import (
     Store,
     Wyszukanie,
 )
+from .wycena import Wycena, wycen
 
 KANAL_DOMYSLNY = SourceName("atlas")
 """Pierwszy adapter (ADR-0004 §6, ADR-0005 Z-3) — jedyny wpis `REGISTRY`, więc jedyna domyślna."""
@@ -88,6 +90,35 @@ przemieliłoby całą listę, czyli ~29 580 żądań do cudzego serwisu za nic (
 """
 
 KlientFactory = Callable[..., httpx.Client]
+
+Werdykt = Literal["zgoda", "bez_zgody", "odmowa"]
+"""Odpowiedź na wycenę (ADR-0008 Z-6). `zgoda` — przebieg masowy dozwolony w tej sesji;
+`bez_zgody` — obowiązuje próg `PROG_ZGODY` (ścieżka flag bez `--zgoda`); `odmowa` — operator
+zobaczył koszt i nie chce: przebieg zostaje `przerwany`, wznawialny, bez żądania za dokument."""
+
+Decyzja = Callable[[Wycena], Werdykt]
+"""Wołana **raz na wywołanie**, przy pierwszym kandydacie — po pierwszej stronie listy, kiedy
+`total` jest znany, a przed pierwszym dokumentem. Zero dodatkowych żądań (ADR-0008 §1.1)."""
+
+
+def decyzja_z_flagi(zgoda: bool) -> Decyzja:
+    """Polityka ścieżki flag: `--zgoda` znaczy zgodę, brak flagi — próg jak przed ADR-0008."""
+    werdykt: Werdykt = "zgoda" if zgoda else "bez_zgody"
+    return lambda _wycena: werdykt
+
+
+ODMOWA_PO_WYCENIE = (
+    "Operator odmówił po wycenie — przebieg zostaje zapisany jako przerwany, bez żadnego "
+    "żądania o dokument. Wznowi go to samo polecenie albo `wznow`, znowu z wyceną."
+)
+
+
+class _Zgoda:
+    """Zgoda w obrębie jednego wywołania — zmienia ją werdykt wyceny, czyta ją też bramka
+    ponowień kanału (ADR-0007 Z-9), więc jest obiektem, a nie parametrem przekazanym raz."""
+
+    def __init__(self, jest: bool) -> None:
+        self.jest = jest
 
 
 @dataclass(frozen=True)
@@ -248,6 +279,7 @@ def pobierz(
     *,
     zgoda: bool,
     user_agent: str,
+    decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
     zegar: Clock | None = None,
     wznow_run_id: str | None = None,
@@ -316,6 +348,7 @@ def pobierz(
         events=puls,
     )
     licznik = _Licznik(pozycja=store.count_run_documents(run_id))
+    stan = _Zgoda(zgoda)
     status = "blad"
     powod: str | None = None
     try:
@@ -330,7 +363,7 @@ def pobierz(
                 klucz_api=klucz_api(kontrakt.tempo.klucz_api.zmienna),
                 # ADR-0007 Z-9: ponowienie jest żądaniem jak każde inne, więc przed nim też
                 # pada pytanie o zgodę — inaczej pętla prób przekraczała próg o `proby - 1`.
-                przed_ponowieniem=lambda: _wymagaj_zgody(zgoda, puls, kryteria.maks),
+                przed_ponowieniem=lambda: _wymagaj_zgody(stan.jest, puls, kryteria.maks),
             )
             _przebieg(
                 kanal_obj,
@@ -340,8 +373,9 @@ def pobierz(
                 run_id,
                 od_strony,
                 puls,
-                zgoda,
+                stan,
                 licznik,
+                decyzja or decyzja_z_flagi(zgoda),
                 maks=kryteria.maks,
             )
         status = "zakonczony"
@@ -445,22 +479,27 @@ def _przebieg(
     run_id: str,
     od_strony: int,
     puls: _Puls,
-    zgoda: bool,
+    zgoda: _Zgoda,
     licznik: _Licznik,
+    decyzja: Decyzja,
     *,
     maks: int | None,
 ) -> None:
     mapa = mapa_pol(kontrakt)
+    wyceniono = False
     for kandydat in kanal.list_candidates(scope, od_strony=od_strony):
         if maks is not None and licznik.kandydatow >= maks:
             return
+        if not wyceniono:
+            wyceniono = True
+            _rozstrzygnij(decyzja(_wycena(kontrakt, puls, licznik, maks)), zgoda)
         # Zgoda sprawdzana **przed** rozstrzygnięciem „nowy czy pominięty" (przegląd kodu
         # 2026-09-18, HIGH): strony listy są żądaniami do cudzego serwisu tak samo jak dokumenty,
         # a przebieg, w którym wszyscy kandydaci są już w bazie, nie dochodził do sprawdzenia ani
         # razu — zmierzone: 60 stron listy bez zgody przy progu 50. Ponowne `pobierz` na dużym
         # zakresie wymaga więc `--zgoda` także wtedy, gdy nie pobierze ani jednego dokumentu:
         # 296 żądań to 296 żądań.
-        _wymagaj_zgody(zgoda, puls, maks)
+        _wymagaj_zgody(zgoda.jest, puls, maks)
         licznik.kandydatow += 1
         licznik.pozycja += 1
         doc_id = document_id(kanal.name, kandydat.source_ref, ref_case=kontrakt.ref_case)
@@ -529,6 +568,25 @@ def _przewidywane(razem: int | None, maks: int | None) -> int | None:
     return razem if maks is None else min(razem, maks)
 
 
+def _wycena(kontrakt: Contract, puls: _Puls, licznik: _Licznik, maks: int | None) -> Wycena:
+    return wycen(
+        zgloszone=puls.razem,
+        maks=maks,
+        juz_objetych=licznik.pozycja,
+        zadan_juz=puls.zadan,
+        na_strone=kontrakt.strony.na_strone,
+        odstep_s=kontrakt.tempo.odstep_s,
+        okna=[(okno.limit, okno.sekund) for okno in kontrakt.tempo.okna],
+    )
+
+
+def _rozstrzygnij(werdykt: Werdykt, zgoda: _Zgoda) -> None:
+    if werdykt == "odmowa":
+        raise ConsentMissingError(ODMOWA_PO_WYCENIE)
+    if werdykt == "zgoda":
+        zgoda.jest = True
+
+
 def _wymagaj_zgody(zgoda: bool, puls: _Puls, maks: int | None) -> None:
     if zgoda:
         return
@@ -589,6 +647,7 @@ def wznow(
     *,
     zgoda: bool,
     user_agent: str,
+    decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
     zegar: Clock | None = None,
 ) -> Podsumowanie:
@@ -601,6 +660,7 @@ def wznow(
         events,
         zgoda=zgoda,
         user_agent=user_agent,
+        decyzja=decyzja,
         klient_factory=klient_factory,
         zegar=zegar,
         wznow_run_id=wybrany,

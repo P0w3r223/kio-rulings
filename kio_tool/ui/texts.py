@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from ..criteria import ETYKIETY, Criteria
+from ..wycena import Wycena
 
 
 @dataclass(frozen=True)
@@ -288,6 +289,50 @@ def blok_runow(wiersze: Sequence[tuple[str, ...]], lacznie: int) -> Block:
         headers=NAGLOWKI_RUNOW,
         rows=tuple(wiersze),
     )
+
+
+def czas_ludzki(sekundy: float) -> str:
+    """`259200` → `3 doby 0 h`, `4320` → `1 h 12 min`, `42` → `42 s` — bez udawanej precyzji."""
+    if sekundy < 60:
+        return f"{sekundy:.0f} s"
+    minuty = int(sekundy // 60)
+    if minuty < 60:
+        return f"{minuty} min"
+    godziny, minuty = divmod(minuty, 60)
+    if godziny < 24:
+        return f"{godziny} h {minuty} min"
+    doby, godziny = divmod(godziny, 24)
+    return f"{doby} {'doba' if doby == 1 else 'doby' if doby < 5 else 'dób'} {godziny} h"
+
+
+def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | None = None) -> Block:
+    """Koszt reszty przebiegu przed pierwszym dokumentem (ADR-0008 Z-5) — ten sam blok na
+    ścieżce flag, w kreatorze i w pokazie. Czas jest **produkcyjny**; pokaz dopisuje swój obok."""
+    if wycena.zadan is None:
+        return Block(
+            title="Koszt przebiegu",
+            rows=(("dokumentów w zakresie", "kanał nie podał liczby"),),
+            notes=(
+                f"Bez liczby z kanału próg zgody pilnuje licznik żądań: bez zgody najwyżej "
+                f"{prog_zgody} żądań.",
+            ),
+        )
+    wiersze = [
+        ("dokumentów do pobrania (najwyżej)", str(wycena.dokumentow)),
+        ("dalszych stron listy", str(wycena.stron_listy)),
+        ("żądań do serwisu (najwyżej)", str(wycena.zadan)),
+        ("czas przy tempie kontraktu (co najmniej)", czas_ludzki(wycena.czas_s or 0.0)),
+    ]
+    if czas_pokazu_s is not None:
+        wiersze.append(("czas w trybie pokazowym", czas_ludzki(czas_pokazu_s)))
+    uwagi = [
+        "Liczby są górną granicą: dokument już w bazie nie kosztuje żądania.",
+    ]
+    if wycena.zadan + wycena.zadan_juz > prog_zgody:
+        uwagi.append(
+            f"To przebieg masowy (ponad {prog_zgody} żądań) — wymaga zgody udzielonej w tej sesji."
+        )
+    return Block(title="Koszt przebiegu", rows=tuple(wiersze), notes=tuple(uwagi))
 
 
 def blok_pokrycia(
