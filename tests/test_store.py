@@ -858,7 +858,7 @@ def zaindeksuj(store: Store, doc_id: str, tresc: str, **zmiany: object) -> None:
     m = metryka(tresc, **zmiany)
     sha, _ = zapisz(store, doc_id, tresc.encode(), data_wydania=m.data_wydania)
     with store.transakcja():
-        store.index_document(doc_id, sha, m)
+        store.index_document(doc_id, sha, m, None)
 
 
 def test_szukaj_zwraca_trafienia_z_liczbami_z_bazy(store: Store) -> None:

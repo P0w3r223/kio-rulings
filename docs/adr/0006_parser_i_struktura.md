@@ -270,3 +270,20 @@ której sesja pracuje — repozytorium niesie kod, nie bazę). Trzy rozstrzygni�
 - **Próbka rocznikowa (Z-3) ma zgodę w tej sesji** — zgoda obejmuje odtworzenie korpusu i próbkę.
 - **Złoty zbiór: postać z Z-11, rozmiar N nie jest przesądzony tym przyjęciem.** Wychodzi
   z próbki rocznikowej (etap II) i raport pokrycia podaje go liczbą „sprawdzonych z N".
+
+### 10.1 Poprawka po przeglądzie kodu (2026-09-19): złoty zbiór obejmuje dziś wyłącznie sekcje
+
+Z-11 mówi, że adnotacja niesie „oczekiwane sygnatury i przepisy". Wdrożony zbiór (`tests/gold/`,
+17 dokumentów, po jednym z rocznika 2010–2026) niesie **wyłącznie granice sekcji** ze skrótem
+każdego fragmentu. Powód: granice sekcji zostały przejrzane okiem (68 granic, jedna usterka
+znaleziona i naprawiona — `decisions.md`, „Przegląd złotego zbioru"), a cytowań i przepisów nikt
+nie przejrzał. Wpisanie do adnotacji tego, co parser dziś wyciąga, byłoby adnotacją parsera przez
+samego siebie — dokładnie tym, przed czym ostrzega doktryna 7.4. Cytowania i przepisy dostaną
+swoje pola w adnotacji razem z pierwszym przeglądem okiem; do tego czasu ich jedynym sprawdzianem
+są liczby w raporcie pokrycia (pomiar 22, zawieranie kanał ↔ treść w obie strony).
+
+Druga połowa tej samej poprawki: §7 mówi, że rozbieżność ze złotym zbiorem „jest błędem testu, nie
+ostrzeżeniem". Suita pytest nie ma korpusu (leży poza repozytorium), więc tę rolę pełni polecenie
+`kio-tool pokrycie --zloty tests/gold` — od 2026-09-19 kończy się **kodem 1**, gdy którakolwiek
+adnotacja jest rozbieżna albo niesprawdzona, i **kodem 3**, gdy katalogu nie ma. Raport jest wtedy
+zapisany mimo to: rozbieżność jest wynikiem, nie awarią.

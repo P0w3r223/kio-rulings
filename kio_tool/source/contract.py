@@ -108,6 +108,11 @@ class Ponowienia(_Model):
     mnoznik: float = Field(ge=1)
     pod_rzad_max: int = Field(gt=0)
     """Tyle kolejnych żądań wymagających ponowienia znaczy „serwis leży", nie „mruga" (Z-6)."""
+    retry_after_max_s: float = Field(gt=0)
+    """Najdłuższy `Retry-After`, na który przebieg czeka w procesie. Dłuższa prośba serwisu kończy
+    przebieg jako `przerwany` ze zdaniem — zamiast usypiać proces na dobę albo rok (przegląd kodu
+    2026-09-19: `Retry-After: 1e18` nie kończył się nigdy, bo odejmowanie plastrów po 300 s ginęło
+    w precyzji liczby zmiennoprzecinkowej). Prośbę serwisu honoruje `wznow`, nie sen procesu."""
     zrodlo: str
 
     def postoj_przed(self, proba: int) -> float:

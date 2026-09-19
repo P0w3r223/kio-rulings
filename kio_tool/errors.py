@@ -157,6 +157,14 @@ class ExportError(KioError):
     """Nie da się zapisać wyniku (np. przekroczony limit wierszy arkusza)."""
 
 
+class ZlotyZbiorError(KioError):
+    """Adnotacje złotego zbioru nie zgadzają się z korpusem albo nie dały się sprawdzić.
+
+    Raport i tak jest zapisany — to jest wynik, nie awaria — ale kod wyjścia jest niezerowy, bo
+    ADR-0006 §7 mówi, że rozbieżność „jest błędem testu, nie ostrzeżeniem", a bramka fazy 2
+    potrzebuje czegoś, co naprawdę się zapala (przegląd kodu 2026-09-19)."""
+
+
 class ParseError(KioError):
     """Surowa wersja dokumentu nie daje się odczytać do metadanych i treści.
 

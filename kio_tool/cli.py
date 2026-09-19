@@ -435,6 +435,7 @@ def pokrycie(
                 (str(wynik.markdown), str(wynik.maszynowy)),
             )
         )
+        raport_pokrycia.wymagaj_zgodnosci(wynik)
 
 
 @app.command(help=texts.POMOC_SZUKAJ)

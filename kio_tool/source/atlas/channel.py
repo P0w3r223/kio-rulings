@@ -276,9 +276,17 @@ class AtlasChannel:
         proba = 1
         postoj = 0.0
         while True:
-            wynik = self._jedna_proba(
-                adres, nazwa=nazwa, ocena=ocena, params=params, proba=proba, postoj_s=postoj
-            )
+            try:
+                wynik = self._jedna_proba(
+                    adres, nazwa=nazwa, ocena=ocena, params=params, proba=proba, postoj_s=postoj
+                )
+            except NotFoundError:
+                # 404 to odpowiedź serwisu, który działa — przerywa serię żądań wymagających
+                # ponowienia (przegląd kodu 2026-09-19: „5xx, 404, 5xx, 404, 5xx" zatrzymywało
+                # przebieg bez ponowienia, choć serwis odpowiadał pomiędzy).
+                if proba == 1:
+                    self._pod_rzad = 0
+                raise
             if isinstance(wynik, httpx.Response):
                 if proba == 1:
                     self._pod_rzad = 0
@@ -290,6 +298,12 @@ class AtlasChannel:
                 self._pod_rzad += 1
             if proba >= limit:
                 raise wynik.wyjatek
+            if wynik.retry_after_s is not None and wynik.retry_after_s > pon.retry_after_max_s:
+                raise type(wynik.wyjatek)(
+                    f"{wynik.wyjatek} Serwis prosi o {wynik.retry_after_s:.0f} s przerwy — dłużej "
+                    f"niż {pon.retry_after_max_s:.0f} s (`ponowienia.retry_after_max_s`); "
+                    "zatrzymuję zamiast usypiać proces. `wznow` odczeka prośbę z dziennika."
+                ) from wynik.wyjatek
             if self._pod_rzad >= pon.pod_rzad_max:
                 raise type(wynik.wyjatek)(
                     f"{wynik.wyjatek} Kolejne żądanie z rzędu wymaga ponowienia "

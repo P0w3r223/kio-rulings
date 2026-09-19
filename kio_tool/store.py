@@ -838,9 +838,14 @@ class Store:
         doc_id: str,
         content_sha256: str,
         metryka: Metryka,
-        struktura: Struktura | None = None,
+        struktura: Struktura | None,
     ) -> None:
         """Metadane wersji i wiersz FTS bieżącej wersji — poprzedni wiersz FTS dokumentu znika.
+
+        `struktura` jest wymagana, choć może być `None`: wołający, który ją pominie, zapisywał
+        metadane z `parse_version` 2 bez sekcji, a `przelicz` bez `--wszystko` nie wracał już do
+        takiego dokumentu (przegląd kodu 2026-09-19). `None` wolno podać świadomie — w testach
+        magazynu, które struktury nie dotyczą.
 
         `metadata` jest przypięte do wersji (klucz z `content_sha256`), więc dwie wersje mają
         dwa wiersze; `fts` niesie wyłącznie bieżącą (architektura 4.4), więc stary wiersz jest

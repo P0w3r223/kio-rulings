@@ -446,3 +446,33 @@ def test_klasa_wykreslona_z_kontraktu_nie_jest_ponawiana() -> None:
         st.kanal.fetch(REF)
 
     assert st.proby == [1]
+
+
+# --- znaleziska przeglądu kodu 2026-09-19 -------------------------------------------------------
+
+
+@pytest.mark.parametrize("kod", [503, 429])
+def test_retry_after_ponad_prog_zatrzymuje_zamiast_usypiac(kod: int) -> None:
+    """`Retry-After: 1e18` usypiał proces na zawsze — teraz przebieg staje ze zdaniem, bez snu."""
+    st = Stanowisko(status(kod, **{"Retry-After": str(int(PON.retry_after_max_s) + 1)}))
+
+    with pytest.raises((ServerError, RateLimitError), match="retry_after_max_s"):
+        st.kanal.fetch(REF)
+
+    assert st.proby == [1], "ponad progiem nie ma drugiej próby"
+    assert all(s < PON.retry_after_max_s for s in st.zegar.sleeps)
+
+
+def test_404_przerywa_serie_zadan_wymagajacych_ponowienia() -> None:
+    """Serwis, który odpowiada 404, działa — seria „5xx, 404, 5xx, 404, 5xx" nie jest „leży"."""
+    kroki: list[Krok] = []
+    for _ in range(PON.pod_rzad_max):
+        kroki += [status(503), dobry, status(404)]
+    st = Stanowisko(*kroki)
+
+    for n in range(PON.pod_rzad_max):
+        st.kanal.fetch(f"{REF}-{n}")
+        with pytest.raises(NotFoundError):
+            st.kanal.fetch(f"{REF}-brak-{n}")
+
+    assert not st.serwer.kroki, "sufit nie zatrzymał serwisu, który odpowiadał pomiędzy"

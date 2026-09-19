@@ -47,7 +47,7 @@ def _cyt() -> list[tuple[str, str | None]]:
         ("KIO 1234/23do", "kio", "KIO 1234/23"),
         ("XXIII Zs 12/22", "so", "XXIII Zs 12/22"),
         ("III CZP 56/17", "sn", "III CZP 56/17"),
-        ("I Aga 12/2020", "sa", "I AGa 12/2020"),
+        ("I Aga 12/2020", "sa", "I AGa 12/20"),
         ("II GSK 7/15", "nsa", "II GSK 7/15"),
         ("C-652/22", "tsue", "C-652/22"),
         ("IV Xyz 1/20", "inne", "IV Xyz 1/20"),

@@ -157,3 +157,10 @@ def test_zlote_pliki_w_repozytorium_nie_niosa_tekstu() -> None:
             assert set(sekcja) == KLUCZE_SEKCJI, plik.name
             assert re.fullmatch(r"[0-9a-f]{64}", sekcja["sha256"]), plik.name
     assert len(wczytaj_zloty(KATALOG_ZLOTY)) == len(pliki)
+
+
+def test_zawieranie_przepisow_w_obie_strony() -> None:
+    """ADR-0006 §7 obiecuje obie strony; kanał ⊂ treść wyszło 100 % i niewiele mówi."""
+    raport = zbuduj([_dok("a")], data="2026-09-19", parse_version=2)
+    assert (raport.tresc_w_kanale, raport.tresc_razem) == (1, 1)
+    assert "z treści na liście kanału 1 z 1" in markdown(raport)

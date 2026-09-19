@@ -64,6 +64,7 @@ from tests.wsparcie_sondy import (  # noqa: E402
     przekieruj_domyslne_sciezki,
     stan_prawdziwego_korpusu,
     stan_prawdziwych_sciezek,
+    stan_raportow,
 )
 
 
@@ -91,6 +92,7 @@ def _piaskownica(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pa
     """
     przed = stan_prawdziwych_sciezek()
     przed_korpus = stan_prawdziwego_korpusu()
+    przed_raporty = stan_raportow()
     monkeypatch.setattr(zadanie, "KATALOG_WYJSCIA", tmp_path / "out")
     monkeypatch.setattr(zadanie, "DZIENNIK", tmp_path / "docs" / "dziennik_zadan.md")
     przekieruj_domyslne_sciezki(monkeypatch, tmp_path / "dane")
@@ -104,6 +106,10 @@ def _piaskownica(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Pa
         f"test ruszył korpus operatora ({PRAWDZIWA_BAZA} albo {PRAWDZIWE_WYNIKI}). Polecenie "
         "bez `--baza`/`--out` sięgnęło domyślnej ścieżki, której piaskownica nie przekierowała "
         "— zapis testu do prawdziwego katalogu wyjścia jest eksportem, którego nikt nie zlecił."
+    )
+    assert stan_raportow() == przed_raporty, (
+        "test nadpisał zacommitowany raport pokrycia w `docs/raporty/` — `pokrycie` bez `--cel` "
+        "pisze względem katalogu bieżącego, a pod pytestem jest nim korzeń repozytorium."
     )
 
 

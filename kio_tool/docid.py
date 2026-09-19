@@ -199,7 +199,10 @@ def znajdz_sygnatury(tekst: str) -> list[TrafienieSygnatury]:
     for m in _WZOR_SADU.finditer(tekst):
         nieznane: tuple[str, RodzajSygnatury] = (m.group("rep"), "inne")
         repertorium, rodzaj = _KANON_REPERTORIUM.get(m.group("rep").casefold(), nieznane)
-        sad = f"{m.group('wydzial')} {repertorium} {int(m.group('numer'))}/{m.group('rok')}"
+        # Rok czterocyfrowy skracany do dwóch: `X Ga 7/2010` i `X Ga 7/10` to jedna sprawa, a pięć
+        # takich par w korpusie (przegląd kodu 2026-09-19) rozdzielało się w indeksie cytowań.
+        # Skrócenie nie dokłada informacji — w odróżnieniu od rozwinięcia, którego moduł nie robi.
+        sad = f"{m.group('wydzial')} {repertorium} {int(m.group('numer'))}/{m.group('rok')[-2:]}"
         trafienia.append(TrafienieSygnatury(m.start(), m.end(), rodzaj, sad))
     for m in _WZOR_TSUE.finditer(tekst):
         sprawa = f"{m.group('sad')}-{int(m.group('numer'))}/{m.group('rok')}"

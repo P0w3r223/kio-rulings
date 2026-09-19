@@ -898,11 +898,11 @@ def test_samosprawdzenie_kontrakt_w_pisowni_wielolinijkowej_jest_zarzutem(tmp_pa
 
 NUMERY_ADR_OCZEKIWANE = frozenset({"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"})
 """Numery, o których ten plik coś wie: trzy bramki, ADR-0003 (kształt `source/`), ADR-0005
-(bramka per kanał, 2026-09-18 — zmienia kryterium, po którym ten plik chodzi) i ADR-0006
-(faza 2, 2026-09-19) i ADR-0007 (polityka ponowień, 2026-09-19). Oba są `proposed`, więc żadnej
-bramki jeszcze nie otwierają; numery są tu po to, żeby ich duplikat miał strażnika od pierwszego
-dnia, a nie dopiero po przyjęciu — dwa ADR-y powstałe tego samego dnia od dwóch architektów
-sięgnęły po ten sam numer i tylko ten strażnik by to złapał.
+(bramka per kanał, 2026-09-18 — zmienia kryterium, po którym ten plik chodzi), ADR-0006
+(faza 2), ADR-0007 (polityka ponowień) i ADR-0008 (faza 3) — trzy ostatnie przyjęte 2026-09-19.
+Numery stały tu od dnia powstania ADR-ów, jeszcze jako `proposed`, żeby duplikat miał strażnika
+od pierwszego dnia, a nie dopiero po przyjęciu — dwa ADR-y powstałe tego samego dnia od dwóch
+architektów sięgnęły po ten sam numer i tylko ten strażnik by to złapał.
 
 Lista jest wypisana, a nie wyliczona z katalogu, bo ADR skasowany przy renumeracji zniknąłby
 razem ze swoim strażnikiem — a `test_numer_adr_nie_ma_dwoch_plikow` chodzący po samym globie

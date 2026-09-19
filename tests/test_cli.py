@@ -649,3 +649,41 @@ def test_pokrycie_zapisuje_raport_bez_zadan_i_mowi_o_braku_zlotego(
     assert "sprawdzono 0 z 0" in wynik.output
     tresc = next(cel.glob("*.md")).read_text(encoding="utf-8")
     assert "tresc wymyslona" not in tresc, "raport nie niesie tekstu orzeczeń"
+
+
+def test_pokrycie_z_nieistniejacym_zlotym_zbiorem_to_blad_konfiguracji(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """Literówka w `--zloty` dawała „sprawdzono 0 z 0” jak brak flagi (przegląd 2026-09-19)."""
+    baza, _ = korpus
+    wynik = runner.invoke(
+        app,
+        ["pokrycie", "--baza", str(baza), "--cel", str(tmp_path), "--zloty", str(tmp_path / "x")],
+    )
+    assert wynik.exit_code == 3, wynik.output
+
+
+def test_pokrycie_z_rozbieznym_zlotym_zbiorem_zapala_kod_wyjscia(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """ADR-0006 §7: rozbieżność jest błędem, nie ostrzeżeniem — raport zapisany, kod niezerowy."""
+    baza, _ = korpus
+    zloty = tmp_path / "gold"
+    zloty.mkdir()
+    (zloty / "a.json").write_text(
+        json.dumps(
+            {
+                "doc_id": "atlas:nie-ma-takiego",
+                "content_sha256": "0" * 64,
+                "sekcje": [],
+                "przeglad": {"kto": "test", "data": "2026-09-19"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    cel = tmp_path / "raporty"
+    wynik = runner.invoke(
+        app, ["pokrycie", "--baza", str(baza), "--cel", str(cel), "--zloty", str(zloty)]
+    )
+    assert wynik.exit_code == 1, wynik.output
+    assert any(cel.glob("*.md")), "raport zapisany mimo rozbieżności"

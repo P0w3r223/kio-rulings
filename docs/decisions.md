@@ -605,7 +605,10 @@ cytowaniem; oba zostają do decyzji z pomiarem na większym korpusie.
 
 **Przepisy: treść ↔ kanał.** Z treści 13 697 powołań; z `law_articles` Atlasu 3 137 pozycji,
 z których **3 137 (100 %) ma tę samą postać kanoniczną w treści** dokumentu — pośrednik nie dodaje
-przepisów spoza tekstu. Ustawa z treści (Z-8): `pzp2019` 5 789, `pzp2004` 1 905, `kc` 595,
+przepisów spoza tekstu. **Druga strona zawierania** (dopisana po przeglądzie kodu 2026-09-19,
+liczona na różnych postaciach per dokument): z 6 397 postaci przepisów w treści lista kanału
+wymienia **3 137 (49,0 %)** — `law_articles` Atlasu jest wyborem przepisów, nie ich spisem, więc
+filtr `--przepis` na kanale pomija orzeczenia, które przepis powołują, a Atlas go nie wybrał. Ustawa z treści (Z-8): `pzp2019` 5 789, `pzp2004` 1 905, `kc` 595,
 `inne` 557, `rozporzadzenie` 87, `kpc` 26, **`nieustalone` 4 738 (34,6 %)**. Wysoki udział
 nieustalonych bierze się ze 101 dokumentów, które nie nazywają żadnej ustawy Pzp pełnym tytułem
 (95 z nich z roku 2024) — zgadywanie z daty dałoby tam „trafny" wynik i Z-8 go zakazuje.

@@ -314,6 +314,15 @@ def stan_korpusu(baza: Path, katalog: Path) -> StanKorpusu:
     return (None if dane is None else (dane.st_size, dane.st_mtime_ns), _drzewo(katalog))
 
 
+PRAWDZIWE_RAPORTY = Path(__file__).resolve().parent.parent / "docs" / "raporty"
+"""Zacommitowane raporty pokrycia — domyślny `--cel` polecenia `pokrycie` względem katalogu
+bieżącego, czyli pod pytestem właśnie ten (przegląd kodu 2026-09-19)."""
+
+
+def stan_raportow() -> Drzewo | None:
+    return _drzewo(PRAWDZIWE_RAPORTY)
+
+
 def stan_prawdziwego_korpusu() -> StanKorpusu:
     """Stan prawdziwej bazy i prawdziwego `wyniki/` — do porównania w `_piaskownica`."""
     return stan_korpusu(PRAWDZIWA_BAZA, PRAWDZIWE_WYNIKI)

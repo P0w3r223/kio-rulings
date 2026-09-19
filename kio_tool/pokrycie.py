@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .docid import normalize_signature
+from .errors import ConfigError, ExportError, ZlotyZbiorError
 from .store import Store, StrukturaDokumentu
 
 SEKCJE_KOMPLETU = ("naglowek", "sentencja", "pouczenie", "uzasadnienie")
@@ -85,6 +86,10 @@ class Raport:
     akty: dict[str, Counter[str]] = field(default_factory=lambda: defaultdict(Counter))
     kanal_razem: int = 0
     kanal_w_tresci: int = 0
+    tresc_razem: int = 0
+    tresc_w_kanale: int = 0
+    """Druga strona zawierania (ADR-0006 §7): ile przepisów z treści kanał też wymienia —
+    przegląd kodu 2026-09-19; pierwsza strona (kanał w treści) wyszła 100 % i niewiele mówi."""
     starsze_wersje: int = 0
     zloty: WynikZlotego | None = None
 
@@ -131,11 +136,13 @@ def _dolicz(raport: Raport, d: StrukturaDokumentu, parse_version: int) -> None:
         if c.sygnatura is None:
             r.nierozpoznanych += 1
     tresc = {p.postac for p in d.przepisy if p.zrodlo == "tresc"}
+    kanal = {p.postac for p in d.przepisy if p.zrodlo == "kanal"}
     for p in d.przepisy:
         raport.akty[p.zrodlo][p.akt] += 1
-        if p.zrodlo == "kanal":
-            raport.kanal_razem += 1
-            raport.kanal_w_tresci += p.postac in tresc
+    raport.kanal_razem += len(kanal)
+    raport.kanal_w_tresci += len(kanal & tresc)
+    raport.tresc_razem += len(tresc)
+    raport.tresc_w_kanale += len(tresc & kanal)
 
 
 # ------------------------------------------------------------------------------ złoty zbiór
@@ -272,8 +279,10 @@ def markdown(raport: Raport) -> str:
         linie += [f"- `{akt}`: {_udzial(n, razem)}" for akt, n in akty.most_common()]
         linie.append("")
     linie.append(
-        "Pozycje listy kanału znalezione w treści (ta sama postać kanoniczna): "
-        f"{_udzial(raport.kanal_w_tresci, raport.kanal_razem)}."
+        "Różne postaci przepisów per dokument, zawieranie w obie strony (ta sama postać "
+        "kanoniczna): z listy kanału w treści "
+        f"{_udzial(raport.kanal_w_tresci, raport.kanal_razem)}; "
+        f"z treści na liście kanału {_udzial(raport.tresc_w_kanale, raport.tresc_razem)}."
     )
     linie += ["", "## Złoty zbiór (ADR-0006 Z-11)", ""]
     z = raport.zloty
@@ -303,6 +312,7 @@ def maszynowy(raport: Raport) -> str:
             "cytowania": dict(raport.rodzaje_cytowan),
             "akty": {k: dict(v) for k, v in raport.akty.items()},
             "kanal_w_tresci": [raport.kanal_w_tresci, raport.kanal_razem],
+            "tresc_w_kanale": [raport.tresc_w_kanale, raport.tresc_razem],
             "zloty": None if raport.zloty is None else vars(raport.zloty),
         },
         ensure_ascii=False,
@@ -321,13 +331,43 @@ def wykonaj(
     store: Store, *, cel: Path, zloty: Path | None, data: str, parse_version: int
 ) -> WynikPokrycia:
     """Raport z bazy do `cel/pokrycie_<data>.md` i `.json` — zero żądań, bez tekstu orzeczeń."""
+    adnotacje = _adnotacje(zloty)
     struktury = {d.doc_id: d for d in store.struktury()}
     raport = zbuduj(struktury.values(), data=data, parse_version=parse_version)
-    if zloty is not None:
-        raport.zloty = sprawdz_zloty(wczytaj_zloty(zloty), struktury)
-    cel.mkdir(parents=True, exist_ok=True)
+    if adnotacje is not None:
+        raport.zloty = sprawdz_zloty(adnotacje, struktury)
     md = cel / f"pokrycie_{data}.md"
     js = cel / f"pokrycie_{data}.json"
-    md.write_text(markdown(raport), encoding="utf-8", newline="\n")
-    js.write_text(maszynowy(raport) + "\n", encoding="utf-8", newline="\n")
+    try:
+        cel.mkdir(parents=True, exist_ok=True)
+        md.write_text(markdown(raport), encoding="utf-8", newline="\n")
+        js.write_text(maszynowy(raport) + "\n", encoding="utf-8", newline="\n")
+    except OSError as blad:
+        raise ExportError(f"Nie da się zapisać raportu pokrycia w {cel}: {blad}") from blad
     return WynikPokrycia(raport=raport, markdown=md, maszynowy=js)
+
+
+def _adnotacje(zloty: Path | None) -> list[AdnotacjaZlota] | None:
+    """Złoty zbiór z katalogu — literówka w ścieżce ma być błędem, nie „sprawdzono 0 z 0"."""
+    if zloty is None:
+        return None
+    if not zloty.is_dir():
+        raise ConfigError(f"Katalog złotego zbioru {zloty} nie istnieje albo nie jest katalogiem.")
+    try:
+        adnotacje = wczytaj_zloty(zloty)
+    except ValueError as blad:
+        raise ConfigError(str(blad)) from blad
+    if not adnotacje:
+        raise ConfigError(f"W {zloty} nie ma ani jednego pliku `*.json` złotego zbioru.")
+    return adnotacje
+
+
+def wymagaj_zgodnosci(wynik: WynikPokrycia) -> None:
+    """Po zapisie raportu: rozbieżność albo niesprawdzona adnotacja zapala kod wyjścia."""
+    z = wynik.raport.zloty
+    if z is not None and z.zgodnych < z.plikow:
+        raise ZlotyZbiorError(
+            f"Złoty zbiór: zgodnych {z.zgodnych} z {z.plikow} adnotacji (sprawdzonych "
+            f"{z.sprawdzonych}). Raport jest zapisany w {wynik.markdown}; lista rozbieżności "
+            "jest na jego końcu."
+        )

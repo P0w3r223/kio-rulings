@@ -105,11 +105,15 @@ ponowienia:
   podstawa_s: 2.0     # postój przed próbą 2
   mnoznik: 3.0        # postój przed próbą 3 = podstawa_s * mnoznik
   pod_rzad_max: 3     # tyle kolejnych żądań z ponowieniem = serwis leży, nie mruga
+  retry_after_max_s: 3600  # dłuższy Retry-After = przebieg przerwany ze zdaniem, nie sen procesu
   zrodlo: >-
     decyzja tego projektu (ADR-0007, 2026-09-19), nie odczyt u dostawcy. Liczby są progami,
     nie pomiarem — jak `pipeline.PROG_ZGODY` i `pipeline.PROG_404_POD_RZAD`. Wejściem do ich
     korekty jest pomiar 24 (Z-8): pierwszy przebieg kwartalny po wdrożeniu. Awaryjność kanału
     jest na 2026-09-19 niezmierzona: 352 żądania z 2026-09-18 wróciły ze statusem 200.
+    `retry_after_max_s` dopisany po przeglądzie kodu 2026-09-19: godzina to najdłuższe okno
+    limitu, jakiego przebieg i tak musi dostosować się do (`tempo.okna`, 60 s i doba), a dłuższy
+    postój bez człowieka przy maszynie jest usterką, nie grzecznością
 
 strony:
   na_strone: 100

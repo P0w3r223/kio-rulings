@@ -276,6 +276,16 @@ Dwa odstępstwa od §5, oba świadome:
 - **Dziennik markdown sondy (`docs/dziennik_zadan.md`) nie dostaje kolumny `proba`.** Sonda nie
   ponawia, więc kolumna niosłaby wyłącznie jedynki, a dopisana do żywej tabeli rozjechałaby
   wiersze sprzed zmiany. `Wynik.proba` istnieje i idzie do `requests_log` (schemat 5).
+- **`ponowienia.retry_after_max_s` (3 600 s) — dopisane po przeglądzie kodu 2026-09-19.** Z-4
+  każe honorować `Retry-After` przy 5xx, a nic go nie ograniczało: `Retry-After: 1e18` usypiał
+  proces na zawsze (odejmowanie plastrów po 300 s ginęło w precyzji liczby zmiennoprzecinkowej).
+  Dłuższa prośba serwisu kończy teraz przebieg jako `przerwany` ze zdaniem; honoruje ją `wznow`.
+- **404 przerywa serię z Z-6** — także po przeglądzie. „Kolejne żądania wymagające ponowienia"
+  czytamy jako kolejne **żądania**: 404 jest odpowiedzią działającego serwisu, więc seria
+  „5xx, 404, 5xx, 404, 5xx" nie znaczy „serwis leży".
+- **Otwarte:** historia żądań odtwarza `Retry-After` w następnym procesie wyłącznie dla 429.
+  Po wyczerpaniu prób 5xx natychmiastowy `wznow` nie czeka na prośbę serwisu — Z-4 domyka tę lukę
+  tylko w obrębie procesu. Do decyzji przy pomiarze 24.
 - **§5.1 mylił się co do `test_429_zatrzymuje_przebieg_i_zostawia_go_wznawialnym`.** Test nie
   przeszedł bez zmian: przebieg nadal staje na `RateLimitError`, ale dziennik ma teraz **dwa**
   wiersze 429 (`proba` 1 i 2), a test liczył jeden. Asercja poprawiona na dokładną listę par
