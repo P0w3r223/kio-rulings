@@ -534,6 +534,84 @@ i małej litery po nim. Obie liczby są dolnym oszacowaniem i tak mają być czy
 
 ---
 
+## Przebieg 3 — odtworzenie korpusu na nowej maszynie i próbka rocznikowa (ADR-0006 Z-3)
+
+**Zmierzone 2026-09-19, 464 żądania, wszystkie 200, zero ponowień** (`requests_log.proba > 1`
+= 0 — pierwszy przebieg po wdrożeniu ADR-0007). Korpus z 2026-09-18 istniał na jednej maszynie
+i repozytorium go nie niesie (`config.default_db_path`), więc na maszynie, na której pracowała
+ta sesja, został pobrany od nowa za zgodą właściciela udzieloną w sesji.
+
+| Przebieg | Zakres | Dokumentów | Żądań |
+|---|---|---|---|
+| `atlas-1bbd11b860cb` | 2024-01-01..2024-01-31 | 295 | 298 |
+| `atlas-8958b75abcef` | 2024-02-01..2024-02-05 | 46 | 47 |
+| 17 przebiegów po `--maks 6` | `RRRR-06-01..RRRR-12-31`, roczniki 2010–2026 | 102 | 119 |
+
+Liczby stycznia i lutego zgadzają się z Przebiegami 1 i 2 (295 i 46) — zbiór Atlasu na tym
+zakresie nie zmienił się w ciągu doby. Próbka rocznikowa bierze **pierwsze sześć** orzeczeń od
+1 czerwca każdego roku (`sort=oldest`), więc jest stratyfikowana po roku, a w obrębie roku nie jest
+losowa — to jest cena zapisana, nie ukryta. Korpus: **443 dokumenty**. `total` zgłoszony dla okien
+czerwiec–grudzień: od 169 (2010) do 2 898 (2025).
+
+---
+
+## Pomiar 5, część rocznikowa — segmentacja na korpusie 443 dokumentów (etap II–III fazy 2)
+
+**Policzone 2026-09-19 z bazy, 0 żądań**, po Przebiegu 3. `parser/sections.py` przyłożony do
+widoku z `parser/clean.py`:
+
+| Sekcja | Dokumentów z sekcją |
+|---|---|
+| nagłówek, sentencja, pouczenie, uzasadnienie | 443 z 443 (100 %) |
+| nieprzypisane | 0 znaków z 13 498 909 |
+
+Długości sekcji (znaki): nagłówek mediana 655 (max 2 519), sentencja 510 (max 6 593 — rozbudowane
+wyroki z punktami zarzutów, przejrzane okiem), pouczenie 243 (max 503), uzasadnienie 17 686.
+
+**Normalizacja podniosła trafienie nagłówka uzasadnienia z 63,0 % do 97,3 %.** Reszta idzie
+drogami zastępczymi, każda znaleziona na konkretnym dokumencie i opisana w kodzie: `postanawia` bez
+dwukropka (`KIO 3884/23`), punkt wyliczenia doklejany do nagłówka (`KIO 3778/23`), strona
+uzasadnienia otwarta powtórzoną sygnaturą, uzasadnienie wprost pod podpisem w roczniku 2012
+(`KIO 1004/12`), nagłówek wklejony przez ekstrakcję w wiersz podpisu (`KIO 3700/23`).
+
+**100 % pokrycia nie jest dowodem poprawności granic** — algorytm przypisuje każdy znak, jeśli
+znajdzie choć jedną kotwicę. Jedynym sprawdzianem granic jest złoty zbiór (Z-11) i raport pokrycia;
+dlatego długości sekcji stoją wyżej, a odstające przejrzano ręcznie.
+
+---
+
+## Pomiar 22 — gęstość cytowań i udział nieznormalizowanych
+
+**Policzone 2026-09-19 z bazy, 0 żądań**, na 443 dokumentach, w sekcjach `uzasadnienie`
+i `zdanie_odrebne`, bez sygnatur własnych dokumentu.
+
+| Rodzaj | Cytowań |
+|---|---|
+| KIO | 1 260 |
+| sąd okręgowy | 165 |
+| Sąd Najwyższy | 99 |
+| TSUE | 60 |
+| sąd apelacyjny | 19 |
+| NSA | 11 |
+| **nierozpoznane** (`sygn. akt` bez rozpoznanej sygnatury) | **81** |
+| razem | 1 695 |
+
+Cytowania ma 194 z 443 dokumentów. **Udział nierozpoznanych: 81 z 1 695 = 4,8 %** — na granicy
+progu „kilku procent" z decyzji 8 architektury. Postaci nierozpoznane, od najczęstszej: sam numer
+bez prefiksu (`3376/23`), sygnatura bez numeru (`IV CR 403`), rok czterocyfrowy przy KIO
+(`KIO 1460/2011`), prefiks `KIO/KD`, repertoria WSA (`II SA/Wa`). **`docid` ich nie dostał** —
+czterocyfrowy rok KIO wymagałby skracania roku, a `KIO/KD` nie ma odczytu z datą poza tym jednym
+cytowaniem; oba zostają do decyzji z pomiarem na większym korpusie.
+
+**Przepisy: treść ↔ kanał.** Z treści 13 697 powołań; z `law_articles` Atlasu 3 137 pozycji,
+z których **3 137 (100 %) ma tę samą postać kanoniczną w treści** dokumentu — pośrednik nie dodaje
+przepisów spoza tekstu. Ustawa z treści (Z-8): `pzp2019` 5 789, `pzp2004` 1 905, `kc` 595,
+`inne` 557, `rozporzadzenie` 87, `kpc` 26, **`nieustalone` 4 738 (34,6 %)**. Wysoki udział
+nieustalonych bierze się ze 101 dokumentów, które nie nazywają żadnej ustawy Pzp pełnym tytułem
+(95 z nich z roku 2024) — zgadywanie z daty dałoby tam „trafny" wynik i Z-8 go zakazuje.
+
+---
+
 ## Pomiar 3b — opóźnienie publikacji u pośrednika (w toku, jeden kanał)
 
 **Stan 2026-09-19: procedura ustalona, zero odczytów.** Ta sekcja gromadzi kolejne odczyty;
@@ -592,7 +670,7 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 3b | Opóźnienie publikacji u pośrednika | **w toku od 2026-09-19 — procedura ustalona, zero odczytów** (`## Pomiar 3b`) | faza 1 | obserwacja **jednokanałowa**, 1 żądanie dziennie; brzmienie pierwotne (ta sama sprawa z dwóch kanałów) jest niewykonalne bez kanału `uzp` — powód i nowa definicja w `## Pomiar 3b` |
 | 4 | Kontrakt wyszukiwarki UZP | **wykonany strukturalnie** (`Move` → `Details` własnym odczytem; `GetResults` z dwóch cudzych kolektorów) | — | — |
 | 4b | Własny `POST /Home/GetResults` i pierwsza kaseta | niewykonany | odłożony (kanał `uzp` w rolach weryfikacji i dopływu, faza 2) | `sonda.py uzp-getresults` |
-| 5 | Warstwa tekstowa w próbce ~50 dokumentów | **część lokalna wykonana 2026-09-19 na 341 dokumentach, 0 żądań** (`## Pomiar 5`); część rocznikowa niewykonana | faza 2 (ADR-0006 Z-3, etapy I–II) | część rocznikowa: próbka stratyfikowana 2010–2026, ~119 żądań, zgoda w sesji; próbka staje się zalążkiem `tests/gold/` |
+| 5 | Warstwa tekstowa w próbce ~50 dokumentów | **wykonany 2026-09-19**: część lokalna na 341 dokumentach (0 żądań), część rocznikowa na 443 po Przebiegu 3 (119 żądań próbki; `## Pomiar 5, część rocznikowa`) | faza 2 (ADR-0006 Z-3, etapy I–II) | część rocznikowa: próbka stratyfikowana 2010–2026, ~119 żądań, zgoda w sesji; próbka staje się zalążkiem `tests/gold/` |
 | 6 | Granice przestrzeni identyfikatorów | z drugiej ręki (~33 366 w kwietniu 2026) | faza 1 | dwa odczyty `Details` + pomiar 16 |
 | 7 | Sprostowania: nowy rekord czy nadpisanie | niewykonany | polityka wersji kanału `uzp` (ADR-0005 Z-4) | `GetResults` dla sprawy ze znanym sprostowaniem |
 | 8 | Dokumenty wielosygnaturowe w wyszukiwarce | potwierdzone strukturalnie | ADR-0001 | jeden odczyt `Details` sprawy z listingu FTP |
@@ -609,7 +687,7 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 19 | Czy `ContentHtml` jest bitowo stabilny między pobraniami | niewykonany; **wymaga doby odstępu** | polityka wersji kanału `uzp` (ADR-0005 Z-4) — **nie jest już warunkiem `store.py`** | `sonda.py uzp-stabilnosc`, dwa przebiegi ≥24 h |
 | 20 | Co zwracają `/AiSearch/*` | niewykonany | faza 4 | narzędzia deweloperskie przeglądarki |
 | 21 | Blokada sieci w testach wobec wstrzykniętego transportu i wobec gniazda | **wykonany 2026-09-15 w obu połowach — pozytywny** (`## Pomiar 21`) | zamknięty w części „blokada"; odtwarzanie kaset rozstrzyga test dymny adaptera Atlasu (ADR-0005 Z-10) | — |
-| 22 | Gęstość cytowań i udział nieznormalizowanych | niewykonany | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
+| 22 | Gęstość cytowań i udział nieznormalizowanych | **wykonany 2026-09-19, 0 żądań** — 1 695 cytowań, 4,8 % nierozpoznanych (`## Pomiar 22`) | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
 | 23 | Warunki ponownego wykorzystywania SAOS i Atlasu, odczytane **u źródła** | **wykonany 2026-09-18 — Atlas: CC BY 4.0 z atrybucją u źródła; SAOS: brak odpowiedzi w 45 s** (`## Pomiar 23`) | **bramka** (`atlas`) — spełnione dla Atlasu; SAOS nieodczytany | `sonda.py licencje` — 3 żądania; SHA-256 każdej strony w `## Pomiar 23` |
 | 24 | Awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | niewykonany — wymaga pierwszego przebiegu kwartalnego po wdrożeniu ponowień | korekta progów bloku `ponowienia` w `contract.yaml` | `requests_log.proba` (schemat 5): ponowienia per klasa i ile skończyło się 200, zero żądań dodatkowych |
 
