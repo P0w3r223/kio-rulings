@@ -264,6 +264,14 @@ będzie inną informacją, nie tą samą. Oba pliki leżą na jednym dysku i tak
 Zapisane tutaj po to, żeby utrata dysku była zdarzeniem **przewidzianym**, a nie odkryciem.
 Ten wpis zamyka temat: nie wraca w kolejnych sesjach jako przypomnienie.
 
+**Stan faktyczny zmieniony przez właściciela (odnotowane 2026-09-19).** Repozytorium ma zdalne:
+prywatne `P0w3r223/Kio` na GitHubie, i tam je znalazła sesja z 2026-09-19 na maszynie, na której
+lokalnej kopii nie było. Właściciel wybrał tego dnia pracę na gałęzi z PR-em. Decyzja C nie jest
+więc już opisem stanu — `decisions.md` i `dziennik_zadan.md` mają kopię poza jednym dyskiem.
+**Korpus nadal nie ma** (leży poza repozytorium z powodu danych osobowych — `config.default_db_path`)
+i to jest ta część ryzyka, która zostaje: sesja z 2026-09-19 odtworzyła go od nowa z Atlasu
+(Przebieg 3, 464 żądania), bo baza z 2026-09-18 istniała tylko na innej maszynie.
+
 ---
 
 ## Pomiar 3a — czy Atlas zwraca pełny tekst; od kiedy sięga zbiór

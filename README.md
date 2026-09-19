@@ -77,6 +77,28 @@ a nie na proces), budżet czytany z nagłówków `X-RateLimit-*`, a po odpowiedz
 przebieg staje i odczekuje wskazany czas przy wznowieniu. **Narzędzie nie omija zabezpieczeń**:
 przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o tym operatorowi.
 
+## Najprościej: kreator i tryb pokazowy
+
+```
+.venv\Scripts\kio-tool.exe            # na terminalu: kreator — menu, pytania, tabela kosztów
+.venv\Scripts\kio-tool.exe demo       # to samo na fikcyjnym korpusie, bez sieci i bez konfiguracji
+.venv\Scripts\kio-tool.exe demo --od-nowa   # pokaz od pustej bazy (kasuje wyłącznie bazę pokazu)
+```
+
+**Kreator** (ADR-0008) prowadzi przez pobranie, wznowienie, wyszukiwanie i eksport bez znajomości
+poleceń. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
+najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to około trzech dób, nie godzina) —
+i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Kanał, który nic nie zwrócił, kończy się
+propozycją zdjęcia jednego filtra, a nie powrotem do menu bez słowa.
+
+**Tryb pokazowy** działa w dniu klonu: bez `KIO_TOOL_CONTACT`, bez klucza, bez żadnego żądania do
+sieci. Korpus jest **generowany** (sygnatury KIO 9000–9999, osoby i strony fikcyjne, adresy
+`pokaz.invalid`), a ścieżka jest ta sama co na danych prawdziwych: tabela kosztów, zgoda, Ctrl+C,
+wznowienie, eksport, wyszukiwanie. Wszystko, co pokaz wytwarza, jest oznaczone: baza ma znacznik
+w pliku i leży w osobnym katalogu, pliki wyniku mają przedrostek `DEMO_`, arkusz `Metadane` wiersz
+`tryb`, a każdy rekord zdanie o fikcji zamiast bloku cytowania — rekord pokazowy wyjęty z pliku nie
+udaje orzeczenia KIO.
+
 ## Użycie
 
 ```
@@ -101,6 +123,14 @@ przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o
 | `runy` | ostatnie przebiegi: status, zakres, liczba dokumentów i żądań (`--status`, `--limit`) | zero |
 | `przelicz` | przelicza metadane i indeks pełnotekstowy z surowych wersji (`--wszystko` także już przeliczone) — po zmianie odczytu, bez ponownego pobierania | zero |
 | `szukaj` | fraza dosłownie w pełnym tekście (FTS5) z filtrami; nad tabelą zawsze: dokumentów w korpusie, zaindeksowanych, trafień | zero |
+| `pokrycie` | raport pokrycia parsera (sekcje, cytowania, przepisy z ustawą, po roczniku z sygnatury) do `docs/raporty/`; z `--zloty tests/gold` sprawdza złoty zbiór i kończy się kodem 1 przy rozbieżności | zero |
+| `kreator`, `demo` | kreator nad bazą operatora albo nad bazą pokazową (wyżej) | jak `pobierz` / zero |
+
+`pobierz` i `wznow` drukują przed pierwszym dokumentem tę samą tabelę kosztów co kreator; bez
+`--zgoda` obowiązuje dotychczasowy próg. Zerwane łącze, urwana odpowiedź, 5xx i 429 są ponawiane
+przez limiter według bloku `ponowienia` kontraktu (ADR-0007): każde ponowienie ma własny wiersz
+w dzienniku z numerem próby, liczy się do zgody i trafia do podsumowania; trzy żądania z rzędu
+wymagające ponowienia albo `Retry-After` dłuższy niż godzina zatrzymują przebieg ze zdaniem.
 
 Kryteria mają własne flagi i działają tak samo w `pobierz`, `eksportuj` i `szukaj`: `--od`/`--do`
 (daty wydania, włącznie), `--fraza`, `--rozstrzygniecie` (oddalono, uwzglednione, umorzono,

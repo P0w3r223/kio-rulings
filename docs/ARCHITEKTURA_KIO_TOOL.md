@@ -553,6 +553,15 @@ Nie istnieją: `aktualizuj`, `porownaj`, `cytowania`, `demo`, `slowniki`, `serve
 `sonda --kontrakt` (test dymny kontraktu jest na razie testem `tests/test_source_atlas.py` na
 złotych plikach, nie poleceniem).
 
+**Stan 2026-09-19 (ADR-0006, ADR-0007, ADR-0008 przyjęte).** Doszły: `pokrycie` (raport pokrycia
+parsera fazy 2, artefakt bramki; `przelicz` zapisuje odtąd sekcje, cytowania i przepisy),
+`kreator` i `kio-tool` bez polecenia na terminalu (kreator `ui/{prompts,flow,wizard}.py` nad
+`obsluga.AkcjeKreatora` — wiersz pierwszy tej tabeli przestał być planem: polecenia **nie** są
+warstwą nad `ui/flow.py`; flagi i kreator dzielą punkt decyzji w `pipeline` i zdania z `texts`,
+nie sekwencję — ADR-0008 B2) oraz `demo` (korpus generowany, atrapa Atlasu jako transport,
+znacznik bazy i eksportu). `pobierz` i `wznow` drukują tabelę kosztów przed pierwszym dokumentem.
+Krok „Kanał" i „hasło indeksu" z 5.2 w kreatorze nie istnieją (ADR-0008 §1.4, Z-9).
+
 **Sonda fazy 0 nie jest poleceniem pakietu i nie będzie nim** (poprawka 2026-09-17). Audyt 9 mówi wprost: „skrypty sondujące są jednorazowe i mieszkają w `scripts/`, nie w pakiecie" — a wiersz opisujący `kio-tool sonda [--pomiar N] [--zgoda]` opisywał polecenie, którego nie ma i które byłoby złamaniem tamtej reguły. Realny interfejs to `python scripts\sonda.py <pomiar>`, a listę pomiarów podaje `--lista` — wyliczenie ich tutaj było **drugą listą do uzgadniania** i zdążyło się rozjechać tego samego dnia, w którym powstało (doszła komenda `uzp-stabilnosc` dla pomiaru 19). Jedynym miejscem z listą pomiarów jest sekcja „Status pomiarów" w `docs/decisions.md` (do 2026-09-18 osobny `docs/pomiary.md`, scalony przez ADR-0005), a jedynym miejscem z listą komend — `sonda.POMIARY`. Flagi `--zgoda` nie ma, bo pojedynczy odczyt diagnostyczny zgody nie wymaga (13.2 pkt 4 audytu), a przebiegu masowego sonda nie wykonuje. Sonda **nie dopisuje** wyniku do `docs/decisions.md` — wypisuje go na ekran do przepisania ręką, bo zdanie „zmierzone {data}, {N} żądań" jest interpretacją pomiaru, a nie jego zrzutem. Zostawia natomiast wiersz w `docs/dziennik_zadan.md` za każde żądanie i to jest mechaniczna postać reguły zgody z 4.1.
 
 ### 5.2 Ścieżka operatora w kreatorze
