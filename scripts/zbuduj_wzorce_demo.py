@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
         newline="\n",
     )
-    sys.stdout.write(f"{CEL} — {dane['zrodlo']}\n")  # type: ignore[index]
+    sys.stdout.write(f"{CEL} — {dane['zrodlo']}\n")
     return 0
 
 
