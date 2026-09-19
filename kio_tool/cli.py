@@ -13,6 +13,7 @@ własny, `Ctrl+C` daje 130.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,7 +22,7 @@ from typing import Annotated
 import typer
 from pydantic import ValidationError
 
-from . import pipeline
+from . import obsluga, pipeline
 from . import pokrycie as raport_pokrycia
 from .clock import SystemClock, utc_iso
 from .config import default_db_path, user_agent
@@ -32,11 +33,12 @@ from .exporter import FORMATY
 from .parser.details import PARSE_VERSION
 from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
-from .ui import texts
+from .ui import texts, wizard
+from .ui.prompts import KonsolaPrompter, Prompter
 from .ui.render import ConsoleView
 from .wycena import Wycena
 
-app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False, no_args_is_help=True)
+app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False)
 view = ConsoleView()
 
 OpcjaOd = Annotated[str | None, typer.Option("--od", help=texts.POMOC_OD)]
@@ -69,12 +71,19 @@ LIMIT_RUNOW = 20
 LIMIT_TRAFIEN = 20
 
 
-@app.callback(help=texts.POMOC_PROGRAMU)
-def _program() -> None:
+@app.callback(help=texts.POMOC_PROGRAMU, invoke_without_command=True)
+def _program(ctx: typer.Context) -> None:
     # `typer` z jednym poleceniem i bez wywołania zwrotnego zwija je do polecenia głównego —
     # `kio-tool pobierz …` przestawałoby wtedy istnieć, a drugie polecenie zmieniałoby składnię
-    # pierwszego. Pusty callback utrwala kształt `kio-tool <polecenie>`.
-    return None
+    # pierwszego. Callback utrwala kształt `kio-tool <polecenie>`.
+    if ctx.invoked_subcommand is not None:
+        return
+    # ADR-0008 Z-8 (decyzja właściciela 2026-09-19): bez polecenia na terminalu — kreator dla
+    # operatora, który nie zna poleceń; poza terminalem (potok, skrypt) — pomoc jak dotąd.
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        _uruchom_kreator(baza=None)
+    else:
+        view.message(ctx.get_help())  # pomoc złożona z `texts.POMOC_*` przez typer
 
 
 @contextmanager
@@ -159,70 +168,6 @@ def _limit(limit: int) -> int:
     return limit
 
 
-def _eksport_i_raport(
-    store: Store,
-    *,
-    run_ids: Sequence[str],
-    kryteria: Criteria | None,
-    formaty: Sequence[str],
-    out: Path | None,
-    cel: str | None,
-    zegar: SystemClock,
-) -> None:
-    """Eksport z bazy plus podsumowanie — te same zdania po `pobierz`, `wznow` i `eksportuj`."""
-    wynik = pipeline.eksportuj(
-        store, run_ids=run_ids, kryteria=kryteria, formaty=formaty, out=out, cel=cel, zegar=zegar
-    )
-    if wynik.dokumentow == 0:
-        view.message(texts.NIC_DO_EKSPORTU)
-        for run_id in run_ids:
-            # Przebieg sprzed schematu 2 ma żądania i dokumenty w korpusie, ale nie ma wierszy
-            # w `run_documents` — „żaden dokument nie pasuje" jest wtedy prawdziwe i mylące naraz
-            # (znalezisko testera 2026-09-18, zmierzone na bazie operatora).
-            przebieg = store.get_run(run_id)
-            if przebieg.dokumentow == 0 and przebieg.zadan > 0:
-                view.message(texts.przebieg_bez_powiazan(przebieg.run_id, przebieg.zakres))
-        if kryteria is not None:
-            view.block(
-                texts.zero_trafien(
-                    kryteria,
-                    w_korpusie=store.count("documents"),
-                    zaindeksowanych=store.count_indexed(),
-                    bez_daty=wynik.bez_daty_poza_filtrem,
-                )
-            )
-        return
-    view.block(
-        texts.blok_eksportu(
-            [str(s) for s in wynik.sciezki],
-            wynik.dokumentow,
-            wynik.formaty,
-            wynik.bez_daty_poza_filtrem,
-        )
-    )
-
-
-def _raport_przebiegu(wynik: pipeline.Podsumowanie, baza: Path) -> None:
-    view.message(
-        texts.podsumowanie(
-            run_id=wynik.run_id,
-            status=wynik.status,
-            kandydatow=wynik.kandydatow,
-            nowych=wynik.nowych,
-            pominietych=wynik.pominietych,
-            zadan=wynik.zadan,
-            baza=str(baza),
-            zgloszone=wynik.zgloszone,
-            objetych_lacznie=wynik.objetych_lacznie,
-            pobranych_lacznie=wynik.pobranych_lacznie,
-            zadan_lacznie=wynik.zadan_lacznie,
-            bledow_odczytu=wynik.bledow_odczytu,
-            brakujacych=wynik.brakujacych,
-            ponowien_lacznie=wynik.ponowien_lacznie,
-        )
-    )
-
-
 def _decyzja_flag(zgoda: bool) -> pipeline.Decyzja:
     """Ścieżka flag: tabela kosztów zawsze na ekranie, werdykt z `--zgoda` (ADR-0008 Z-6)."""
     polityka = pipeline.decyzja_z_flagi(zgoda)
@@ -232,6 +177,21 @@ def _decyzja_flag(zgoda: bool) -> pipeline.Decyzja:
         return polityka(wycena)
 
     return decyzja
+
+
+@app.command(help=texts.POMOC_KREATOR)
+def kreator(baza: OpcjaBaza = None) -> None:
+    _uruchom_kreator(baza=baza)
+
+
+def _uruchom_kreator(*, baza: Path | None, prompter: Prompter | None = None) -> None:
+    """Kreator nad bazą operatora — `Akcje` z `obsluga.py`, pytający z `ui/prompts.py`."""
+    zegar = SystemClock()
+    with _obsluga_bledow():
+        sciezka = baza or default_db_path()
+        with _otworz_baze(sciezka, zegar) as store:
+            akcje = obsluga.AkcjeKreatora(view, store, sciezka, zegar)
+            wizard.uruchom(prompter or KonsolaPrompter(), akcje, view)
 
 
 @app.command(help=texts.POMOC_POBIERZ)
@@ -287,11 +247,12 @@ def pobierz(
                 decyzja=_decyzja_flag(zgoda),
                 zegar=zegar,
             )
-            _raport_przebiegu(wynik, sciezka)
+            obsluga.raport_przebiegu(view, wynik, sciezka)
             if wynik.objetych_lacznie == 0:
                 view.block(texts.zero_kandydatow(kryteria))
                 return
-            _eksport_i_raport(
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -334,8 +295,9 @@ def wznow(
                 decyzja=_decyzja_flag(zgoda),
                 zegar=zegar,
             )
-            _raport_przebiegu(wynik, sciezka)
-            _eksport_i_raport(
+            obsluga.raport_przebiegu(view, wynik, sciezka)
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -384,7 +346,8 @@ def eksportuj(
         sciezka = baza or default_db_path()
         zegar = SystemClock()
         with _otworz_baze(sciezka, zegar) as store:
-            _eksport_i_raport(
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=run_ids,
                 kryteria=None if run_ids else kryteria,
@@ -501,38 +464,7 @@ def szukaj(
         limit = _limit(limit)
         sciezka = baza or default_db_path()
         with _otworz_baze(sciezka, SystemClock()) as store:
-            wynik = pipeline.szukaj(store, kryteria, limit=limit)
-        for ostrzezenie in kryteria.ostrzezenia():
-            view.warning(texts.uwaga(ostrzezenie))
-        if wynik.trafien == 0:
-            view.block(
-                texts.zero_trafien(
-                    kryteria,
-                    w_korpusie=wynik.w_korpusie,
-                    zaindeksowanych=wynik.zaindeksowanych,
-                    bez_daty=wynik.bez_daty_poza_filtrem,
-                )
-            )
-            return
-        wiersze = tuple(
-            (
-                t.sygnatura or t.source_ref,
-                t.data_wydania or "",
-                t.rozstrzygniecie or "",
-                t.fragment,
-            )
-            for t in wynik.trafienia
-        )
-        view.block(
-            texts.blok_wyszukiwania(
-                wiersze,
-                fraza=kryteria.fraza,
-                w_korpusie=wynik.w_korpusie,
-                zaindeksowanych=wynik.zaindeksowanych,
-                trafien=wynik.trafien,
-                bez_daty_poza_filtrem=wynik.bez_daty_poza_filtrem,
-            )
-        )
+            obsluga.pokaz_wyszukanie(view, store, kryteria, limit=limit)
 
 
 if __name__ == "__main__":

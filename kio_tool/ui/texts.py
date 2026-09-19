@@ -81,6 +81,10 @@ POMOC_EKSPORTUJ = (
     "(--run-id) albo pasujące do kryteriów (--od, --do, --fraza …)."
 )
 POMOC_RUNY = "Wypisuje ostatnie przebiegi z bazy: status, zakres, liczbę dokumentów i żądań."
+POMOC_KREATOR = (
+    "Kreator dla operatora: menu, pytania i tabela kosztów przed każdym pobraniem. To samo "
+    "otwiera `kio-tool` bez polecenia na terminalu."
+)
 POMOC_PRZELICZ = (
     "Przelicza metadane i indeks pełnotekstowy z surowych wersji w bazie — zero żądań do sieci."
 )
@@ -508,3 +512,152 @@ def zero_kandydatow(kryteria: Criteria) -> Block:
         "`szukaj` po pobraniu zakresu dat."
     )
     return Block(title="Kanał nie zwrócił żadnego kandydata", notes=tuple(uwagi))
+
+
+# ------------------------------------------------------------------ kreator (ADR-0008 Z-7…Z-10)
+
+MENU_WZNOW = "wznow"
+MENU_POBIERZ = "pobierz"
+MENU_SZUKAJ = "szukaj"
+MENU_EKSPORTUJ = "eksportuj"
+MENU_WYJDZ = "wyjdz"
+WROC = "wroc"
+
+CEL_DATY = "daty"
+CEL_SYGNATURA = "sygnatura"
+CEL_ROZSTRZYGNIECIE = "rozstrzygniecie"
+
+BRAK_KONTAKTU = (
+    "Pobieranie wymaga adresu kontaktowego w zmiennej KIO_TOOL_CONTACT — narzędzie przedstawia się "
+    "nim serwisowi (reguła 16). Ustaw ją i uruchom program ponownie; wyszukiwanie i eksport "
+    "działają bez niej."
+)
+PRZERWANO_AKCJE = (
+    "Przerwano (Ctrl+C). Przebieg został zapisany jako przerwany — pozycja „Wznów” w menu "
+    "dokończy go bez ponownego pobierania tego, co już przyszło."
+)
+FRAZA_TO_SYGNATURA = (
+    "Wyszukiwarka Atlasu dopasowuje sygnaturę, nie treść (zmierzone 2026-09-18). Żeby szukać "
+    "w treści, pobierz zakres dat, a potem użyj „Szukaj w korpusie”."
+)
+
+
+def pierwszy_ekran(*, pokaz: bool) -> Block:
+    """Pierwszy ekran kreatora; w trybie pokazowym — pierwszy z sześciu znaczników (Z-3)."""
+    if pokaz:
+        return Block(
+            title="TRYB POKAZOWY — dane fikcyjne, żadne żądanie nie wychodzi do sieci",
+            notes=(
+                "Orzeczenia, sygnatury (KIO 9000–9999), osoby i strony są wygenerowane. "
+                "Nic stąd nie "
+                "jest cytatem z Krajowej Izby Odwoławczej ani z Atlasu Przetargów.",
+                "Ścieżka jest ta sama co na danych prawdziwych: tabela kosztów, zgoda, przerwanie, "
+                "wznowienie, wyszukiwanie i eksport.",
+            ),
+        )
+    return Block(
+        title="kio-tool — korpus orzecznictwa Krajowej Izby Odwoławczej",
+        notes=(
+            "Wybierz, co zrobić. Każde pobranie pokazuje najpierw koszt i pyta o zgodę.",
+            "Wyjście w każdej chwili: Ctrl+C albo pozycja „Wyjdź”.",
+        ),
+    )
+
+
+def pytanie_menu(*, jest_co_wznowic: bool) -> Pytanie:
+    opcje = [
+        Opcja(MENU_POBIERZ, "Pobierz orzeczenia"),
+        Opcja(MENU_SZUKAJ, "Szukaj w korpusie"),
+        Opcja(MENU_EKSPORTUJ, "Eksportuj z korpusu"),
+        Opcja(MENU_WYJDZ, "Wyjdź"),
+    ]
+    if jest_co_wznowic:
+        opcje.insert(0, Opcja(MENU_WZNOW, "Wznów przerwany przebieg"))
+    return Pytanie(
+        tresc="Co chcesz zrobić?",
+        opcje=tuple(opcje),
+        domyslna=MENU_WZNOW if jest_co_wznowic else MENU_POBIERZ,
+    )
+
+
+PYTANIE_CEL = Pytanie(
+    tresc="Co pobrać?",
+    opcje=(
+        Opcja(CEL_DATY, "Orzeczenia z zakresu dat wydania"),
+        Opcja(CEL_SYGNATURA, "Jedno orzeczenie po sygnaturze (np. KIO 1205/20)"),
+        Opcja(CEL_ROZSTRZYGNIECIE, "Orzeczenia z zakresu dat o danym rozstrzygnięciu"),
+        Opcja(WROC, "Wróć do menu"),
+    ),
+    domyslna=CEL_DATY,
+)
+PYTANIE_OD = Pytanie(tresc="Data wydania od (RRRR-MM-DD):", rodzaj="tekst")
+PYTANIE_DO = Pytanie(
+    tresc="Data wydania do (RRRR-MM-DD, puste = bez górnej granicy):", rodzaj="tekst"
+)
+PYTANIE_SYGNATURA = Pytanie(tresc="Sygnatura (np. KIO 1205/20):", rodzaj="tekst")
+PYTANIE_FRAZA = Pytanie(
+    tresc="Fraza do znalezienia w treści (dosłownie; puste = wszystko w zakresie):", rodzaj="tekst"
+)
+PYTANIE_ROZSTRZYGNIECIE = Pytanie(
+    tresc="Rozstrzygnięcie (lista zmierzona na stu rekordach, nie słownik):",
+    opcje=tuple(Opcja(r, r) for r in ("oddalono", "uwzglednione", "umorzono", "odrzucono", "inne")),
+    domyslna="oddalono",
+)
+PYTANIE_EKSPORT = Pytanie(
+    tresc="Zapisać wynik do pliku?",
+    opcje=(
+        Opcja("xlsx", "Arkusz Excel (.xlsx)"),
+        Opcja("md", "Katalog plików Markdown"),
+        Opcja("csv", "CSV"),
+        Opcja("jsonl", "JSONL"),
+        Opcja(WROC, "Nie zapisuj"),
+    ),
+    domyslna="xlsx",
+)
+
+
+def pytanie_zgody(*, masowy: bool) -> Pytanie:
+    """Pytanie po tabeli kosztów. Przy przebiegu masowym Enter znaczy „nie” (ADR-0008 §10)."""
+    return Pytanie(
+        tresc="Pobrać? To jest zgoda na ten przebieg w tej sesji." if masowy else "Pobrać?",
+        rodzaj="tak_nie",
+        domyslna="nie" if masowy else "tak",
+    )
+
+
+def pytanie_poszerzenia(kryteria: Criteria) -> Pytanie:
+    """Zero kandydatów → wybór poszerzenia zamiast ślepej uliczki (ADR-0008 Z-10)."""
+    opcje = [
+        Opcja(pole, f"Spróbuj bez pola „{ETYKIETY[pole]}”: {kandydat.describe()}")
+        for pole, kandydat in kryteria.poszerzenia()
+    ]
+    opcje.append(Opcja(WROC, "Wróć do menu"))
+    return Pytanie(
+        tresc="Kanał nie zwrócił żadnego orzeczenia. Co dalej?",
+        opcje=tuple(opcje),
+        domyslna=opcje[0].klucz,
+    )
+
+
+def pytanie_wznowienia(przebiegi: Sequence[tuple[str, str]]) -> Pytanie:
+    """`przebiegi` = (run_id, etykieta zakresu) — etykieta z bazy, więc idzie przez neutralizator
+    pytającego (reguła 10), a nie jest tu formatowana w nic, co terminal mógłby zinterpretować."""
+    return Pytanie(
+        tresc="Który przebieg wznowić?",
+        opcje=(
+            *(Opcja(run_id, f"{run_id} — {etykieta}") for run_id, etykieta in przebiegi),
+            Opcja(WROC, "Wróć do menu"),
+        ),
+        domyslna=przebiegi[0][0] if przebiegi else WROC,
+    )
+
+
+def niepoprawne(powod: str) -> str:
+    return f"Tego nie da się użyć: {powod}. Spróbuj jeszcze raz albo zostaw puste, żeby wrócić."
+
+
+def blad_akcji(powod: str) -> str:
+    return f"Nie udało się: {powod}. Wracam do menu — nic nie zostało utracone."
+
+
+PRZERWANO_PYTANIE = "Przerwano pytanie — wracam do menu; nic nie zostało pobrane ani zapisane."

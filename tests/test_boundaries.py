@@ -798,7 +798,9 @@ def pomoce_spoza_tekstow(tree: ast.Module) -> list[int]:
 
 
 def pliki_cli() -> tuple[Path, ...]:
-    return istniejace("kio_tool/cli.py")
+    """`cli.py` i jego przedłużenie `obsluga.py` (wydruki wspólne z kreatorem, ADR-0008 Z-7) —
+    oba stoją po tej samej stronie reguły 9: żadnego zdania własnego, każdy napis z `texts`."""
+    return istniejace("kio_tool/cli.py", "kio_tool/obsluga.py")
 
 
 def _naruszenia_w_cli(skan: Callable[[ast.Module], list[int]]) -> list[str]:
@@ -1933,7 +1935,7 @@ REGULY: tuple[Regula, ...] = (
         lambda: wzgledne(pliki_pakietu()),
     ),
     Regula(8, ("kio_tool/ui/**/*.py",), lambda: wzgledne(pliki_ui())),
-    Regula(9, ("kio_tool/cli.py",), lambda: wzgledne(pliki_cli())),
+    Regula(9, ("kio_tool/cli.py", "kio_tool/obsluga.py"), lambda: wzgledne(pliki_cli())),
     Regula(
         10,
         (
