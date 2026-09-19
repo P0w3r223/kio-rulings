@@ -1,0 +1,323 @@
+{
+  "data": "2026-09-19",
+  "parse_version": 2,
+  "dokumentow": 443,
+  "bez_metadanych": 0,
+  "bez_daty": 0,
+  "starsze_wersje": 0,
+  "roczniki": {
+    "2010": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 187708,
+      "nieprzypisanych": 0,
+      "cytowan": 9,
+      "nierozpoznanych": 1
+    },
+    "2011": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 302378,
+      "nieprzypisanych": 0,
+      "cytowan": 28,
+      "nierozpoznanych": 5
+    },
+    "2012": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 218564,
+      "nieprzypisanych": 0,
+      "cytowan": 27,
+      "nierozpoznanych": 1
+    },
+    "2013": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 145555,
+      "nieprzypisanych": 0,
+      "cytowan": 30,
+      "nierozpoznanych": 8
+    },
+    "2014": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 408837,
+      "nieprzypisanych": 0,
+      "cytowan": 109,
+      "nierozpoznanych": 3
+    },
+    "2015": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 445752,
+      "nieprzypisanych": 0,
+      "cytowan": 84,
+      "nierozpoznanych": 3
+    },
+    "2016": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 201690,
+      "nieprzypisanych": 0,
+      "cytowan": 33,
+      "nierozpoznanych": 3
+    },
+    "2017": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 321249,
+      "nieprzypisanych": 0,
+      "cytowan": 27,
+      "nierozpoznanych": 2
+    },
+    "2018": {
+      "dokumentow": 5,
+      "komplet": 5,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 144679,
+      "nieprzypisanych": 0,
+      "cytowan": 31,
+      "nierozpoznanych": 4
+    },
+    "2019": {
+      "dokumentow": 7,
+      "komplet": 7,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 43411,
+      "nieprzypisanych": 0,
+      "cytowan": 0,
+      "nierozpoznanych": 0
+    },
+    "2020": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 182845,
+      "nieprzypisanych": 0,
+      "cytowan": 55,
+      "nierozpoznanych": 1
+    },
+    "2021": {
+      "dokumentow": 5,
+      "komplet": 5,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 155995,
+      "nieprzypisanych": 0,
+      "cytowan": 16,
+      "nierozpoznanych": 0
+    },
+    "2022": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 182204,
+      "nieprzypisanych": 0,
+      "cytowan": 13,
+      "nierozpoznanych": 1
+    },
+    "2023": {
+      "dokumentow": 192,
+      "komplet": 192,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 5684874,
+      "nieprzypisanych": 0,
+      "cytowan": 583,
+      "nierozpoznanych": 20
+    },
+    "2024": {
+      "dokumentow": 160,
+      "komplet": 160,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 4360444,
+      "nieprzypisanych": 0,
+      "cytowan": 582,
+      "nierozpoznanych": 24
+    },
+    "2025": {
+      "dokumentow": 8,
+      "komplet": 8,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 373532,
+      "nieprzypisanych": 0,
+      "cytowan": 64,
+      "nierozpoznanych": 2
+    },
+    "2026": {
+      "dokumentow": 6,
+      "komplet": 6,
+      "czesciowo": 0,
+      "bez_sekcji": 0,
+      "znakow": 139192,
+      "nieprzypisanych": 0,
+      "cytowan": 4,
+      "nierozpoznanych": 0
+    }
+  },
+  "krzyz": [
+    [
+      "2010",
+      "2010",
+      6
+    ],
+    [
+      "2011",
+      "2011",
+      6
+    ],
+    [
+      "2012",
+      "2012",
+      6
+    ],
+    [
+      "2013",
+      "2013",
+      6
+    ],
+    [
+      "2014",
+      "2014",
+      6
+    ],
+    [
+      "2015",
+      "2015",
+      6
+    ],
+    [
+      "2016",
+      "2016",
+      6
+    ],
+    [
+      "2017",
+      "2017",
+      6
+    ],
+    [
+      "2018",
+      "2018",
+      5
+    ],
+    [
+      "2019",
+      "2018",
+      1
+    ],
+    [
+      "2019",
+      "2019",
+      6
+    ],
+    [
+      "2020",
+      "2020",
+      6
+    ],
+    [
+      "2021",
+      "2021",
+      5
+    ],
+    [
+      "2022",
+      "2022",
+      6
+    ],
+    [
+      "2023",
+      "2021",
+      1
+    ],
+    [
+      "2023",
+      "2023",
+      6
+    ],
+    [
+      "2023",
+      "2024",
+      185
+    ],
+    [
+      "2024",
+      "2024",
+      160
+    ],
+    [
+      "2025",
+      "2024",
+      2
+    ],
+    [
+      "2025",
+      "2025",
+      6
+    ],
+    [
+      "2026",
+      "2026",
+      6
+    ]
+  ],
+  "cytowania": {
+    "kio": 1260,
+    "tsue": 60,
+    "so": 165,
+    "sn": 99,
+    "nierozpoznane": 78,
+    "inne": 3,
+    "sa": 19,
+    "nsa": 11
+  },
+  "akty": {
+    "kanal": {
+      "nieustalone": 715,
+      "pzp2019": 1906,
+      "pzp2004": 516
+    },
+    "tresc": {
+      "nieustalone": 4738,
+      "kc": 595,
+      "inne": 557,
+      "pzp2019": 5789,
+      "pzp2004": 1905,
+      "rozporzadzenie": 87,
+      "kpc": 26
+    }
+  },
+  "kanal_w_tresci": [
+    3137,
+    3137
+  ],
+  "zloty": {
+    "plikow": 17,
+    "sprawdzonych": 17,
+    "zgodnych": 17,
+    "rozbieznosci": []
+  }
+}

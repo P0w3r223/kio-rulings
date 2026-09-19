@@ -59,12 +59,18 @@ osobny wiersz); normalizacja dokleja do niego punkt pierwszy."""
 _POUCZENIE = re.compile(r"(?i)przysługuje\s+skarga")
 """Pouczenie o skardze — 337 z 341 dokumentów (98,8 %), pomiar 5, 2026-09-19."""
 
-_POCZATEK_POUCZENIA = re.compile(r"(?i)(?:stosownie\s+do|na\s+niniejsz|zgodnie\s+z\s+art)")
-"""Jak zaczyna się zdanie pouczenia — szukane wstecz od `przysługuje skarga` w obrębie wiersza."""
+_STOSOWNIE_DO = re.compile(r"(?i)\bstosownie\s+do\b")
+"""Pełny początek zdania pouczenia: „Stosownie do art. 198a i 198b ustawy … na niniejszy wyrok
+… przysługuje skarga"."""
 
-_OKNO_POUCZENIA = 300
-"""Ile znaków przed `przysługuje skarga` szukać początku zdania. Całe pouczenie ma na korpusie
-medianę 239 i p95 277 znaków (2026-09-19, 443 dokumenty) — próg nad nim, nie pomiar."""
+_NA_ORZECZENIE = re.compile(r"(?i)\bna\s+(?:niniejsz\w+|orzeczenie)\b")
+"""Początek pouczenia bez wstępu („Na orzeczenie – w terminie 14 dni…", rocznik 2024+)."""
+
+_OKNO_POUCZENIA = 700
+"""Ile znaków przed `przysługuje skarga` szukać `Stosownie do`. Przegląd złotego zbioru
+(2026-09-19) znalazł cztery na siedemnaście dokumentów, w których odsyłacz do Dziennika Ustaw
+(„Nr 219, poz. 1706 i Nr 223, poz. 1778") wypychał ten wstęp poza wcześniejsze okno 300 znaków
+i pouczenie zaczynało się w pół zdania. Próg, nie pomiar."""
 
 _UZASADNIENIE = re.compile(
     rf"(?im)^\s*{_rozstrzelone('uzasadnienie')}\s*(?::|\s+do\s+(?:wyroku|postanowienia)\b.*)?$",
@@ -183,18 +189,21 @@ def _poczatek_uzasadnienia(tekst: str, od: int) -> int | None:
 
 
 def _pouczenie(tekst: str, od: int) -> int | None:
-    """Początek zdania pouczenia: od `Stosownie do…` w tym samym wierszu, inaczej od wiersza."""
+    """Początek zdania pouczenia, w kolejności pewności: najbliższe `Stosownie do` w oknie
+    przed `przysługuje skarga`, najbliższe `na niniejszy …`/`na orzeczenie`, początek wiersza.
+
+    Najbliższe, nie pierwsze: pouczenie jest jedno, a wcześniejsze „stosownie do" potrafi stać
+    w sentencji. Okno nie jest ograniczone wierszem, bo wstęp z długim odsyłaczem do Dziennika
+    Ustaw łamie się na kilka wierszy zakończonych nawiasem albo kropką."""
     trafienie = _POUCZENIE.search(tekst, od)
     if trafienie is None:
         return None
-    wiersz = _poczatek_wiersza(tekst, trafienie.start())
-    poczatek = max(wiersz, od)
-    # Pierwsze trafienie w oknie, nie ostatnie: „Stosownie do art. 579 … na niniejszy wyrok
-    # przysługuje" ma dwa kandydaty i zdanie zaczyna się od pierwszego. Okno, bo w wierszu
-    # sklejonym przez normalizację stoją przed pouczeniem jeszcze punkty sentencji.
-    okno = max(poczatek, trafienie.start() - _OKNO_POUCZENIA)
-    zdanie = _POCZATEK_POUCZENIA.search(tekst, okno, trafienie.start())
-    return zdanie.start() if zdanie is not None else poczatek
+    okno = max(od, trafienie.start() - _OKNO_POUCZENIA)
+    for wzor in (_STOSOWNIE_DO, _NA_ORZECZENIE):
+        kandydaci = list(wzor.finditer(tekst, okno, trafienie.start()))
+        if kandydaci:
+            return kandydaci[-1].start()
+    return max(_poczatek_wiersza(tekst, trafienie.start()), od)
 
 
 def _poczatek_wiersza(tekst: str, pozycja: int) -> int:

@@ -57,6 +57,13 @@ POMOC_RUNY = "Wypisuje ostatnie przebiegi z bazy: status, zakres, liczbę dokume
 POMOC_PRZELICZ = (
     "Przelicza metadane i indeks pełnotekstowy z surowych wersji w bazie — zero żądań do sieci."
 )
+POMOC_POKRYCIE = (
+    "Raport pokrycia parsera z bazy (sekcje, cytowania, przepisy po roczniku z sygnatury) do "
+    "`docs/raporty/` — zero żądań, bez tekstu orzeczeń; z `--zloty` sprawdza adnotacje złotego "
+    "zbioru."
+)
+POMOC_CEL_RAPORTU = "katalog raportu (domyślnie `docs/raporty` w bieżącym katalogu)"
+POMOC_ZLOTY = "katalog złotego zbioru (`tests/gold`) — adnotacje sprawdzane wobec korpusu"
 POMOC_SZUKAJ = (
     "Szuka frazy dosłownie w pełnym tekście korpusu lokalnego (FTS5) z filtrami; wynik zawsze "
     "mówi, ile dokumentów objął."
@@ -281,6 +288,37 @@ def blok_runow(wiersze: Sequence[tuple[str, ...]], lacznie: int) -> Block:
         headers=NAGLOWKI_RUNOW,
         rows=tuple(wiersze),
     )
+
+
+def blok_pokrycia(
+    dokumentow: int,
+    komplet: int,
+    nierozpoznanych: int,
+    cytowan: int,
+    zloty: tuple[int, int, int] | None,
+    sciezki: tuple[str, ...],
+) -> Block:
+    """Skrót raportu na ekran; `zloty` = (plików, sprawdzonych, zgodnych)."""
+    wiersze = [
+        ("dokumentów", str(dokumentow)),
+        ("z kompletem sekcji", f"{komplet} z {dokumentow}"),
+        ("cytowań nierozpoznanych", f"{nierozpoznanych} z {cytowan}"),
+    ]
+    uwagi: list[str] = []
+    if zloty is None:
+        uwagi.append("Złoty zbiór nie był podany — raport mówi „sprawdzono 0 z 0”.")
+    else:
+        plikow, sprawdzonych, zgodnych = zloty
+        wiersze.append(
+            ("złoty zbiór", f"sprawdzono {sprawdzonych} z {plikow}, zgodnych {zgodnych}")
+        )
+        if sprawdzonych < plikow:
+            uwagi.append(
+                f"{plikow - sprawdzonych} adnotacji niesprawdzonych — tej wersji dokumentu nie ma "
+                "w korpusie; lista w raporcie."
+            )
+    wiersze += [("plik", sciezka) for sciezka in sciezki]
+    return Block(title="Raport pokrycia zapisany", rows=tuple(wiersze), notes=tuple(uwagi))
 
 
 def blok_przeliczenia(

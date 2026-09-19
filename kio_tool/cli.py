@@ -22,12 +22,14 @@ import typer
 from pydantic import ValidationError
 
 from . import pipeline
-from .clock import SystemClock
+from . import pokrycie as raport_pokrycia
+from .clock import SystemClock, utc_iso
 from .config import default_db_path, user_agent
 from .console import PulsKonsoli
 from .criteria import Criteria, bledy_po_polsku
 from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, KioError
 from .exporter import FORMATY
+from .parser.details import PARSE_VERSION
 from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
 from .ui import texts
@@ -414,6 +416,41 @@ def przelicz(wszystko: OpcjaWszystko = False, baza: OpcjaBaza = None) -> None:
         view.block(
             texts.blok_przeliczenia(
                 wynik.przeliczonych, wynik.bledow, wynik.w_korpusie, wynik.zaindeksowanych
+            )
+        )
+
+
+OpcjaCelRaportu = Annotated[Path, typer.Option("--cel", help=texts.POMOC_CEL_RAPORTU)]
+OpcjaZloty = Annotated[Path | None, typer.Option("--zloty", help=texts.POMOC_ZLOTY)]
+
+
+@app.command(help=texts.POMOC_POKRYCIE)
+def pokrycie(
+    cel: OpcjaCelRaportu = Path("docs") / "raporty",
+    zloty: OpcjaZloty = None,
+    baza: OpcjaBaza = None,
+) -> None:
+    zegar = SystemClock()
+    with _obsluga_bledow():
+        sciezka = baza or default_db_path()
+        with _otworz_baze(sciezka, zegar) as store:
+            wynik = raport_pokrycia.wykonaj(
+                store,
+                cel=cel,
+                zloty=zloty,
+                data=utc_iso(zegar.wall())[:10],
+                parse_version=PARSE_VERSION,
+            )
+        r = wynik.raport
+        z = r.zloty
+        view.block(
+            texts.blok_pokrycia(
+                r.dokumentow,
+                sum(x.komplet for x in r.roczniki.values()),
+                sum(x.nierozpoznanych for x in r.roczniki.values()),
+                sum(x.cytowan for x in r.roczniki.values()),
+                None if z is None else (z.plikow, z.sprawdzonych, z.zgodnych),
+                (str(wynik.markdown), str(wynik.maszynowy)),
             )
         )
 

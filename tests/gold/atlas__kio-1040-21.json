@@ -1,0 +1,34 @@
+{
+  "doc_id": "atlas:kio-1040-21",
+  "content_sha256": "9aae8613818a25769de4eb8e8f8c2954fa549e4b08252c01740d28d0f648a6d4",
+  "sekcje": [
+    {
+      "rodzaj": "naglowek",
+      "start": 0,
+      "koniec": 487,
+      "sha256": "d238b2caa4235c8f18e694160463ff5af9d75b1889e4e33db756e88cd79402dc"
+    },
+    {
+      "rodzaj": "sentencja",
+      "start": 487,
+      "koniec": 1424,
+      "sha256": "5d9339f0b9972e8f7f39bf2b8ca3a58ac0cab64e30cfd3d21eebf9f5a9efff60"
+    },
+    {
+      "rodzaj": "pouczenie",
+      "start": 1424,
+      "koniec": 1783,
+      "sha256": "59816c2484fe83e7f61ffaf21cde10358a2e2db5c842d491fdb48c11062c0623"
+    },
+    {
+      "rodzaj": "uzasadnienie",
+      "start": 1783,
+      "koniec": 21558,
+      "sha256": "d36d0a186050223e3f919c6120107746fd083b416a07a4dd5421fcfcb260c580"
+    }
+  ],
+  "przeglad": {
+    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; do potwierdzenia przez właściciela",
+    "data": "2026-09-19"
+  }
+}

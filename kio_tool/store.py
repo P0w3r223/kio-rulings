@@ -55,11 +55,12 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date, datetime
 from pathlib import Path
+from typing import TypeVar
 
 from .clock import Clock, utc_iso
 from .config import mask_tokens
@@ -68,6 +69,7 @@ from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
 SCHEMA_VERSION = 6
+_W = TypeVar("_W")
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
 """Stany, z których `resume_run` wraca do pracy: przerwany właściwym wyjątkiem albo osierocony
@@ -314,6 +316,21 @@ class Struktura:
     """Struktura wersji (ADR-0006 Z-4): sekcje, cytowania, przepisy. Magazyn nie zna parsera —
     `pipeline` przepisuje wyniki `parser/*` na te wiersze, jak `Metryka` z `Szczegoly`."""
 
+    sekcje: tuple[WierszSekcji, ...]
+    cytowania: tuple[WierszCytowania, ...]
+    przepisy: tuple[WierszPrzepisu, ...]
+
+
+@dataclass(frozen=True)
+class StrukturaDokumentu:
+    """Struktura bieżącej wersji jednego dokumentu, tak jak leży w bazie — wejście raportu
+    pokrycia (ADR-0006 Z-12). Bez tekstu: raport liczy, nie cytuje."""
+
+    doc_id: str
+    content_sha256: str
+    sygnatura_glowna: str | None
+    data_wydania: str | None
+    parse_version: int | None
     sekcje: tuple[WierszSekcji, ...]
     cytowania: tuple[WierszCytowania, ...]
     przepisy: tuple[WierszPrzepisu, ...]
@@ -1256,6 +1273,74 @@ class Store:
             for w in wiersze
         ]
         return [z for z in znaczniki if z.ts_epoch >= since_epoch]
+
+    def struktury(self) -> Iterator[StrukturaDokumentu]:
+        """Struktura bieżącej wersji każdego dokumentu korpusu — także bez metadanych i sekcji.
+
+        Dokument bez wiersza w `metadata` albo bez sekcji **nie wypada**: wraca z pustymi
+        krotkami i `parse_version = None`, bo raport pokrycia ma go policzyć jako brak, nie
+        pominąć (doktryna 7.2). Zmaterializowane przed `yield`, jak `versions_to_index`.
+        """
+        dokumenty = self._conn.execute(
+            "SELECT d.doc_id, d.current_sha256, m.sygnatura_glowna, d.data_wydania, "
+            "m.parse_version FROM documents d LEFT JOIN metadata m "
+            "ON m.doc_id = d.doc_id AND m.content_sha256 = d.current_sha256 ORDER BY d.doc_id"
+        ).fetchall()
+        sekcje = self._pogrupuj(
+            "SELECT doc_id, content_sha256, porzadek, rodzaj, char_start, char_end, sha256 "
+            "FROM sections ORDER BY doc_id, porzadek",
+            lambda w: WierszSekcji(
+                int(w["porzadek"]),
+                str(w["rodzaj"]),
+                int(w["char_start"]),
+                int(w["char_end"]),
+                str(w["sha256"]),
+            ),
+        )
+        cytowania = self._pogrupuj(
+            "SELECT * FROM citations ORDER BY doc_id, zrodlo, porzadek",
+            lambda w: WierszCytowania(
+                int(w["porzadek"]),
+                str(w["zrodlo"]),
+                str(w["rodzaj"]),
+                None if w["sygnatura"] is None else str(w["sygnatura"]),
+                str(w["surowy"]),
+                w["char_start"],
+                w["char_end"],
+            ),
+        )
+        przepisy = self._pogrupuj(
+            "SELECT * FROM provisions ORDER BY doc_id, zrodlo, porzadek",
+            lambda w: WierszPrzepisu(
+                int(w["porzadek"]),
+                str(w["zrodlo"]),
+                str(w["postac"]),
+                str(w["akt"]),
+                str(w["surowy"]),
+                w["char_start"],
+                w["char_end"],
+            ),
+        )
+        for d in dokumenty:
+            klucz = (str(d["doc_id"]), str(d["current_sha256"]))
+            yield StrukturaDokumentu(
+                doc_id=klucz[0],
+                content_sha256=klucz[1],
+                sygnatura_glowna=d["sygnatura_glowna"],
+                data_wydania=d["data_wydania"],
+                parse_version=d["parse_version"],
+                sekcje=tuple(sekcje.get(klucz, ())),
+                cytowania=tuple(cytowania.get(klucz, ())),
+                przepisy=tuple(przepisy.get(klucz, ())),
+            )
+
+    def _pogrupuj(
+        self, sql: str, wiersz: Callable[[sqlite3.Row], _W]
+    ) -> dict[tuple[str, str], list[_W]]:
+        wynik: dict[tuple[str, str], list[_W]] = {}
+        for w in self._conn.execute(sql).fetchall():
+            wynik.setdefault((str(w["doc_id"]), str(w["content_sha256"])), []).append(wiersz(w))
+        return wynik
 
     def count(self, tabela: str) -> int:
         if tabela not in TABELE:

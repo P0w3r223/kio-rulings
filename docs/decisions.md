@@ -593,7 +593,7 @@ i `zdanie_odrebne`, bez sygnatur własnych dokumentu.
 | TSUE | 60 |
 | sąd apelacyjny | 19 |
 | NSA | 11 |
-| **nierozpoznane** (`sygn. akt` bez rozpoznanej sygnatury) | **81** |
+| **nierozpoznane** (`sygn. akt` bez rozpoznanej sygnatury) | **81** (78 po poprawce pouczenia — niżej) |
 | razem | 1 695 |
 
 Cytowania ma 194 z 443 dokumentów. **Udział nierozpoznanych: 81 z 1 695 = 4,8 %** — na granicy
@@ -609,6 +609,68 @@ przepisów spoza tekstu. Ustawa z treści (Z-8): `pzp2019` 5 789, `pzp2004` 1 90
 `inne` 557, `rozporzadzenie` 87, `kpc` 26, **`nieustalone` 4 738 (34,6 %)**. Wysoki udział
 nieustalonych bierze się ze 101 dokumentów, które nie nazywają żadnej ustawy Pzp pełnym tytułem
 (95 z nich z roku 2024) — zgadywanie z daty dałoby tam „trafny" wynik i Z-8 go zakazuje.
+
+---
+
+**Aktualizacja tego samego dnia.** Przegląd złotego zbioru przesunął granicę pouczenia w 4 z 17
+dokumentów (niżej), więc uzasadnienie w kilku dokumentach zaczyna się teraz gdzie indziej.
+Raport pokrycia z 2026-09-19 (`docs/raporty/pokrycie_2026-09-19.md`) podaje **78 nierozpoznanych
+z 1 695 (4,6 %)** — to jest liczba obowiązująca; 81 powyżej to stan sprzed poprawki, zostawiony
+jako zapis kolejności.
+
+---
+
+## Przegląd złotego zbioru — granice sekcji przejrzane okiem (ADR-0006 Z-11)
+
+**2026-09-19, 0 żądań.** Po jednym dokumencie z każdego rocznika próbki (pierwszy dokument każdego
+przebiegu rocznikowego z Przebiegu 3): 17 dokumentów, 2010–2026. Każda granica wypisana z 50
+znakami przed i 60 po i przejrzana okiem przez Claude'a w sesji; adnotacje leżą w `tests/gold/`
+jako offsety i SHA-256 fragmentów, **bez tekstu**.
+
+**Przegląd znalazł usterkę, której nie widziała żadna liczba zbiorcza:** w 4 z 17 dokumentów
+(roczniki 2010, 2020, 2021, 2023) pouczenie zaczynało się w pół zdania — wstęp „Stosownie do
+art. 198a i 198b ustawy … (Dz. U. … Nr 219, poz. 1706 i Nr 223, poz. 1778)" był dłuższy niż okno
+300 znaków, a wcześniejsza reguła szukała początku wyłącznie w wierszu `przysługuje skarga`.
+Pokrycie 443 z 443 było przy tym stuprocentowe — dokładnie ten przypadek, dla którego ADR-0006 Z-12
+nazywa raport liczbowy niewystarczającym bez złotego zbioru. Po poprawce (`sections._pouczenie`:
+najbliższe `Stosownie do` w oknie 700 znaków, potem `Na orzeczenie`/`na niniejszy …`) wszystkie
+17 granic pouczenia stoi na początku zdania; długość pouczenia na korpusie: mediana 248, max 562.
+
+Dwie granice uzasadnienia stoją na drogach zastępczych i zostały uznane za poprawne: `KIO 1003/18`
+(brak nagłówka; strona uzasadnienia otwarta sygnaturą z literówką w źródle, `1003/19`)
+i `KIO 915/19` (brak nagłówka i sygnatury; uzasadnienie pod podpisem).
+
+**Czym ten zbiór jest, a czym nie jest.** Adnotacje wygenerowano z wyjścia parsera **po** przeglądzie
+i poprawce, więc dziś zgadzają się z nim 17 na 17 z definicji. Ich wartość to (1) przegląd, który
+już znalazł jedną usterkę, i (2) strażnik regresji: każda przyszła zmiana `clean`/`sections`, która
+przesunie którąkolwiek z 68 granic, pokaże się w raporcie jako rozbieżność. **Przegląd wykonał
+Claude, nie właściciel** — pole `przeglad.kto` mówi to w każdym pliku; potwierdzenie przez
+właściciela jest częścią przyjęcia fazy.
+
+---
+
+## Pomiar 10 — ślady anonimizacji w treści (liczby, bez przykładów)
+
+**Policzone 2026-09-19 z bazy, 0 żądań**, na 443 dokumentach. Wyłącznie liczby — przykłady
+niosłyby dane osobowe.
+
+| Wzorzec | Dokumentów | Wystąpień |
+|---|---|---|
+| `Przewodniczący:` z imieniem i nazwiskiem | 404 | 404 |
+| `Protokolant:` z imieniem i nazwiskiem | 286 | 286 |
+| inicjały `A. B.` | 266 | 2 145 |
+| `(...)` / `(…)` | 175 | 894 |
+| `[...]` / `[…]` | 19 | 36 |
+| słowo „zanonimizowan…"/„anonimizac…" | 9 | 22 |
+| `***` | 2 | 6 |
+| `XXX` | 0 | 0 |
+
+**Wniosek: skład orzekający i protokolant nie są anonimizowani** (404 i 286 dokumentów z pełnym
+nazwiskiem). Wielokropki w nawiasach to w przeważającej części opuszczenia w cytatach, nie
+anonimizacja — tego rozróżnienia wzorzec nie robi i liczba jest górnym oszacowaniem. Inicjały mogą
+być skrótami nazw firm albo osób; bez przeglądu okiem nie wiadomo, które. Ten pomiar jest
+uzasadnieniem liczbowym ADR-0006 Z-11 („złoty zbiór bez treści") i reguły, że korpus leży poza
+repozytorium.
 
 ---
 
@@ -675,7 +737,7 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 7 | Sprostowania: nowy rekord czy nadpisanie | niewykonany | polityka wersji kanału `uzp` (ADR-0005 Z-4) | `GetResults` dla sprawy ze znanym sprostowaniem |
 | 8 | Dokumenty wielosygnaturowe w wyszukiwarce | potwierdzone strukturalnie | ADR-0001 | jeden odczyt `Details` sprawy z listingu FTP |
 | 9 | Tolerancja serwisu na tempo | niewykonany; **wymaga zgody właściciela** | odłożony — zbędny dla Atlasu (limity publikowane i raportowane nagłówkami); tylko jeśli UZP dostanie rolę masową, czego decyzja B zabrania | ostrożne narastanie ze stopem |
-| 10 | Anonimizacja na większej próbce | niewykonany | faza 2 | 30–50 dokumentów, w tym z protokołem rozprawy |
+| 10 | Anonimizacja na większej próbce | **wykonany 2026-09-19, 0 żądań**, 443 dokumenty — skład i protokolant nieanonimizowani (`## Pomiar 10`) | faza 2 | 30–50 dokumentów, w tym z protokołem rozprawy |
 | 11 | Co indeksuje „Hasło", co dokłada „w treści" | wykonany strukturalnie (`SCnt`, `Fle`) | faza 3 | jedno zapytanie o frazę z uzasadnienia |
 | 12 | Zbiór KIO w `dane.gov.pl` | **zamknięty — negatywny** | zamknięty | — |
 | 13 | Jak często data wydania jest pusta | klasa, nie wyjątek | faza 1 | próbka 200 identyfikatorów |
@@ -687,7 +749,7 @@ rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
 | 19 | Czy `ContentHtml` jest bitowo stabilny między pobraniami | niewykonany; **wymaga doby odstępu** | polityka wersji kanału `uzp` (ADR-0005 Z-4) — **nie jest już warunkiem `store.py`** | `sonda.py uzp-stabilnosc`, dwa przebiegi ≥24 h |
 | 20 | Co zwracają `/AiSearch/*` | niewykonany | faza 4 | narzędzia deweloperskie przeglądarki |
 | 21 | Blokada sieci w testach wobec wstrzykniętego transportu i wobec gniazda | **wykonany 2026-09-15 w obu połowach — pozytywny** (`## Pomiar 21`) | zamknięty w części „blokada"; odtwarzanie kaset rozstrzyga test dymny adaptera Atlasu (ADR-0005 Z-10) | — |
-| 22 | Gęstość cytowań i udział nieznormalizowanych | **wykonany 2026-09-19, 0 żądań** — 1 695 cytowań, 4,8 % nierozpoznanych (`## Pomiar 22`) | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
+| 22 | Gęstość cytowań i udział nieznormalizowanych | **wykonany 2026-09-19, 0 żądań** — 1 695 cytowań, 4,6 % nierozpoznanych (`## Pomiar 22`, raport pokrycia) | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
 | 23 | Warunki ponownego wykorzystywania SAOS i Atlasu, odczytane **u źródła** | **wykonany 2026-09-18 — Atlas: CC BY 4.0 z atrybucją u źródła; SAOS: brak odpowiedzi w 45 s** (`## Pomiar 23`) | **bramka** (`atlas`) — spełnione dla Atlasu; SAOS nieodczytany | `sonda.py licencje` — 3 żądania; SHA-256 każdej strony w `## Pomiar 23` |
 | 24 | Awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | niewykonany — wymaga pierwszego przebiegu kwartalnego po wdrożeniu ponowień | korekta progów bloku `ponowienia` w `contract.yaml` | `requests_log.proba` (schemat 5): ponowienia per klasa i ile skończyło się 200, zero żądań dodatkowych |
 

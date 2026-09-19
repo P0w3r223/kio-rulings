@@ -632,3 +632,20 @@ def test_ponowienie_widac_na_ekranie_i_w_podsumowaniu(
     assert "zerwane łącze (ConnectError), próba 2 z 3" in wyjscie
     assert "Ponowień w całym przebiegu (z bazy): 1" in wyjscie
     assert dokumentow(baza) == 3
+
+
+def test_pokrycie_zapisuje_raport_bez_zadan_i_mowi_o_braku_zlotego(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """ADR-0006 Z-12: raport jest plikiem, nie ekranem; brak złotego zbioru jest powiedziany."""
+    baza, _ = korpus
+    cel = tmp_path / "raporty"
+
+    wynik = runner.invoke(app, ["pokrycie", "--baza", str(baza), "--cel", str(cel)])
+
+    assert wynik.exit_code == 0, wynik.output
+    pliki = sorted(p.suffix for p in cel.iterdir())
+    assert pliki == [".json", ".md"]
+    assert "sprawdzono 0 z 0" in wynik.output
+    tresc = next(cel.glob("*.md")).read_text(encoding="utf-8")
+    assert "tresc wymyslona" not in tresc, "raport nie niesie tekstu orzeczeń"
