@@ -1936,8 +1936,13 @@ REGULY: tuple[Regula, ...] = (
     Regula(9, ("kio_tool/cli.py",), lambda: wzgledne(pliki_cli())),
     Regula(
         10,
-        ("kio_tool/richtext.py", "kio_tool/console.py", "kio_tool/ui/render.py"),
-        lambda: wzgledne(pliki_rich()),
+        (
+            "kio_tool/richtext.py",
+            "kio_tool/console.py",
+            "kio_tool/ui/render.py",
+            "kio_tool/ui/prompts.py",
+        ),
+        lambda: wzgledne((*pliki_rich(), *istniejace("kio_tool/ui/prompts.py"))),
     ),
     Regula(
         11,
@@ -2364,3 +2369,71 @@ def test_granica_skanu_reguly_21_zaglusza_sie_glosno_a_nie_cicho(tmp_path: Path)
         "Nieczytelne `REGISTRY` ma dawać rozjazd trzech zbiorów, czyli czerwony test — "
         "nie zbiór pusty, który przy pustym `source/` byłby nie do odróżnienia od porządku."
     )
+
+
+# --------------------- reguła 10 na `questionary` (ADR-0008 Z-15) i reguła 7 w równości
+
+WYWOLANIA_PYTAN = frozenset(
+    {"confirm", "text", "select", "Choice", "checkbox", "rawselect", "autocomplete", "print"}
+)
+"""Konstrukty `questionary`, które wypisują napis na terminal."""
+SLOWA_PYTAN = frozenset({"message", "title", "instruction", "qmark"})
+NEUTRALIZATOR_PYTAN = "_do_pytania"
+
+
+def naruszenia_pytan(tree: ast.Module) -> list[int]:
+    """Linie, w których napis idzie do `questionary` z pominięciem `_do_pytania`.
+
+    `default` liczy się wyłącznie przy `text` — tam jest wpisanym na ekran napisem; przy
+    `select` jest kluczem opcji, przy `confirm` wartością logiczną. Bezpieczny jest napis
+    programu (stała) albo **całe** wyrażenie będące wywołaniem neutralizatora — ta sama zasada
+    korzenia wyrażenia co `argument_bezpieczny` dla `rich`.
+    """
+    naruszenia: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "questionary"
+            and func.attr in WYWOLANIA_PYTAN
+        ):
+            continue
+        slowa = SLOWA_PYTAN | ({"default"} if func.attr == "text" else set())
+        argumenty = [*node.args, *(kw.value for kw in node.keywords if kw.arg in slowa)]
+        for argument in argumenty:
+            napis = isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+            if not napis and nazwa_wywolania(argument) != NEUTRALIZATOR_PYTAN:
+                naruszenia.append(argument.lineno)
+    return naruszenia
+
+
+def test_regula_10_pytania_questionary_ida_przez_neutralizator() -> None:
+    """Etykieta przebiegu z bazy albo kryterium wpisane przez operatora dociera do terminala
+    przez `questionary` tak samo jak przez `rich` — sekwencja ESC steruje ekranem w obu."""
+    for wzgledna in sorted(MODULY_QUESTIONARY):
+        sciezka = PAKIET / wzgledna
+        assert naruszenia_pytan(drzewo(sciezka)) == [], f"{wzgledna}: napis bez `_do_pytania`"
+
+
+@pytest.mark.parametrize(
+    ("zrodlo", "ile"),
+    [
+        ("questionary.select(_do_pytania(p.tresc), choices=[])", 0),
+        ('questionary.confirm("Kontynuować?", default=True)', 0),
+        ("questionary.Choice(title=_do_pytania(o.etykieta), value=o.klucz)", 0),
+        ("questionary.select(p.tresc)", 1),
+        ("questionary.text(_do_pytania(p.tresc), default=p.domyslna)", 1),
+        ('questionary.Choice(title=f"{o.etykieta}", value=o.klucz)', 1),
+        ("questionary.select(_do_pytania(a) + b)", 1),
+    ],
+)
+def test_samosprawdzenie_skanu_pytan(zrodlo: str, ile: int) -> None:
+    assert len(naruszenia_pytan(ast.parse(zrodlo))) == ile
+
+
+def test_regula_7_pytajacy_naprawde_zna_questionary() -> None:
+    """Lustro testu dla `rich`: zawieranie przechodzi też dla zbioru pustego."""
+    assert uzytkownicy("questionary") == MODULY_QUESTIONARY

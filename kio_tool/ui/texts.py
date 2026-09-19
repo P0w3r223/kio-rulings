@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from ..criteria import ETYKIETY, Criteria
 from ..wycena import Wycena
@@ -36,6 +37,31 @@ class Block:
         lines.extend(" | ".join(row) for row in self.rows)
         lines.extend(self.notes)
         return "\n".join(lines)
+
+
+RodzajPytania = Literal["wybor", "tekst", "tak_nie"]
+
+
+@dataclass(frozen=True)
+class Opcja:
+    """Jedna odpowiedź do wyboru: `klucz` wraca do programu, `etykieta` idzie na ekran."""
+
+    klucz: str
+    etykieta: str
+
+
+@dataclass(frozen=True)
+class Pytanie:
+    """Pytanie jako dane (ADR-0008 Z-7): treść pisze ten moduł, zadaje je `ui/prompts.py`.
+
+    `domyslna` jest odpowiedzią na sam Enter — i dlatego przy pytaniu o zgodę na przebieg
+    masowy wynosi „nie": Enter nie ma prawa pobrać czterech tysięcy orzeczeń (ADR-0008 §10).
+    """
+
+    tresc: str
+    rodzaj: RodzajPytania = "wybor"
+    opcje: tuple[Opcja, ...] = ()
+    domyslna: str | None = None
 
 
 # ------------------------------------------------------------------------ pomoc poleceń
