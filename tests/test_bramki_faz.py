@@ -216,6 +216,17 @@ BRAMKI: tuple[Bramka, ...] = (
         ),
     ),
     Bramka(
+        nazwa="parser/sections.py przed ADR-0006",
+        adr="0006",
+        obecne=_artefakt("kio_tool/parser/sections.py"),
+        podrzuc=_podrzuc_plik("kio_tool/parser/sections.py"),
+        powod=(
+            "ADR-0006 Z-2 i Z-14: segmentacja powstaje po pomiarze 5, a kotwice pochodzą "
+            "z pomiaru na korpusie, nie z jednego dokumentu z 2020 roku — lista wzorców wpisana "
+            "przed decyzją byłaby „wiadomo, że”, czyli tym, czego zakazuje zasada 7.1"
+        ),
+    ),
+    Bramka(
         nazwa="mcp_server.py przed ADR-0002",
         adr="0002",
         obecne=_artefakt("kio_tool/mcp_server.py"),
@@ -292,9 +303,9 @@ def test_metatest_kazda_bramka_planu_faz_ma_swoj_wiersz() -> None:
     Numery ADR-ów są wypisane, bo bramka usunięta z tablicy przestaje obowiązywać bez jednego
     czerwonego testu — to ta sama cicha awaria, przed którą broni reszta pliku, o poziom wyżej.
     """
-    assert {b.adr for b in BRAMKI} == {"0001", "0002", "0004"}, (
+    assert {b.adr for b in BRAMKI} == {"0001", "0002", "0004", "0006"}, (
         f"tablica bramek niesie ADR-y {sorted(b.adr for b in BRAMKI)}; plan faz (audyt 9) stawia "
-        "trzy warunki kolejności i każdy ma tu mieć wiersz"
+        "trzy warunki kolejności, a ADR-0006 Z-14 czwarty — każdy ma tu mieć wiersz"
     )
     assert all(b.powod for b in BRAMKI), "bramka bez powodu kolejności jest bramką porzuconą"
     assert len({b.nazwa for b in BRAMKI}) == len(BRAMKI), "dwie bramki o tej samej nazwie"

@@ -123,3 +123,24 @@ def test_blok_przeliczenia_ostrzega_o_dokumentach_bez_metadanych() -> None:
     assert ("błędów odczytu", "1") in blok.rows
     assert any("1 dokumentów nadal bez metadanych" in n for n in blok.notes)
     assert texts.blok_przeliczenia(6, 0, w_korpusie=6, zaindeksowanych=6).notes == ()
+
+
+def test_podsumowanie_wypisuje_ponowienia_z_bazy_tylko_gdy_byly() -> None:
+    """ADR-0007 Z-7 ujście 4: liczba ponowień na końcu przebiegu — a przy zerze bez wiersza,
+    żeby zwykły przebieg nie niósł zdania o zdarzeniu, którego nie było."""
+    wspolne: dict[str, object] = {
+        "run_id": "r",
+        "status": "zakonczony",
+        "kandydatow": 3,
+        "nowych": 3,
+        "pominietych": 0,
+        "zadan": 5,
+        "baza": "b",
+    }
+
+    z = texts.podsumowanie(**wspolne, ponowien_lacznie=2)  # type: ignore[arg-type]
+    bez = texts.podsumowanie(**wspolne)  # type: ignore[arg-type]
+
+    assert "Ponowień w całym przebiegu (z bazy): 2" in z
+    assert z.splitlines()[-1] == "Baza: b", "baza zostaje ostatnim wierszem"
+    assert "Ponowień" not in bez

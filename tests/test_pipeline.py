@@ -28,7 +28,7 @@ from kio_tool import pipeline
 from kio_tool.config import MAX_FILENAME_STEM, safe_filename
 from kio_tool.criteria import Criteria
 from kio_tool.docid import SourceName
-from kio_tool.errors import ConfigError, ConsentMissingError, RateLimitError, TransportError
+from kio_tool.errors import ConfigError, ConsentMissingError, RateLimitError
 from kio_tool.httpclient import build_http_client
 from kio_tool.progress import NullEvents
 from kio_tool.source.contract import load_contract

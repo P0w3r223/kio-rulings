@@ -612,3 +612,23 @@ def test_przebieg_sprzed_migracji_ma_dokumenty_w_korpusie_i_zero_w_run_documents
             "ślad po żądaniach przebiegu **jest** w bazie — to z niego dałby się odtworzyć "
             "`run_documents`, gdyby właściciel wybrał backfill"
         )
+
+
+def test_ponowienie_widac_na_ekranie_i_w_podsumowaniu(
+    baza: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ADR-0007 Z-7 od strony operatora: zdanie o ponowieniu w trakcie i liczba na końcu —
+    oba przez `cli` i konsolę, nie tylko w `Podsumowanie`."""
+    serwer = Serwer(
+        [strona(LISTA[KLUCZ][:3], ma_wiecej=False, total=3)],
+        przerwij_na_dokumencie=2,
+        wyjatek=httpx.ConnectError("siec znikla (wymyslone)"),
+    )
+    podstaw(monkeypatch, serwer)
+
+    kod, wyjscie = pobierz(baza)
+
+    assert kod == 0, wyjscie
+    assert "zerwane łącze (ConnectError), próba 2 z 3" in wyjscie
+    assert "Ponowień w całym przebiegu (z bazy): 1" in wyjscie
+    assert dokumentow(baza) == 3

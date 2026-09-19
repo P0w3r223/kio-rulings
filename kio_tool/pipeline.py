@@ -328,6 +328,9 @@ def pobierz(
                 zegar=zegar,
                 slad=_SladDoBazy(store, run_id, zegar, puls),
                 klucz_api=klucz_api(kontrakt.tempo.klucz_api.zmienna),
+                # ADR-0007 Z-9: ponowienie jest żądaniem jak każde inne, więc przed nim też
+                # pada pytanie o zgodę — inaczej pętla prób przekraczała próg o `proby - 1`.
+                przed_ponowieniem=lambda: _wymagaj_zgody(zgoda, puls, kryteria.maks),
             )
             _przebieg(
                 kanal_obj,

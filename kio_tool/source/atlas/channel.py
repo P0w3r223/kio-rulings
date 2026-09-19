@@ -96,6 +96,7 @@ class AtlasChannel:
         zegar: Clock | None = None,
         slad: SladZadan | None = None,
         klucz_api: str | None = None,
+        przed_ponowieniem: Callable[[], None] | None = None,
     ) -> None:
         self._klient = klient
         self._limiter = limiter
@@ -103,6 +104,13 @@ class AtlasChannel:
         self._events: Events = events or NullEvents()
         self._zegar: Clock = zegar or SystemClock()
         self._slad: SladZadan = slad or BezSladu()
+        self._przed_ponowieniem: Callable[[], None] = przed_ponowieniem or (lambda: None)
+        """Bramka przed każdą próbą od drugiej — `pipeline` podaje tu sprawdzenie zgody.
+
+        Bez niej próg zgody dało się przekroczyć o `ponowienia.proby - 1` żądań: `pipeline`
+        sprawdza zgodę raz na kandydata, a pętla prób wysyła po nim kolejne żądania bez pytania
+        (tester 2026-09-19, zmierzone: 52 żądania przy `PROG_ZGODY = 50`). Kanał nie zna zgody
+        i nie ma jej znać — dostaje wywołanie, które rzuca, gdy dalej iść nie wolno."""
         self.name: SourceName = normalize_source_name(contract.kanal)
         # Pusta strona jest dozwolona: zakres dat bez orzeczeń to poprawny wynik, nie złamany
         # kontrakt (docstring `json_z_rekordami`). Lista pod innym kluczem nadal nim jest.
@@ -288,6 +296,7 @@ class AtlasChannel:
                     f"({self._pod_rzad} z progu {pon.pod_rzad_max}, `ponowienia.pod_rzad_max`) "
                     "— serwis leży, nie mruga; zatrzymuję zamiast powtarzać."
                 ) from wynik.wyjatek
+            self._przed_ponowieniem()
             proba += 1
             # 429: pełną blokadę trzyma już limiter (`note_response`), backoff byłby nadmiarowy
             # (Z-4). 5xx z `Retry-After`: prośba serwisu, jeśli dłuższa od naszego backoffu.
