@@ -22,9 +22,11 @@ from dataclasses import dataclass
 
 from ..errors import ParseError
 
-PARSE_VERSION = 1
-"""Wersja odczytu. `przelicz` przelicza wersje dokumentów z `metadata.parse_version` mniejszym
-niż ta liczba — podnieś ją przy każdej zmianie tego, co `wyczytaj` wyciąga albo jak."""
+PARSE_VERSION = 2
+"""Wersja odczytu **całego pakietu `parser/`** (ADR-0006 Z-10). `przelicz` przelicza wersje
+dokumentów z `metadata.parse_version` mniejszym niż ta liczba — podnieś ją przy każdej zmianie
+tego, co wyciąga `wyczytaj`, `sections`, `cite` albo `provisions`. 2 (2026-09-19): struktura
+wersji — sekcje, cytowania, przepisy (schemat 6)."""
 
 
 @dataclass(frozen=True)

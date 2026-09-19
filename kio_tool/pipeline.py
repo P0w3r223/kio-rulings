@@ -22,7 +22,7 @@ Cztery operacje **bez sieci** — `eksportuj`, `przelicz`, `szukaj`, `wznow` prz
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -45,7 +45,8 @@ from .exporter import FORMATY, Wpis
 from .exporter import eksportuj as zapisz_eksport
 from .httpclient import build_http_client
 from .logbook import Wynik
-from .parser.details import PARSE_VERSION, MapaPol, Szczegoly, rekord_z_bajtow, wyczytaj
+from .odczyt import metryka, odczytaj, struktura
+from .parser.details import PARSE_VERSION, MapaPol, rekord_z_bajtow, wyczytaj
 from .progress import Events, NullEvents
 from .ratelimit import DOBA_S, InMemoryHistory, RateLimiter
 from .source.contract import Contract, load_contract
@@ -55,7 +56,6 @@ from .store import (
     STATUSY_WZNAWIALNE,
     Dokument,
     Filtr,
-    Metryka,
     Przebieg,
     Store,
     Wyszukanie,
@@ -493,7 +493,7 @@ def _przebieg(
         licznik.brakujacych_pod_rzad = 0
         # Odczyt **przed** transakcją: `ParseError` w jej środku cofałby zapis surowych bajtów,
         # a reguła 19 każe zapisać je w całości niezależnie od tego, czy dają się odczytać.
-        szczegoly = _odczytaj(surowy.content, mapa)
+        szczegoly = odczytaj(surowy.content, mapa)
         with store.transakcja():
             store.upsert_document(
                 doc_id=doc_id,
@@ -512,24 +512,15 @@ def _przebieg(
                 expected_sha256=surowy.sha256,
             )
             if szczegoly is not None:
-                store.index_document(doc_id, surowy.sha256, metryka(szczegoly))
+                store.index_document(
+                    doc_id, surowy.sha256, metryka(szczegoly), struktura(szczegoly)
+                )
             else:
                 licznik.bledow_odczytu += 1
             store.link_run_document(run_id, doc_id, position=licznik.pozycja, nowy=True)
             store.checkpoint(run_id, kandydat.strona)
         licznik.nowych += 1
         puls.on_document(licznik.nowych, _przewidywane(puls.razem, maks))
-
-
-def _odczytaj(content: bytes, mapa: MapaPol) -> Szczegoly | None:
-    try:
-        return wyczytaj(rekord_z_bajtow(content), mapa)
-    except ParseError:
-        return None
-
-
-def metryka(szczegoly: Szczegoly) -> Metryka:
-    return Metryka(parse_version=PARSE_VERSION, **asdict(szczegoly))
 
 
 def _przewidywane(razem: int | None, maks: int | None) -> int | None:
@@ -824,12 +815,17 @@ def przelicz(
     do_przeliczenia = list(store.versions_to_index(None if wszystko else PARSE_VERSION))
     for numer, dokument in enumerate(do_przeliczenia, start=1):
         mapa, _ = mapy.dla(dokument.source)
-        szczegoly = _odczytaj(dokument.content_bytes, mapa)
+        szczegoly = odczytaj(dokument.content_bytes, mapa)
         if szczegoly is None:
             bledow += 1
         else:
             with store.transakcja():
-                store.index_document(dokument.doc_id, dokument.current_sha256, metryka(szczegoly))
+                store.index_document(
+                    dokument.doc_id,
+                    dokument.current_sha256,
+                    metryka(szczegoly),
+                    struktura(szczegoly),
+                )
             przeliczonych += 1
         reporter.on_parse(numer, len(do_przeliczenia))
     return WynikPrzeliczenia(

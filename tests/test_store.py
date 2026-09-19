@@ -988,7 +988,7 @@ def test_migracja_4_do_5_doklada_probe_i_daje_starym_wierszom_jedynke(tmp_path: 
         assert store.count_requests(run_id, ponowienia=True) == 1
 
     with sqlite3.connect(sciezka) as p:
-        assert p.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION == 5
+        assert p.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert [w[0] for w in p.execute("SELECT proba FROM requests_log ORDER BY rowid")] == [1, 2]
 
 

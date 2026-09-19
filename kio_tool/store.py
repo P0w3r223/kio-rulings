@@ -35,6 +35,10 @@ zaczepiona o wersję 1 nie zapaliłaby się na bazie stojącej już na 3 — czy
 która lukę ma. Odtworzenie jest dokładne, nie zgadywane; czym stoi, mówi
 `_odtworz_powiazania_sprzed_schematu_2`.
 
+**Schemat 6 (2026-09-19, ADR-0006 Z-4)** dokłada `sections`, `citations` i `provisions` — samym
+`CREATE TABLE IF NOT EXISTS`, bez ruszania istniejących tabel. Stare wersje dostają strukturę przy
+`przelicz`, bo `PARSE_VERSION` wzrósł do 2.
+
 **Schemat 5 (2026-09-19, ADR-0007 Z-8)** dokłada kolumnę `requests_log.proba`: dwie próby jednego
 żądania mają być w dzienniku odróżnialne od dwóch różnych żądań, bo inaczej pomiaru 24
 (skuteczność ponowień) nie dałoby się zrobić bez ponownego obciążenia serwisu.
@@ -63,13 +67,24 @@ from .criteria import Criteria
 from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
 """Stany, z których `resume_run` wraca do pracy: przerwany właściwym wyjątkiem albo osierocony
 (`w_toku` po ubiciu procesu) — powód w docstringu `resume_run`."""
 TABELE = frozenset(
-    {"documents", "raw_versions", "runs", "requests_log", "run_documents", "metadata", "fts"}
+    {
+        "documents",
+        "raw_versions",
+        "runs",
+        "requests_log",
+        "run_documents",
+        "metadata",
+        "fts",
+        "sections",
+        "citations",
+        "provisions",
+    }
 )
 """Tabele, które `count` zna z nazwy — nazwa tabeli nie jest parametrem zapytania, więc nie
 wolno jej wstawić do SQL z zewnątrz bez tej listy."""
@@ -158,6 +173,51 @@ CREATE TABLE IF NOT EXISTS metadata (
   dlugosc_tresci          INTEGER NOT NULL,
   PRIMARY KEY (doc_id, content_sha256)
 )""",
+    # Schemat 6 (ADR-0006 Z-4, Z-5, Z-7): struktura bieżącej wersji jako **offsety w oryginale**,
+    # nie kopia tekstu, kluczowana `(doc_id, content_sha256)` jak `metadata`. `zrodlo` rozróżnia
+    # nasz odczyt z treści od opracowania kanału (reguła 19) i nigdy nie jest nadpisywane.
+    """
+CREATE TABLE IF NOT EXISTS sections (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  rodzaj          TEXT NOT NULL,
+  char_start      INTEGER NOT NULL,
+  char_end        INTEGER NOT NULL,
+  sha256          TEXT NOT NULL,
+  PRIMARY KEY (doc_id, content_sha256, porzadek)
+)""",
+    """
+CREATE TABLE IF NOT EXISTS citations (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  zrodlo          TEXT NOT NULL CHECK (zrodlo IN ('tresc', 'kanal')),
+  rodzaj          TEXT NOT NULL,
+  sygnatura       TEXT,
+  surowy          TEXT NOT NULL,
+  char_start      INTEGER,
+  char_end        INTEGER,
+  PRIMARY KEY (doc_id, content_sha256, zrodlo, porzadek)
+)""",
+    """
+CREATE TABLE IF NOT EXISTS provisions (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  zrodlo          TEXT NOT NULL CHECK (zrodlo IN ('tresc', 'kanal')),
+  postac          TEXT NOT NULL,
+  akt             TEXT NOT NULL,
+  surowy          TEXT NOT NULL,
+  char_start      INTEGER,
+  char_end        INTEGER,
+  PRIMARY KEY (doc_id, content_sha256, zrodlo, porzadek)
+)""",
+    "CREATE INDEX IF NOT EXISTS citations_sygnatura_idx ON citations(sygnatura)",
+    "CREATE INDEX IF NOT EXISTS provisions_postac_idx ON provisions(postac, akt)",
     "CREATE INDEX IF NOT EXISTS runs_fingerprint_idx ON runs(fingerprint)",
     # Kopia treści w FTS5, nie `content=`: treść leży w JSON-ie `raw_versions.content_bytes`,
     # a tabela zewnętrzna FTS5 czyta kolumny zwykłej tabeli — nie wyrażenie nad blobem.
@@ -214,6 +274,49 @@ class Metryka:
     koszty: float | None
     url_zrodla: str | None
     tresc: str
+
+
+@dataclass(frozen=True)
+class WierszSekcji:
+    """Sekcja w oryginale — kształt `parser.sections.Sekcja` plus skrót fragmentu (Z-11)."""
+
+    porzadek: int
+    rodzaj: str
+    start: int
+    koniec: int
+    sha256: str
+
+
+@dataclass(frozen=True)
+class WierszCytowania:
+    porzadek: int
+    zrodlo: str
+    rodzaj: str
+    sygnatura: str | None
+    surowy: str
+    start: int | None
+    koniec: int | None
+
+
+@dataclass(frozen=True)
+class WierszPrzepisu:
+    porzadek: int
+    zrodlo: str
+    postac: str
+    akt: str
+    surowy: str
+    start: int | None
+    koniec: int | None
+
+
+@dataclass(frozen=True)
+class Struktura:
+    """Struktura wersji (ADR-0006 Z-4): sekcje, cytowania, przepisy. Magazyn nie zna parsera —
+    `pipeline` przepisuje wyniki `parser/*` na te wiersze, jak `Metryka` z `Szczegoly`."""
+
+    sekcje: tuple[WierszSekcji, ...]
+    cytowania: tuple[WierszCytowania, ...]
+    przepisy: tuple[WierszPrzepisu, ...]
 
 
 @dataclass(frozen=True)
@@ -306,6 +409,12 @@ class _Polaczenie:
     def execute(self, sql: str, parametry: Sequence[object] = ()) -> sqlite3.Cursor:
         try:
             return self._conn.execute(sql, parametry)
+        except sqlite3.Error as blad:
+            raise blad_bazy(self._sciezka, blad) from blad
+
+    def executemany(self, sql: str, wiersze: Sequence[Sequence[object]]) -> sqlite3.Cursor:
+        try:
+            return self._conn.executemany(sql, wiersze)
         except sqlite3.Error as blad:
             raise blad_bazy(self._sciezka, blad) from blad
 
@@ -707,7 +816,13 @@ class Store:
 
     # ------------------------------------------------------------- metadane i indeks
 
-    def index_document(self, doc_id: str, content_sha256: str, metryka: Metryka) -> None:
+    def index_document(
+        self,
+        doc_id: str,
+        content_sha256: str,
+        metryka: Metryka,
+        struktura: Struktura | None = None,
+    ) -> None:
         """Metadane wersji i wiersz FTS bieżącej wersji — poprzedni wiersz FTS dokumentu znika.
 
         `metadata` jest przypięte do wersji (klucz z `content_sha256`), więc dwie wersje mają
@@ -752,6 +867,64 @@ class Store:
         self._conn.execute(
             "INSERT INTO fts (doc_id, sygnatury, tresc) VALUES (?, ?, ?)",
             (doc_id, " ".join(metryka.sygnatury), metryka.tresc),
+        )
+        if struktura is not None:
+            self._zapisz_strukture(doc_id, content_sha256, metryka.parse_version, struktura)
+
+    def _zapisz_strukture(
+        self, doc_id: str, content_sha256: str, parse_version: int, struktura: Struktura
+    ) -> None:
+        """Struktura wersji **zastępuje** poprzednią tej samej wersji — przeliczenie nie dokłada
+        drugiego kompletu wierszy. W transakcji wołającego, razem z metadanymi."""
+        klucz = (doc_id, content_sha256)
+        for tabela in ("sections", "citations", "provisions"):
+            self._conn.execute(
+                f"DELETE FROM {tabela} WHERE doc_id = ? AND content_sha256 = ?", klucz
+            )
+        self._conn.executemany(
+            "INSERT INTO sections (doc_id, content_sha256, parse_version, porzadek, rodzaj, "
+            "char_start, char_end, sha256) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (*klucz, parse_version, w.porzadek, w.rodzaj, w.start, w.koniec, w.sha256)
+                for w in struktura.sekcje
+            ],
+        )
+        self._conn.executemany(
+            "INSERT INTO citations (doc_id, content_sha256, parse_version, porzadek, zrodlo, "
+            "rodzaj, sygnatura, surowy, char_start, char_end) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    *klucz,
+                    parse_version,
+                    w.porzadek,
+                    w.zrodlo,
+                    w.rodzaj,
+                    w.sygnatura,
+                    w.surowy,
+                    w.start,
+                    w.koniec,
+                )
+                for w in struktura.cytowania
+            ],
+        )
+        self._conn.executemany(
+            "INSERT INTO provisions (doc_id, content_sha256, parse_version, porzadek, zrodlo, "
+            "postac, akt, surowy, char_start, char_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    *klucz,
+                    parse_version,
+                    w.porzadek,
+                    w.zrodlo,
+                    w.postac,
+                    w.akt,
+                    w.surowy,
+                    w.start,
+                    w.koniec,
+                )
+                for w in struktura.przepisy
+            ],
         )
 
     def versions_to_index(self, parse_version: int | None) -> Iterator[Dokument]:
