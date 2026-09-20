@@ -832,6 +832,51 @@ pomiar na całym korpusie, nie na sześciu napisach.
 
 ---
 
+## Przegląd okiem cytowań i przepisów złotego zbioru (O-4, 2026-09-20)
+
+Złoty zbiór niósł do tej pory **wyłącznie granice sekcji**, a ADR-0006 §10.1 mówił dlaczego:
+cytowań i przepisów nikt nie przejrzał, a adnotacja parsera napisana przez samego parsera jest
+gorsza niż jej brak. Ten przegląd zamyka tamten brak. Zero żądań — wszystko z bazy operatora.
+
+**Co przejrzano.** 91 cytowań w 17 dokumentach — **każde z osobna**, z jednym wierszem kontekstu.
+Przepisy: 226 różnych postaci z treści plus postaci z listy kanału; przegląd objął **postaci**,
+a nie każde z 856 wystąpień, i adnotacja jest zapisana dokładnie w tej granulacji (cytowania per
+wystąpienie, przepisy per postać z liczbą). Adnotacja nie ma prawa twierdzić więcej, niż objął
+przegląd.
+
+**Cytowania: zero rozbieżności.** Sprawdzone zostało też jedno podejrzenie — `KIO 385/14`
+występuje 14 razy w jednym dokumencie (`atlas:kio-985-14`, sygnatura własna `KIO 985/14`).
+Kontekst pokazał, że to nie artefakt stopki ani sygnatury własnej: całe odwołanie dotyczy
+wykonania wcześniejszego wyroku w tym samym postępowaniu.
+
+**Przepisy: dwie usterki parsera, obie znalezione okiem i obie naprawione.**
+
+1. **Mianownik „ustawy Prawo zamówień publicznych" nie był rozpoznawany.** Wzorzec
+   `prawa?\s+zamówień` wymagał po „praw" spacji albo „a", a w mianowniku stoi „o". Skutek był
+   cichy i mylący, bo pole dostawało wartość **poprawną co do typu**: w zdaniu o kosztach
+   („orzeczono na podstawie art. 574 i 575 ustawy Prawo zamówień publicznych oraz § …
+   rozporządzenia…") wygrywało następne oznaczenie w oknie i przepis Pzp lądował jako przepis
+   **rozporządzenia**. Na korpusie 443 dokumentów poprawka przeniosła **260 przepisów**:
+   `nieustalone` −220, `rozporzadzenie` −35, `kc` −4, `inne` −1, a `pzp2019` +153 i `pzp2004` +107.
+   Cztery przepisy przeszły z `kc` na `nieustalone` — z wartości **błędnej** na uczciwą.
+2. **Data ustawy zapisana cyframi.** „ustawy z dnia 29.01.2004 r. Prawo Zamówień Publicznych"
+   dawało `inne`, bo generyczne „ustawy z dnia" stoi w tym samym miejscu co pełny tytuł, a przy
+   remisie wygrywa wzorzec zadeklarowany wcześniej. Zapis cyfrowy ma w korpusie **3 wystąpienia
+   w 3 dokumentach** — mało, ale każde z nich dawało wartość błędną, a nie brakującą.
+
+Żadnej z tych dwóch nie mógł zapalić automat: `rozporzadzenie` i `inne` są poprawnymi wartościami
+pola `provisions.akt`, więc raport pokrycia liczył je bez mrugnięcia. To jest dokładnie ten rodzaj
+usterki, dla którego ADR-0006 Z-11 wymaga człowieka przy adnotacji.
+
+**Czego ten przegląd nie zamyka.** Postać `art. 3531` (czyli `art. 353¹` po ekstrakcji z PDF-a)
+zostaje taka, jaka jest — to wierny zapis tego, co przyszło z kanału, a nie usterka parsera;
+poprawianie go wymagałoby wiedzy o indeksie górnym, której w tekście nie ma. Pole `przeglad.kto`
+w plikach złotego zbioru niesie odtąd **dwa fakty naraz i ich nie zrównuje**: granice sekcji
+przejrzał Claude 2026-09-19 i potwierdził właściciel 2026-09-20, a cytowania i przepisy przejrzał
+Claude 2026-09-20 i **nie są jeszcze potwierdzone**.
+
+---
+
 ## Przejście operatora — tryb pokazowy (2026-09-20)
 
 Bramka fazy 3 §10 pkt 5 (ADR-0008 §11 pkt 5: wykonuje sam właściciel). Właściciel przeszedł
@@ -884,7 +929,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 | O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
 | O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
-| O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | Nikt ich nie przejrzał okiem; adnotacja parsera przez samego siebie byłaby dokładnie tym, przed czym ostrzega doktryna 7.4 | Pierwszy przegląd okiem cytowań i przepisów |
+| O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów; adnotacja niesie odtąd wszystkie trzy rzeczy, a przegląd znalazł dwie usterki parsera, których automat nie mógł zapalić | Zostaje potwierdzenie przez właściciela — pole `przeglad.kto` mówi wprost, czego jeszcze nie potwierdził |
 | O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | Decyzja właściciela 2026-09-20: fazy 2 i 3 domykamy bez niego | Bramka **przed** fazą 4: opis przeznaczenia skonfrontowany z załącznikiem III AI Act oraz ADR rozstrzygający, czy treść orzeczenia wolno wysłać do modelu (audyt 9, 12) |
 | O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma | Decyzja o drugim kanale albo wejście w fazę 4 |

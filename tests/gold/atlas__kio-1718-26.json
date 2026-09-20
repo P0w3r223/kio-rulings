@@ -27,8 +27,198 @@
       "sha256": "2cd5d434cafd58041343aadd5d375136263ccb734b8cdd81d382fb5f211f8dda"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 618/26",
+      "start": 9527,
+      "koniec": 9537
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 546/23",
+      "start": 19711,
+      "koniec": 19721
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 227/24",
+      "start": 20321,
+      "koniec": 20331
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 810/25",
+      "start": 24476,
+      "koniec": 24486
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 23",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 23 ust. 4",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 255 pkt 6",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 257",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 260 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 505 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 513",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 517",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 528",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 554 ust. 1 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 568 pkt 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 16 pkt 1",
+      "akt": "nieustalone",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 23",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 23 ust. 4",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 255 pkt 6",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 257",
+      "akt": "nieustalone",
+      "ile": 28
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 260 ust. 1",
+      "akt": "nieustalone",
+      "ile": 7
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 5",
+      "akt": "kc",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 505 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 513",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 517",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 528",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 554 ust. 1 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 568 pkt 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 574",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 1",
+      "akt": "nieustalone",
+      "ile": 2
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

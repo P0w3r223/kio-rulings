@@ -27,8 +27,119 @@
       "sha256": "72c6cc3d126463e18ca8da337d7ee0c5d5a8af8e1c57fe97668914aeaa1df079"
     }
   ],
+  "cytowania": [],
+  "przepisy": [
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 8",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 180 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 9",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 198a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 22 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 22 ust. 1 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 1 pkt 9",
+      "akt": "pzp2004",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 2 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 2 pkt 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 6",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 26 ust. 2b",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 26 ust. 3",
+      "akt": "pzp2004",
+      "ile": 7
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 266",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

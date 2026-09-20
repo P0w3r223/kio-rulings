@@ -27,8 +27,180 @@
       "sha256": "82ed21bd25daec1791507bed4f41323ee14bc95e1e220d971981e9b782702efb"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 154/13",
+      "start": 6799,
+      "koniec": 6809
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 852/09",
+      "start": 6837,
+      "koniec": 6851
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 333/09",
+      "start": 6879,
+      "koniec": 6893
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 254",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 255 pkt 6",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 257",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 433 pkt 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 436 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 457",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 457 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 459 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 505 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 254",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 255 pkt 6",
+      "akt": "pzp2019",
+      "ile": 11
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 257",
+      "akt": "pzp2019",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 3531",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 387",
+      "akt": "kc",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 387",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 433 pkt 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 436 ust. 1",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 457",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 457 ust. 1",
+      "akt": "pzp2019",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 459 ust. 1",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 5 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 505 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 557",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 575",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 58",
+      "akt": "nieustalone",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

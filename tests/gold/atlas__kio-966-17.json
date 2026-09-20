@@ -27,8 +27,228 @@
       "sha256": "acc8996aaa381b364793aa250f7b5d71088de2624104d322d1436df7052bbbf7"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "so",
+      "sygnatura": "V Ca 459/06",
+      "start": 12693,
+      "koniec": 12704
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 82 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 87 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 91 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 96 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 4",
+      "akt": "nieustalone",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 185 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 190 ust. 3",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 9",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 198a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 61",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 6
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 1",
+      "akt": "pzp2004",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 3",
+      "akt": "pzp2004",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 82 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 87 ust. 1",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 4",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 1",
+      "akt": "pzp2004",
+      "ile": 10
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 91 ust. 1",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 96 ust. 3",
+      "akt": "pzp2004",
+      "ile": 5
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

@@ -27,8 +27,180 @@
       "sha256": "a3f00e561658ba306d6958b9b5b85b713a0cf32f8ae20f1e0ffcbcedba87d482"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 364/25",
+      "start": 12711,
+      "koniec": 12721
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 364/25",
+      "start": 24218,
+      "koniec": 24228
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 118 ust. 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 118 ust. 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 118 ust. 4",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 118 ust. 4 pkt 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 16 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 226 ust. 1 pkt 2 lit. b",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 226 ust. 1 pkt 7",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 515 ust. 3 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 528 pkt 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 553",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 554 ust. 1 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 2",
+      "akt": "nieustalone",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 4",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 4 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 4 pkt 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 118 ust. 4 pkt 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 16 pkt 1",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226 ust. 1 pkt 2 lit. b",
+      "akt": "nieustalone",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226 ust. 1 pkt 7",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 515 ust. 1 pkt 1 lit. a",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 515 ust. 3 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 528 pkt 3",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 553",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 554 ust. 1 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 574",
+      "akt": "nieustalone",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

@@ -27,8 +27,180 @@
       "sha256": "3fb481e5ff711866c761d1f5c9f6417ab67cc4352a5acb8615c522036a36abdd"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1208/23",
+      "start": 16535,
+      "koniec": 16546
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 529/20",
+      "start": 20133,
+      "koniec": 20143
+    },
+    {
+      "rodzaj": "wsa",
+      "sygnatura": "II SA/Kr 1527/13",
+      "start": 20285,
+      "koniec": 20301
+    },
+    {
+      "rodzaj": "wsa",
+      "sygnatura": "II SA/Ol 630/17",
+      "start": 20347,
+      "koniec": 20362
+    },
+    {
+      "rodzaj": "wsa",
+      "sygnatura": "VII SA/Wa 2179/16",
+      "start": 20409,
+      "koniec": 20426
+    },
+    {
+      "rodzaj": "wsa",
+      "sygnatura": "VII SA/Wa 839/18",
+      "start": 20470,
+      "koniec": 20486
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 116 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 128 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 16",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 17 ust. 2",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 505 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 528",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 555",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 575",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 112 ust. 2 pkt 4",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 116 ust. 1",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 128 ust. 1",
+      "akt": "pzp2019",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 16",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 17 ust. 2",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226 ust. 1 pkt 2",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 505 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 528",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 555",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 557",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 57 pkt 2",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 575",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 579 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 580 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

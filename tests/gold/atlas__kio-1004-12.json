@@ -27,8 +27,228 @@
       "sha256": "eebb07898bca230f40289f8ec4a36002ca9d96ba374d6525568e69dcc711ecc6"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 214/12",
+      "start": 29567,
+      "koniec": 29577
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 11 ust. 8",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 189 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 87 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 89 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 92 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 1 ust. 1 pkt 1",
+      "akt": "inne",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 1 ust. 1 pkt 1a",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 10 ust. 2 pkt 11",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 8",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 182 ust. 1 pkt 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 190 ust. 6",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 2",
+      "akt": "pzp2004",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 9",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 198a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 2 pkt 26",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 2 ust. 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 23 ust. 2",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 3 pkt 1",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 26 ust. 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 3 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 4",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 1a pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 87 ust. 1",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 92 ust. 1 pkt 2",
+      "akt": "pzp2004",
+      "ile": 5
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

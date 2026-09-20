@@ -27,8 +27,107 @@
       "sha256": "b1f286107875baa273a76048c8002b68a239ed18e5cfb896a56dba2a6dae9513"
     }
   ],
+  "cytowania": [],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 139 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 186 ust. 6 pkt 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 139 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 14 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 186 ust. 3a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 186 ust. 6 pkt 1",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 198a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 22 ust. 1b pkt 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 22b ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 29",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 29 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 3531",
+      "akt": "kc",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 487",
+      "akt": "kc",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 2
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

@@ -27,8 +27,822 @@
       "sha256": "075d34ec098ad2284f2d23f8e4f0f88e7c4c2ed8d1fb518bed55583ff3ce1321"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 9709,
+      "koniec": 9719
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 99/13",
+      "start": 17310,
+      "koniec": 17319
+    },
+    {
+      "rodzaj": "tsue",
+      "sygnatura": "C-599/10",
+      "start": 18083,
+      "koniec": 18091
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 262/09",
+      "start": 25519,
+      "koniec": 25529
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 351/08",
+      "start": 25713,
+      "koniec": 25727
+    },
+    {
+      "rodzaj": "tsue",
+      "sygnatura": "C-103/88",
+      "start": 26802,
+      "koniec": 26810
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 262/09",
+      "start": 31540,
+      "koniec": 31550
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1166/12",
+      "start": 31998,
+      "koniec": 32009
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 567/11",
+      "start": 32114,
+      "koniec": 32124
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 516/09",
+      "start": 32359,
+      "koniec": 32373
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2547/11",
+      "start": 36454,
+      "koniec": 36465
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2547/11",
+      "start": 39358,
+      "koniec": 39369
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 759/08",
+      "start": 39930,
+      "koniec": 39944
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1601/11",
+      "start": 40191,
+      "koniec": 40202
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1515/10",
+      "start": 42834,
+      "koniec": 42845
+    },
+    {
+      "rodzaj": "kio_bez_repertorium",
+      "sygnatura": "KIO 1131/11",
+      "start": 43218,
+      "koniec": 43225
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2004/10",
+      "start": 43544,
+      "koniec": 43555
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 748/13",
+      "start": 43822,
+      "koniec": 43832
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2771/11",
+      "start": 44080,
+      "koniec": 44091
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1665/11",
+      "start": 44412,
+      "koniec": 44423
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 1483/10",
+      "start": 44538,
+      "koniec": 44553
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1665/11",
+      "start": 45432,
+      "koniec": 45443
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 471/11",
+      "start": 45747,
+      "koniec": 45757
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1796/13",
+      "start": 64050,
+      "koniec": 64061
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 64207,
+      "koniec": 64217
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 64798,
+      "koniec": 64808
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 250/13",
+      "start": 67766,
+      "koniec": 67776
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 72529,
+      "koniec": 72539
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 75479,
+      "koniec": 75489
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 76543,
+      "koniec": 76553
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2120/11",
+      "start": 83215,
+      "koniec": 83226
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2894/13",
+      "start": 90863,
+      "koniec": 90874
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1796/13",
+      "start": 94915,
+      "koniec": 94926
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 769/09",
+      "start": 97261,
+      "koniec": 97275
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 1568/11",
+      "start": 97769,
+      "koniec": 97780
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 516/12",
+      "start": 98012,
+      "koniec": 98022
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 1605/10",
+      "start": 98228,
+      "koniec": 98243
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 2604/10",
+      "start": 98495,
+      "koniec": 98510
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO/UZP 1157/10",
+      "start": 99143,
+      "koniec": 99158
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/13",
+      "start": 100702,
+      "koniec": 100712
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 100786,
+      "koniec": 100796
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 102952,
+      "koniec": 102962
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 134503,
+      "koniec": 134513
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 134704,
+      "koniec": 134714
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 134996,
+      "koniec": 135006
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 135821,
+      "koniec": 135831
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 147168,
+      "koniec": 147178
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2894/13",
+      "start": 150418,
+      "koniec": 150429
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/14",
+      "start": 159723,
+      "koniec": 159733
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 101 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 101 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 14",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 180 ust. 5",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 182 ust. 1 pkt 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 182 ust. 6",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 189 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 189 ust. 2 pkt 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 189 ust. 2 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 189 ust. 2 pkt 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 190 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 190 ust. 5",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 192 ust. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 24 ust. 2 pkt 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 24 ust. 2 pkt 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 29 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 32 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 36 ust. 1 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 89 ust. 1 pkt 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 ust. 1 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 90 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 91 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 94 ust. 2 pkt 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 101 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 101 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 8",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 14",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 179 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 180",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 180 ust. 5",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 182 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 182 ust. 1 pkt 1",
+      "akt": "pzp2004",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 182 ust. 6",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 185",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 185 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2 pkt 1",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2 pkt 3",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2 pkt 4",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 189 ust. 2 pkt 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 190 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 190 ust. 5",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 7",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 192 ust. 9",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 198a",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24",
+      "akt": "nieustalone",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24",
+      "akt": "pzp2004",
+      "ile": 7
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 2 pkt 2",
+      "akt": "pzp2004",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 2 pkt 4",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 24 ust. 2 pkt 4",
+      "akt": "pzp2004",
+      "ile": 10
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 28 ust. 1",
+      "akt": "inne",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 29 ust. 1",
+      "akt": "pzp2004",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 32 ust. 1",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 36 ust. 1 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 5 pkt 8",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 55",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 6",
+      "akt": "kc",
+      "ile": 10
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7",
+      "akt": "pzp2004",
+      "ile": 9
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7 ust. 1",
+      "akt": "pzp2004",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89",
+      "akt": "pzp2004",
+      "ile": 13
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 4",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 89 ust. 1 pkt 4",
+      "akt": "pzp2004",
+      "ile": 14
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90",
+      "akt": "pzp2004",
+      "ile": 23
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 1",
+      "akt": "pzp2004",
+      "ile": 15
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 1 pkt 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 2",
+      "akt": "pzp2004",
+      "ile": 4
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 3",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 3",
+      "akt": "pzp2004",
+      "ile": 22
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 91",
+      "akt": "pzp2004",
+      "ile": 6
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 91 ust. 1",
+      "akt": "pzp2004",
+      "ile": 6
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 94 ust. 2 pkt 2",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 99",
+      "akt": "pzp2004",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

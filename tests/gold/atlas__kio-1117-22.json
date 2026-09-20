@@ -27,8 +27,150 @@
       "sha256": "aac2e18f37d4813c8f69235adc27b7add183a8434bcfd24d06553beab2b3fe50"
     }
   ],
+  "cytowania": [
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2469/19",
+      "start": 8607,
+      "koniec": 8618
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 385/17",
+      "start": 8644,
+      "koniec": 8654
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2537/19",
+      "start": 10050,
+      "koniec": 10061
+    },
+    {
+      "rodzaj": "kio",
+      "sygnatura": "KIO 2440/19",
+      "start": 10418,
+      "koniec": 10429
+    },
+    {
+      "rodzaj": "sn",
+      "sygnatura": "I CKN 304/00",
+      "start": 12127,
+      "koniec": 12139
+    }
+  ],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 8 ust. 3",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 2",
+      "akt": "inne",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 11 ust. 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 553",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 554 ust. 1 pkt 1",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 557",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 579 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 580 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 7",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 1",
+      "akt": "nieustalone",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 2",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 3",
+      "akt": "nieustalone",
+      "ile": 7
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 8 ust. 3",
+      "akt": "pzp2004",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 86 ust. 4",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 90 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 92 ust. 2",
+      "akt": "nieustalone",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

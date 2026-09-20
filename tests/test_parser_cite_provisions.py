@@ -151,3 +151,30 @@ def test_lista_kanalu_ta_sama_gramatyka_bez_offsetow() -> None:
         ("brak przepisu", "nieustalone", "kanal"),
     ]
     assert all(p.start is None for p in przepisy)
+
+
+def test_mianownik_ustawy_pzp_jest_rozpoznawany_w_oznaczeniu() -> None:
+    """Poprawka z przeglądu okiem złotego zbioru (O-4, 2026-09-20).
+
+    Wzorzec `prawa?\\s+zamówień` nie łapał mianownika „ustawy **Prawo** zamówień publicznych":
+    po „praw" stało „o", a nie spacja. Skutek był cichy i mylący, bo pole dostawało wartość
+    **poprawną co do typu**: w zdaniu o kosztach wygrywało następne oznaczenie w oknie, czyli
+    `rozporządzenie`, i przepis Pzp lądował jako przepis rozporządzenia. Na korpusie 443
+    dokumentów poprawka przeniosła 260 przepisów na właściwą ustawę.
+    """
+    from kio_tool.parser.provisions import przepisy_z_tresci
+    from kio_tool.parser.sections import Sekcja
+
+    tekst = (
+        "Uzasadnienie\n"
+        "O kosztach postępowania odwoławczego orzeczono na podstawie art. 574 i 575 ustawy "
+        "Prawo zamówień publicznych oraz § 5 rozporządzenia Prezesa Rady Ministrów.\n"
+        "Zamawiający prowadzi postępowanie na podstawie ustawy z dnia 11 września 2019 r. – "
+        "Prawo zamówień publicznych.\n"
+    )
+    sekcja = Sekcja(porzadek=0, rodzaj="uzasadnienie", start=0, koniec=len(tekst))
+
+    znalezione = {(p.postac, p.akt) for p in przepisy_z_tresci(tekst, [sekcja])}
+
+    assert ("art. 574", "pzp2019") in znalezione
+    assert ("art. 574", "rozporzadzenie") not in znalezione

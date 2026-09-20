@@ -27,8 +27,101 @@
       "sha256": "d36d0a186050223e3f919c6120107746fd083b416a07a4dd5421fcfcb260c580"
     }
   ],
+  "cytowania": [],
+  "przepisy": [
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 16",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 223 ust. 2",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "kanal",
+      "postac": "art. 224 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 16",
+      "akt": "pzp2019",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 218 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 223",
+      "akt": "pzp2019",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 223 ust. 2",
+      "akt": "pzp2019",
+      "ile": 2
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 224 ust. 1",
+      "akt": "pzp2019",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226",
+      "akt": "pzp2019",
+      "ile": 3
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226 ust. 1 pkt 10",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 226 ust. 1 pkt 3",
+      "akt": "pzp2019",
+      "ile": 5
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 557",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 574",
+      "akt": "nieustalone",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 579 ust. 1",
+      "akt": "pzp2019",
+      "ile": 1
+    },
+    {
+      "zrodlo": "tresc",
+      "postac": "art. 84",
+      "akt": "kc",
+      "ile": 1
+    }
+  ],
   "przeglad": {
-    "kto": "Claude — każda granica przejrzana okiem w sesji 2026-09-19; potwierdzone przez właściciela 2026-09-20",
-    "data": "2026-09-19"
+    "kto": "Claude — granice sekcji przejrzane okiem 2026-09-19 i potwierdzone przez właściciela 2026-09-20; cytowania i przepisy przejrzane okiem 2026-09-20, niepotwierdzone",
+    "data": "2026-09-20"
   }
 }

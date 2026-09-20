@@ -1,6 +1,6 @@
 {
   "data": "2026-09-20",
-  "parse_version": 5,
+  "parse_version": 6,
   "dokumentow": 443,
   "bez_metadanych": 0,
   "bez_daty": 0,
@@ -304,12 +304,12 @@
       "pzp2004": 516
     },
     "tresc": {
-      "nieustalone": 4738,
-      "kc": 595,
-      "inne": 557,
-      "pzp2019": 5789,
-      "pzp2004": 1905,
-      "rozporzadzenie": 87,
+      "nieustalone": 4518,
+      "kc": 591,
+      "inne": 554,
+      "pzp2019": 5943,
+      "pzp2004": 2013,
+      "rozporzadzenie": 52,
       "kpc": 26
     }
   },

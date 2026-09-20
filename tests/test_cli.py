@@ -676,6 +676,8 @@ def test_pokrycie_z_rozbieznym_zlotym_zbiorem_zapala_kod_wyjscia(
                 "doc_id": "atlas:nie-ma-takiego",
                 "content_sha256": "0" * 64,
                 "sekcje": [],
+                "cytowania": [],
+                "przepisy": [],
                 "przeglad": {"kto": "test", "data": "2026-09-19"},
             }
         ),

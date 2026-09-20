@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from ..errors import ParseError
 
-PARSE_VERSION = 5
+PARSE_VERSION = 6
 """Wersja odczytu **całego pakietu `parser/`** (ADR-0006 Z-10). `przelicz` przelicza wersje
 dokumentów z `metadata.parse_version` mniejszym niż ta liczba — podnieś ją przy każdej zmianie
 tego, co wyciąga `wyczytaj`, `sections`, `cite` albo `provisions`.
@@ -37,7 +37,11 @@ spraw) nie byłby na nim osiągnięty.
 przy KIO, sądy administracyjne z kodem siedziby (`II SA/Op 4/18`) i Zespół Arbitrów UZP
 (`UZP/ZO/0-62/07`). Nierozpoznanych cytowań 78 → 52 na korpusie 443 dokumentów.
 5 (2026-09-20): rodzina A pomiaru 25 — sam numer po zapowiedzi `sygn. akt` jako rodzaj
-`kio_bez_repertorium` (decyzja właściciela). Nierozpoznanych 52 → 23."""
+`kio_bez_repertorium` (decyzja właściciela). Nierozpoznanych 52 → 23.
+6 (2026-09-20): oznaczenie ustawy za przepisem — dwie poprawki z przeglądu okiem złotego zbioru
+(O-4). Mianownik „ustawy **Prawo** zamówień publicznych" (260 przepisów przeniosło się
+z `nieustalone`, `rozporzadzenie`, `inne` i `kc` na właściwą ustawę Pzp) oraz data ustawy
+zapisana cyframi (3 wystąpienia, każde dotąd błędne, nie brakujące)."""
 
 
 @dataclass(frozen=True)

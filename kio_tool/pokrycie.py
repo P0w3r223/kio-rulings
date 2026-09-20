@@ -43,12 +43,45 @@ class SekcjaZlota:
 
 
 @dataclass(frozen=True)
+class CytowanieZlote:
+    """Jedno cytowanie w adnotacji — **per wystąpienie**, bo tak je przejrzano (O-4)."""
+
+    rodzaj: str
+    sygnatura: str | None
+    start: int
+    koniec: int
+
+
+@dataclass(frozen=True)
+class PrzepisZloty:
+    """Jedna **postać** przepisu w adnotacji, z liczbą wystąpień.
+
+    Granulacja jest inna niż przy cytowaniach i to jest świadome: przeglądowi okiem podlegały
+    **różne postaci** przepisów (226 w złotym zbiorze), a nie każde z 856 wystąpień. Adnotacja
+    nie ma prawa twierdzić więcej, niż objął przegląd (doktryna 7.4).
+    """
+
+    zrodlo: str
+    postac: str
+    akt: str
+    ile: int
+
+
+@dataclass(frozen=True)
 class AdnotacjaZlota:
-    """Jeden plik `tests/gold/<doc_id>.json` — granice potwierdzone okiem, bez tekstu."""
+    """Jeden plik `tests/gold/<doc_id>.json` — potwierdzone okiem, bez tekstu orzeczenia.
+
+    Od 2026-09-20 (O-4) niesie trzy rzeczy, nie jedną: granice sekcji, cytowania per wystąpienie
+    i przepisy per postać. Do tej daty były wyłącznie sekcje, a ADR-0006 §10.1 mówił wprost,
+    dlaczego: cytowań i przepisów nikt nie przejrzał, a adnotacja parsera napisana przez samego
+    parsera jest gorsza niż jej brak.
+    """
 
     doc_id: str
     content_sha256: str
     sekcje: tuple[SekcjaZlota, ...]
+    cytowania: tuple[CytowanieZlote, ...]
+    przepisy: tuple[PrzepisZloty, ...]
     przejrzal: str
     data_przegladu: str
 
@@ -165,6 +198,21 @@ def wczytaj_zloty(katalog: Path) -> list[AdnotacjaZlota]:
                         )
                         for s in dane["sekcje"]
                     ),
+                    cytowania=tuple(
+                        CytowanieZlote(
+                            str(c["rodzaj"]),
+                            None if c["sygnatura"] is None else str(c["sygnatura"]),
+                            int(c["start"]),
+                            int(c["koniec"]),
+                        )
+                        for c in dane["cytowania"]
+                    ),
+                    przepisy=tuple(
+                        PrzepisZloty(
+                            str(p["zrodlo"]), str(p["postac"]), str(p["akt"]), int(p["ile"])
+                        )
+                        for p in dane["przepisy"]
+                    ),
                     przejrzal=str(dane["przeglad"]["kto"]),
                     data_przegladu=str(dane["przeglad"]["data"]),
                 )
@@ -189,12 +237,48 @@ def sprawdz_zloty(
             rozbieznosci.append(f"{a.doc_id}: brak tej wersji w korpusie — niesprawdzony")
             continue
         sprawdzonych += 1
-        w_bazie = tuple(SekcjaZlota(s.rodzaj, s.start, s.koniec, s.sha256) for s in d.sekcje)
-        if w_bazie == a.sekcje:
-            zgodnych += 1
+        powody = _rozbieznosci(a, d)
+        if powody:
+            rozbieznosci.extend(f"{a.doc_id}: {powod}" for powod in powody)
         else:
-            rozbieznosci.append(f"{a.doc_id}: granice sekcji inne niż w adnotacji")
+            zgodnych += 1
     return WynikZlotego(len(lista), sprawdzonych, zgodnych, tuple(rozbieznosci))
+
+
+def _postaci_przepisow(d: StrukturaDokumentu) -> list[PrzepisZloty]:
+    """Przepisy zwinięte do postaci, posortowane — porządek pliku nie może zależeć od bazy."""
+    zliczone: Counter[tuple[str, str, str]] = Counter(
+        (p.zrodlo, p.postac, p.akt) for p in d.przepisy
+    )
+    return [
+        PrzepisZloty(zrodlo, postac, akt, ile)
+        for (zrodlo, postac, akt), ile in sorted(zliczone.items())
+    ]
+
+
+def _rozbieznosci(a: AdnotacjaZlota, d: StrukturaDokumentu) -> list[str]:
+    """Czym bieżący odczyt różni się od adnotacji — osobnym zdaniem na każdą z trzech rzeczy.
+
+    Jedno zdanie „coś się nie zgadza" kosztowałoby przy rozbieżności odczytanie pliku ręką;
+    trzy mówią od razu, która część parsera się ruszyła.
+    """
+    powody: list[str] = []
+    if tuple(SekcjaZlota(s.rodzaj, s.start, s.koniec, s.sha256) for s in d.sekcje) != a.sekcje:
+        powody.append("granice sekcji inne niż w adnotacji")
+    cytowania = tuple(
+        CytowanieZlote(c.rodzaj, c.sygnatura, c.start or 0, c.koniec or 0) for c in d.cytowania
+    )
+    if cytowania != a.cytowania:
+        powody.append(
+            f"cytowania inne niż w adnotacji ({len(cytowania)} w bazie, {len(a.cytowania)} w pliku)"
+        )
+    przepisy = tuple(_postaci_przepisow(d))
+    if przepisy != a.przepisy:
+        powody.append(
+            f"przepisy inne niż w adnotacji ({len(przepisy)} postaci w bazie, "
+            f"{len(a.przepisy)} w pliku)"
+        )
+    return powody
 
 
 def adnotacja(d: StrukturaDokumentu, *, kto: str, data: str) -> dict[str, object]:
@@ -205,6 +289,19 @@ def adnotacja(d: StrukturaDokumentu, *, kto: str, data: str) -> dict[str, object
         "sekcje": [
             {"rodzaj": s.rodzaj, "start": s.start, "koniec": s.koniec, "sha256": s.sha256}
             for s in d.sekcje
+        ],
+        "cytowania": [
+            {
+                "rodzaj": c.rodzaj,
+                "sygnatura": c.sygnatura,
+                "start": c.start or 0,
+                "koniec": c.koniec or 0,
+            }
+            for c in d.cytowania
+        ],
+        "przepisy": [
+            {"zrodlo": p.zrodlo, "postac": p.postac, "akt": p.akt, "ile": p.ile}
+            for p in _postaci_przepisow(d)
         ],
         "przeglad": {"kto": kto, "data": data},
     }

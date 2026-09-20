@@ -52,17 +52,30 @@ _ARTYKUL = re.compile(
 )
 """`art. 226 ust. 1 pkt 5 lit. a` — 13 095 trafień `art.` w korpusie (2026-09-19)."""
 
-_PZP_2004 = re.compile(r"(?i)ustaw\w*\s+z\s+dnia\s+29\s+stycznia\s+2004")
-_PZP_2019 = re.compile(r"(?i)ustaw\w*\s+z\s+dnia\s+11\s+wrze[sś]nia\s+2019")
+# Data słownie **albo cyframi**. Zapis cyfrowy („ustawy z dnia 29.01.2004 r. Prawo Zamówień
+# Publicznych") ma w korpusie 3 wystąpienia w 3 dokumentach (pomiar 2026-09-20, 0 żądań) — mało,
+# ale każde z nich dawało wartość **błędną**, a nie brakującą: generyczne „ustawy z dnia" stoi
+# w tym samym miejscu co pełny tytuł, więc przy remisie wygrywa wzorzec zadeklarowany wcześniej,
+# a bez tej gałęzi był nim `inne`. Znalezione okiem w złotym zbiorze (O-4).
+_PZP_2004 = re.compile(r"(?i)ustaw\w*\s+z\s+dnia\s+29(?:\s+stycznia\s+|[.\s-]*0?1[.\s-]*)2004")
+_PZP_2019 = re.compile(r"(?i)ustaw\w*\s+z\s+dnia\s+11(?:\s+wrze[sś]nia\s+|[.\s-]*0?9[.\s-]*)2019")
 
 # Oznaczenie ustawy za przepisem. Kolejność ma znaczenie: pełny tytuł z datą przed skrótem, bo
 # „ustawy z dnia 11 września 2019 r. – Prawo zamówień publicznych" niesie i jedno, i drugie.
 # Postaci skrótu z pomiaru ogonów za `art.` (2026-09-19): `ustawy Pzp` 1 562, `ustawy PZP` 254,
 # `ustawy pzp` 127, `ustawy P.z.p.` 67 i warianty z przecinkiem i kropką.
+#
+# `praw\w*`, a nie `prawa?` — poprawka z przeglądu okiem złotego zbioru (O-4, 2026-09-20).
+# Mianownik „ustawy **Prawo** zamówień publicznych" nie pasował do `prawa?\s+`, bo po „praw"
+# stało „o", a nie spacja. Skutek był cichy i mylący: w zdaniu o kosztach („orzeczono na
+# podstawie art. 574 i 575 ustawy Prawo zamówień publicznych oraz § … rozporządzenia…") wygrywało
+# **następne** oznaczenie w oknie, czyli `rozporządzenie`, i przepis Pzp lądował jako przepis
+# rozporządzenia. Znalezione okiem na 27 przepisach spoza Pzp w złotym zbiorze — automat nie miał
+# jak tego zapalić, bo `rozporzadzenie` jest poprawną wartością pola.
 _OZNACZENIA: tuple[tuple[re.Pattern[str], Akt | None], ...] = (
     (_PZP_2004, "pzp2004"),
     (_PZP_2019, "pzp2019"),
-    (re.compile(r"(?i)\bp\.?\s?z\.?\s?p\b\.?|prawa?\s+zamówień\s+publicznych"), None),
+    (re.compile(r"(?i)\bp\.?\s?z\.?\s?p\b\.?|praw\w*\s+zamówień\s+publicznych"), None),
     (re.compile(r"(?i)\bk\.\s?p\.\s?c\.|kodeksu\s+postępowania\s+cywilnego|\bkpc\b"), "kpc"),
     (re.compile(r"(?i)\bk\.\s?c\.|kodeksu\s+cywilnego|\bkc\b"), "kc"),
     (re.compile(r"(?i)\brozporządzeni"), "rozporzadzenie"),

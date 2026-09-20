@@ -9,6 +9,13 @@ PR #1 scalony do `master`. Praca idzie dalej z listy „Świadomie odłożone" w
 (O-1…O-7) — **przeczytaj ją, zanim cokolwiek zaczniesz**; pozycja stamtąd nie jest do zrobienia
 przy okazji.
 
+**O-4 zamknięte — złoty zbiór niesie cytowania i przepisy.** Adnotacja ma trzy granulacje
+i każda odpowiada temu, co objął przegląd okiem: sekcje i cytowania **per wystąpienie**, przepisy
+**per postać z liczbą**. Przegląd znalazł dwie usterki oznaczania ustawy, których automat nie
+mógł zapalić, bo dawały wartości poprawne co do typu (`rozporzadzenie` zamiast Pzp, `inne`
+zamiast `pzp2004`) — wersja odczytu **6**, 260 przepisów przeniesionych na właściwą ustawę.
+Potwierdzenia właściciela dla tej części jeszcze nie ma i pole `przeglad.kto` mówi to wprost.
+
 **O-3 zamknięte — pomiar 25 (`decisions.md`).** Wersja odczytu **5**; nierozpoznanych
 cytowań 78 → 23 (4,6 % → 1,3 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
 rok czterocyfrowy przy KIO, sądy administracyjne z kodem siedziby i Zespół Arbitrów UZP. Doszły

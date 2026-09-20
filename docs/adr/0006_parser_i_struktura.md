@@ -305,6 +305,29 @@ z dwóch — podnieś wersję albo wpisz nowy odcisk z powodem, dla którego wyn
 Odcisk zapala się także przy zmianie komentarza i to jest cena przyjęta świadomie: alternatywą
 jest cisza, a wynik da się policzyć tylko na korpusie, który leży poza repozytorium.
 
+### 10.5 Złoty zbiór niesie cytowania i przepisy (O-4, 2026-09-20): wersja odczytu 6
+
+§10.1 zawężał adnotację do granic sekcji i podawał powód: cytowań i przepisów nikt nie przejrzał
+okiem, więc wpisanie do adnotacji tego, co parser dziś wyciąga, byłoby adnotacją parsera przez
+samego siebie. Przegląd został wykonany 2026-09-20 i to zawężenie znika. Adnotacja niesie trzy
+rzeczy w trzech granulacjach, bo w takich odbył się przegląd:
+
+- **sekcje** — granice i skrót każdego fragmentu, jak dotąd;
+- **cytowania — per wystąpienie** (91 w 17 dokumentach), bo każde przejrzano z osobna;
+- **przepisy — per postać z liczbą wystąpień** (226 postaci z treści), bo przegląd objął postaci,
+  a nie 856 pojedynczych trafień.
+
+Adnotacja nie ma prawa twierdzić więcej, niż objął przegląd — to jest ta sama zasada, która
+zawęziła ją w §10.1, tylko zastosowana do nowego stanu wiedzy.
+
+Rozbieżność mówi odtąd, **która** z trzech rzeczy się ruszyła, osobnym zdaniem. Jedno zdanie
+„coś się nie zgadza" kazałoby czytać plik ręką przy każdej zmianie parsera.
+
+Przegląd znalazł dwie usterki oznaczania ustawy (`decisions.md`, „Przegląd okiem cytowań
+i przepisów"), obie niewidoczne dla automatu, bo dawały wartości **poprawne co do typu**:
+`rozporzadzenie` zamiast Pzp i `inne` zamiast `pzp2004`. To jest wprost powód, dla którego Z-11
+wymaga człowieka przy adnotacji, a nie tylko zielonej suity.
+
 ### 10.4 Postaci sygnatur z pomiaru 25 (2026-09-20): wersja odczytu 4
 
 Z-9 mówi, że `citations.rodzaj` niesie organ rozpoznany z zapisu. Pomiar 25 rozebrał 78 cytowań,

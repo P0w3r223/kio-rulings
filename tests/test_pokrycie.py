@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ import pytest
 from kio_tool.pokrycie import (
     AdnotacjaZlota,
     SekcjaZlota,
+    adnotacja,
     markdown,
     maszynowy,
     rocznik_z_sygnatury,
@@ -27,7 +29,9 @@ from kio_tool.pokrycie import (
 from kio_tool.store import StrukturaDokumentu, WierszCytowania, WierszPrzepisu, WierszSekcji
 
 KATALOG_ZLOTY = Path(__file__).resolve().parent / "gold"
-KLUCZE_ZLOTEGO = {"doc_id", "content_sha256", "sekcje", "przeglad"}
+KLUCZE_ZLOTEGO = {"doc_id", "content_sha256", "sekcje", "cytowania", "przepisy", "przeglad"}
+KLUCZE_CYTOWANIA = {"rodzaj", "sygnatura", "start", "koniec"}
+KLUCZE_PRZEPISU = {"zrodlo", "postac", "akt", "ile"}
 KLUCZE_SEKCJI = {"rodzaj", "start", "koniec", "sha256"}
 
 
@@ -105,35 +109,56 @@ def test_raport_maszynowy_to_poprawny_json() -> None:
 
 
 def _adnotacja(d: StrukturaDokumentu) -> AdnotacjaZlota:
-    return AdnotacjaZlota(
-        doc_id=d.doc_id,
-        content_sha256=d.content_sha256,
-        sekcje=tuple(SekcjaZlota(s.rodzaj, s.start, s.koniec, s.sha256) for s in d.sekcje),
-        przejrzal="test",
-        data_przegladu="2026-09-19",
-    )
+    dane = adnotacja(d, kto="test", data="2026-09-19")
+    return wczytaj_adnotacje(dane)
+
+
+def wczytaj_adnotacje(dane: dict[str, object]) -> AdnotacjaZlota:
+    """Adnotacja ze słownika — tą samą drogą co plik, żeby test nie budował jej po swojemu."""
+    import json as _json
+    from tempfile import TemporaryDirectory
+
+    with TemporaryDirectory() as katalog:
+        plik = Path(katalog) / "a.json"
+        plik.write_text(_json.dumps(dane, ensure_ascii=False), encoding="utf-8")
+        return wczytaj_zloty(Path(katalog))[0]
+
+
+def _podmien(a: AdnotacjaZlota, **pola: object) -> AdnotacjaZlota:
+    return replace(a, **pola)
 
 
 def test_zloty_zgodny_niezgodny_i_niesprawdzony() -> None:
     a, b = _dok("a"), _dok("b")
-    przesuniete = _adnotacja(b)
-    przesuniete = AdnotacjaZlota(
-        przesuniete.doc_id,
-        przesuniete.content_sha256,
-        (SekcjaZlota("naglowek", 0, 11, "s0"), *przesuniete.sekcje[1:]),
-        "test",
-        "2026-09-19",
+    przesuniete = _podmien(
+        _adnotacja(b),
+        sekcje=(SekcjaZlota("naglowek", 0, 11, "s0"), *_adnotacja(b).sekcje[1:]),
     )
-    brak = AdnotacjaZlota("zniknal", "x", (), "test", "2026-09-19")
+    brak = _podmien(_adnotacja(a), doc_id="zniknal", content_sha256="x")
     wynik = sprawdz_zloty([_adnotacja(a), przesuniete, brak], {"a": a, "b": b})
     assert (wynik.plikow, wynik.sprawdzonych, wynik.zgodnych) == (3, 2, 1)
     assert any("zniknal" in r and "niesprawdzony" in r for r in wynik.rozbieznosci)
 
 
+def test_rozbiezne_cytowanie_i_rozbiezny_przepis_maja_osobne_zdania() -> None:
+    """O-4: adnotacja niesie trzy rzeczy, więc rozbieżność ma powiedzieć, która się ruszyła.
+
+    Jedno zdanie „coś się nie zgadza" kazałoby czytać plik ręką przy każdej zmianie parsera.
+    """
+    a = _dok("a")
+    bez_cytowan = _podmien(_adnotacja(a), cytowania=())
+    bez_przepisow = _podmien(_adnotacja(a), przepisy=())
+
+    powody = sprawdz_zloty([bez_cytowan, bez_przepisow], {"a": a}).rozbieznosci
+
+    assert any("cytowania inne" in r for r in powody), powody
+    assert any("przepisy inne" in r for r in powody), powody
+    assert not any("granice sekcji" in r for r in powody), powody
+
+
 def test_inna_wersja_dokumentu_to_niesprawdzony_nie_zgodny() -> None:
     a = _dok("a")
-    stara = _adnotacja(a)
-    stara = AdnotacjaZlota(stara.doc_id, "inny-skrot", stara.sekcje, "test", "2026-09-19")
+    stara = _podmien(_adnotacja(a), content_sha256="inny-skrot")
     wynik = sprawdz_zloty([stara], {"a": a})
     assert (wynik.sprawdzonych, wynik.zgodnych) == (0, 0)
 
@@ -156,6 +181,14 @@ def test_zlote_pliki_w_repozytorium_nie_niosa_tekstu() -> None:
         for sekcja in dane["sekcje"]:
             assert set(sekcja) == KLUCZE_SEKCJI, plik.name
             assert re.fullmatch(r"[0-9a-f]{64}", sekcja["sha256"]), plik.name
+        # Cytowania i przepisy niosą **sygnaturę i postać przepisu**, nigdy zdania orzeczenia:
+        # `surowy` zostaje w bazie operatora, bo to jest fragment tekstu, a ten w repozytorium
+        # nie stoi (Z-11, pomiar 10).
+        for cytowanie in dane["cytowania"]:
+            assert set(cytowanie) == KLUCZE_CYTOWANIA, plik.name
+        for przepis in dane["przepisy"]:
+            assert set(przepis) == KLUCZE_PRZEPISU, plik.name
+            assert przepis["postac"].startswith("art. "), plik.name
     assert len(wczytaj_zloty(KATALOG_ZLOTY)) == len(pliki)
 
 
