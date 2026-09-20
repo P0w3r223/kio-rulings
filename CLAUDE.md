@@ -36,7 +36,14 @@ przed przyjęciem (ADR-0008 §13). **Faza 4 stoi za bramką warunkową i jest ni
 
 **Zanim cokolwiek dopiszesz: `docs/decisions.md`, sekcja „Świadomie odłożone"** — siedem pozycji
 (O-1…O-7) z powodem odłożenia i z tym, co każdą odblokuje. Pozycja stamtąd nie jest do zrobienia
-przy okazji; asystent językowy (O-6) ma przed sobą bramkę AI Act i ADR o treści orzeczeń.
+przy okazji.
+
+**Asystenta językowego nie będzie — decyzja właściciela z 2026-09-20, nie odłożenie.** O-6 jest
+zamknięte odmownie, więc **nie proponuj go ponownie i nie wprowadzaj SDK modelu do tego drzewa**;
+konsekwencją jest brak drugiego właściciela klienta HTTP, drugiego wyjścia z procesu i łańcucha
+poświadczeń, a przez to zdanie „narzędzie nie wysyła żądań poza kanał, z którego pobiera" bez
+wyjątku i bez flagi. Bramka AI Act przed fazą 4 stoi mimo to, bo serwer MCP (`ARCHITEKTURA` §3.8 —
+taki jest kształt fazy 4, nie asystent w procesie) oddaje tekst modelowi po drugiej stronie.
 
 **Kreator mówi operatorowi, co robić** (zgłoszenie z 2026-09-20): każde pytanie tekstowe ma
 podpowiedź (`Pytanie.podpowiedz` — strażnikiem jest test, który nie przepuszcza pytania bez niej),
