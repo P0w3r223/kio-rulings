@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20
-Status: przyjęty — cztery decyzje właściciela z 2026-09-20 w sekcji 0; slajdów jeszcze nie ma
+Status: **wykonany** — `prezentacja-kio-ekran.html` złożona 2026-09-20 (17 slajdów)
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -39,7 +39,7 @@ procesu; korpus operatora nie pojawia się na ekranie rzutnika w żadnej postaci
 
 ---
 
-## 2. Układ slajdów (16, jak we wzorcu)
+## 2. Układ slajdów (17, jak we wzorcu — patrz sprostowanie pod tabelą)
 
 | # | Twierdzenie slajdu | Czym poparte |
 |---|---|---|
@@ -60,9 +60,17 @@ procesu; korpus operatora nie pojawia się na ekranie rzutnika w żadnej postaci
 | 15 | Stan przekazania: fazy 0–3 przyjęte, faza 4 za bramką warunkową | `decisions.md`, ADR-0008 §13 |
 | 16 | Siedem zdań do zapamiętania | — |
 
+**Sprostowanie liczby slajdów.** Ten plik mówił „16, jak we wzorcu"; wzorzec ma **17** — szesnaste
+to podsumowanie, siedemnaste zamknięcie z propozycją pokazu na żywo. Złożona prezentacja ma 17
+i taki jest układ w tabeli wyżej. Liczba wzięta z pamięci zamiast z pliku — dokładnie ten błąd,
+przed którym ostrzega sekcja 4.
+
 Slajd 8 i slajd 12 są w tym zestawie celowo: prezentacja `ceidg-tool` wygrywa tym, że **pokazuje
 usterkę i jej naprawę**, a nie tylko listę możliwości. Narzędzie, które opowiada, co mu się
 zepsuło i jak to zauważyło, jest wiarygodniejsze od takiego, które jest samą zaletą.
+
+**Notatki prelegenta.** Każdy slajd niesie `<aside>` z jednym akapitem: po co ten slajd stoi
+w tym miejscu i czego spodziewać się z sali. Otwiera je klawisz `N`; na rzutniku są niewidoczne.
 
 ---
 
@@ -116,9 +124,15 @@ już pobranych.
 ## 5. Forma
 
 Jeden plik HTML, samowystarczalny, bez połączenia z siecią przy wyświetlaniu — tak jak
-`prezentacja-ceidg-ekran.html` (275 KB, style i skrypt w pliku). Slajd = `<section class="slide">`
-z głową, treścią i stopką; stopka niesie źródło i datę. Wersja ekranowa ma proporcje 16:9
-i nawigację klawiszami.
+`prezentacja-ceidg-ekran.html`. Slajd = `<section class="slide">` z głową, treścią i stopką;
+stopka niesie źródło i datę. Nawigacja klawiszami (`←` `→`, `N` notatki), pasek postępu na dole.
+
+**Stan wykonania: `prezentacja-kio-ekran.html`, 264 KB, 17 slajdów.** Z tego 214 KB to trzy fonty
+osadzone w pliku jako `@font-face` — przeniesione z wzorca, żeby prezentacja wyglądała tak samo
+na każdej maszynie i **nie odpytywała żadnego serwera fontów**. Sprawdzone po złożeniu: w pliku
+nie ma ani jednego odwołania do adresu zewnętrznego (`http`, `https`, `src=`, `href=`), a znaczniki
+są domknięte. Plik otwiera się dwuklikiem, bez serwera i bez internetu; motyw jasny i ciemny idzie
+za ustawieniem systemu.
 
 Plik prezentacji **nie wchodzi do repozytorium `kio-tool`**, tak samo jak wzorzec `ceidg`
 (nieśledzony w drzewie Kio): niesie treści prezentacyjne, a nie kod, i żyje własnym cyklem.
