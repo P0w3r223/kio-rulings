@@ -943,6 +943,31 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 
 ---
 
+## Domknięcie projektu przed prezentacją — sześć decyzji (2026-09-20)
+
+Runda pytań zamykająca projekt. Zapisane razem, bo razem zapadły i razem tłumaczą stan drzewa,
+który zobaczy odbiorca prezentacji.
+
+| # | Pytanie | Decyzja właściciela | Skutek |
+|---|---|---|---|
+| 1 | Otwarty PR #2 na GitHubie | **Zamknąć bez scalania** | Zamknięty 2026-09-20 z komentarzem wyjaśniającym; niósł stan sprzed sześciu commitów, więc opisywał wersję, której już nie ma. Gałąź zdalna zostaje nietknięta |
+| 2 | Przegląd cytowań i przepisów (O-4) | **Potwierdzony** | `przeglad.kto` w 17 plikach niesie jedno zdanie zamiast dwóch faktów o różnym statusie; O-4 zamknięte w całości |
+| 3 | Rozbicie `store.py` (1 466) i `pipeline.py` (971) — O-5 | **Zostaje długiem** | Rozbijanie 2 437 linii tuż przed oddaniem to ryzyko regresu bez zysku dla odbiorcy. Sufit w `test_boundaries.py` pilnuje, że nie urosną, a pozycja idzie na slajd jako **zmierzony dług**, nie jako cisza |
+| 4 | Gałąź `feat/odlozone-sygnatury` | **Scalona lokalnie do `master`** | Sześć commitów przewinięte do przodu bez scalenia-commita; **nic nie wysłane** |
+| 5 | Odbiorca prezentacji | **Zarząd**, rejestr jak w `ceidg-tool` | `docs/prezentacja/plan.md` §0 |
+| 6 | Forma prezentacji | Sama wersja **ekranowa**, ekrany jako **makiety HTML** z trybu pokazowego, narzędzie **stoi samo** | `docs/prezentacja/plan.md` §0 |
+
+Decyzja 3 zasługuje na zdanie więcej, bo wygląda jak odpuszczenie, a nim nie jest. Dług, który
+ma **wpis z pomiarem, zakaz wzrostu i strażnika w suicie**, jest czymś innym niż dług przemilczany:
+pierwszy jest stanem wybranym, drugi — stanem odkrytym po czasie. Na slajdzie ma paść w tej
+pierwszej postaci.
+
+Po tej rundzie otwarte zostają **O-1, O-2, O-5 i O-7** — i wszystkie cztery z tego samego powodu:
+trzy wymagają przebiegu z siecią albo decyzji o drugim kanale, a czwarty jest świadomym długiem.
+Żadna z nich nie blokuje przekazania narzędzia.
+
+---
+
 ## Asystent językowy — rezygnacja, nie odłożenie (2026-09-20)
 
 Właściciel zrezygnował z asystenta językowego. O-6 schodzi z listy odłożonych jako **„nie"**,

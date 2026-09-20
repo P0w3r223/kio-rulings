@@ -29,11 +29,16 @@ TSUE wyglądał na zbędny, a jego zdjęcie dało 3 trafienia poprawne i 12 fał
 a to, że organ dopisaliśmy z kontekstu, niesie rodzaj. Wzorzec sam numer wolno wołać **wyłącznie
 zza zapowiedzi** `sygn. akt` — puszczony po tekście łapie numery stron i kwoty.
 
-### Stan na 2026-09-20 — przyjęcie faz 2 i 3 (gałąź `feat/finalizacja-faz-2-3`, PR #1)
+### Stan na 2026-09-20 — fazy 2 i 3 przyjęte, projekt domknięty przed prezentacją (`master`)
 
 Właściciel przyjął fazy 2 i 3 i potwierdził złoty zbiór (`docs/decisions.md`, „Przyjęcie faz 2
 i 3"). Przejście operatora na pokazie wykonane, trzy zgłoszone usterki interfejsu naprawione
 przed przyjęciem (ADR-0008 §13). **Faza 4 stoi za bramką warunkową i jest nietknięta.**
+
+Sześć commitów z pracy nad odłożonymi pozycjami jest **scalonych lokalnie do `master`**; PR #2
+zamknięty bez scalania, bo niósł stan sprzed nich (`decisions.md`, „Domknięcie projektu przed
+prezentacją"). **Nic nie wysyłamy bez wyraźnej prośby właściciela** — to zasada, nie stan
+przejściowy. Otwarte zostają O-1, O-2, O-5 i O-7; żadna z nich nie blokuje przekazania.
 
 **Zanim cokolwiek dopiszesz: `docs/decisions.md`, sekcja „Świadomie odłożone"** — siedem pozycji
 (O-1…O-7) z powodem odłożenia i z tym, co każdą odblokuje. Pozycja stamtąd nie jest do zrobienia
