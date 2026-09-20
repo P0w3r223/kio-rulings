@@ -65,6 +65,46 @@ orzeczenia. Rozumowanie należy do Ciebie; narzędzie dostarcza materiał i mów
 Kreator (`kio-tool` bez polecenia) jest dla człowieka — zadaje pytania interaktywnie. Ty używaj
 poleceń z flagami.
 
+## 4a. Kod wyjścia mówi, co zrobić dalej
+
+Narzędzie kończy się kodem, który niesie decyzję, a nie tylko „coś poszło źle". Czytaj go, zanim
+przeczytasz komunikat.
+
+| Kod | Znaczenie | Co z tym zrobić |
+|---|---|---|
+| `0` | Wykonane | — |
+| `1` | Błąd zwykły, w tym przerwanie przez operatora | Przeczytaj komunikat ze **stderr** i zdecyduj |
+| `2` | Przebieg **da się wznowić** | Uruchom `kio-tool wznow` — nie powtarzaj `pobierz`, bo to nowy przebieg |
+| `3` | Konfiguracja, uprawnienia albo brak zgody | **Nie ponawiaj.** Poproś operatora — sam tego nie naprawisz |
+
+Komunikaty o błędach idą na **stderr**, wyniki na **stdout**. Strumienie są rozdzielone celowo,
+więc możesz czytać wynik bez filtrowania go z ostrzeżeń.
+
+## 4b. Pułapka potoku: bez terminala tabela łamie się na 80 znakach
+
+Wyniki są drukowane jako tabela dla człowieka. Kiedy przekierujesz je do potoku albo do pliku,
+biblioteka rysująca nie zna szerokości terminala i **przyjmuje 80 znaków**, po czym łamie wartości
+w środku. Zmierzone: identyfikator przebiegu `atlas-5e3048a63b05` rozpada się na trzy wiersze,
+a zakres dat na dwa — czyli dokładnie to, czego potrzebujesz do `eksportuj --run-id`, staje się
+nie do odczytania.
+
+**Obejście: ustaw `COLUMNS` przed wywołaniem.**
+
+```
+COLUMNS=200 kio-tool runy --limit 5
+```
+
+Sprawdzone: przy `COLUMNS=200` identyfikatory i daty mieszczą się w jednym wierszu.
+
+**Droga pewniejsza niż parsowanie tabeli.** Tam, gdzie wynik ma być maszynowy, używaj wyjść, które
+maszynowe są z założenia:
+
+- `kio-tool eksportuj --format jsonl` — jeden dokument na wiersz, pełne pola, plik na dysku;
+- `kio-tool pokrycie` — obok raportu `.md` zapisuje **`.json`** z tymi samymi liczbami.
+
+Dopóki `szukaj` nie ma wyjścia strukturalnego (pozycja otwarta, patrz sekcja 9), traktuj jego
+tabelę jako **podgląd dla człowieka**, a materiał do dalszej pracy bierz z eksportu.
+
 ## 5. Co da się wyszukać
 
 Te same filtry działają w `szukaj`, `eksportuj` i `pobierz`:
@@ -135,3 +175,22 @@ projektu to 464 żądania.
 - Nie cytuj długich fragmentów uzasadnień do plików i wiadomości. Korpus zawiera dane osobowe,
   a treść orzeczeń świadomie nie trafia do repozytorium.
 - Nie zgaduj tam, gdzie narzędzie mówi „nieustalone". Przekaż tę wartość taką, jaka jest.
+
+---
+
+## 9. Czego temu narzędziu brakuje z Twojego punktu widzenia (stan 2026-09-20)
+
+Zapisane tutaj, żebyś nie szukał czegoś, czego nie ma, i nie zakładał, że źle wołasz polecenie.
+
+- **Brak `--json` w poleceniach odczytu.** `szukaj`, `runy` i `przelicz` mówią wyłącznie tabelą
+  dla człowieka. Jedyne wyjścia strukturalne to `eksportuj --format jsonl` i `.json` z `pokrycie`.
+- **Brak serwera, przez który sięgałbyś do korpusu narzędziami zamiast powłoką.** Taki jest
+  kształt etapu czwartego (`docs/ARCHITEKTURA_KIO_TOOL.md` §3.8), który stoi za bramką zgodności.
+- **Kolumna `fragment` w wyniku `szukaj` jest przycięta pod ekran** i nie ma flagi, która by ją
+  poszerzyła. Po szerszy kontekst idź eksportem.
+- **Nie ma trybu „tylko policz".** Żeby poznać liczbę trafień, wołasz `szukaj` i czytasz zdanie
+  nad tabelą; przy `--limit 0` tabela i tak się rysuje.
+
+Żadna z tych rzeczy nie blokuje pracy — wszystkie mają obejście opisane wyżej. Ale jeśli operator
+pyta, czy narzędzie jest „gotowe pod agenta", odpowiedź brzmi: **budowa i zasady tak, kanał
+wyjścia jeszcze nie**.
