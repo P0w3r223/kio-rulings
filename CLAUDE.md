@@ -3,7 +3,25 @@
 Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej. Nowe repozytorium,
 wzorce przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 
-## Stan na 2026-09-20 (gałąź `feat/finalizacja-faz-2-3`, PR #1)
+## Stan na 2026-09-20 — **fazy 2 i 3 przyjęte** (gałąź `feat/finalizacja-faz-2-3`, PR #1)
+
+Właściciel przyjął fazy 2 i 3 i potwierdził złoty zbiór (`docs/decisions.md`, „Przyjęcie faz 2
+i 3"). Przejście operatora na pokazie wykonane, trzy zgłoszone usterki interfejsu naprawione
+przed przyjęciem (ADR-0008 §13). **Faza 4 stoi za bramką warunkową i jest nietknięta.**
+
+**Zanim cokolwiek dopiszesz: `docs/decisions.md`, sekcja „Świadomie odłożone"** — siedem pozycji
+(O-1…O-7) z powodem odłożenia i z tym, co każdą odblokuje. Pozycja stamtąd nie jest do zrobienia
+przy okazji; asystent językowy (O-6) ma przed sobą bramkę AI Act i ADR o treści orzeczeń.
+
+**Kreator mówi operatorowi, co robić** (zgłoszenie z 2026-09-20): każde pytanie tekstowe ma
+podpowiedź (`Pytanie.podpowiedz` — strażnikiem jest test, który nie przepuszcza pytania bez niej),
+pozycje menu niosą liczbę orzeczeń i informację, czy kosztują żądania, a pierwszy ekran pokazuje
+stan korpusu i cztery zdania o obsłudze (`texts.JAK_TO_DZIALA`). Listy wyboru: **bez `default=`**,
+domyślna opcja na czele, jawny styl `reverse bold`; pytania tak/nie **nie** przez
+`questionary.confirm`. Powody w docstringu `ui/prompts.py` — oba defekty kosztowały już raz
+w `ceidg-tool`.
+
+### Stan na 2026-09-20 (przegląd kodu fazy 3)
 
 **Przegląd kodu fazy 3 wykonany** (`decisions.md`, „Przegląd kodu fazy 3"); wszystkie znaleziska
 naniesione. Co zmienia zastane odruchy:

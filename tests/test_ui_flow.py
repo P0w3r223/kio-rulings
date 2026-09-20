@@ -48,6 +48,7 @@ class Akcje:
     blad: Exception | None = None
     prog_zgody: int = 50
     trafien: int = 3
+    w_korpusie: int = 443
     czas_pokazu: Callable[[float], float] | None = None
     pobrania: list[Criteria] = field(default_factory=list)
     werdykty: list[str] = field(default_factory=list)
@@ -56,6 +57,14 @@ class Akcje:
 
     def brak_kontaktu(self) -> str | None:
         return self.kontakt
+
+    def stan(self) -> texts.StanKorpusu:
+        return texts.StanKorpusu(
+            dokumentow=self.w_korpusie,
+            zaindeksowanych=self.w_korpusie,
+            przerwanych=len(self.przebiegi),
+            sciezka="korpus.sqlite",
+        )
 
     def wznawialne(self) -> Sequence[tuple[str, str]]:
         return self.przebiegi

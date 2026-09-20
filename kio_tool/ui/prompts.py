@@ -116,7 +116,7 @@ class KonsolaPrompter:
             return self._wybor(pytanie)
         if pytanie.rodzaj == "tak_nie":
             return self._tak_nie(pytanie)
-        return self._linia(f"{pytanie.tresc} ").strip() or (pytanie.domyslna or "")
+        return self._linia(f"{texts.linia_tekstowa(pytanie)} ").strip() or (pytanie.domyslna or "")
 
     def _wybor(self, pytanie: Pytanie) -> str:
         opcje = opcje_do_wyboru(pytanie)

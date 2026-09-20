@@ -24,10 +24,13 @@ KROKI = {
 
 def uruchom(prompter: Prompter, akcje: Akcje, ekran: Ekran, *, pokaz: bool = False) -> None:
     """Pętla kreatora do „Wyjdź" albo `Ctrl+C` w menu."""
-    ekran.block(texts.pierwszy_ekran(pokaz=pokaz))
+    ekran.block(texts.pierwszy_ekran(pokaz=pokaz, stan=akcje.stan()))
     while True:
         try:
-            wybor = prompter.zapytaj(texts.pytanie_menu(jest_co_wznowic=bool(akcje.wznawialne())))
+            stan = akcje.stan()
+            wybor = prompter.zapytaj(
+                texts.pytanie_menu(jest_co_wznowic=bool(stan.przerwanych), stan=stan)
+            )
         except KeyboardInterrupt:
             return
         krok = KROKI.get(wybor)

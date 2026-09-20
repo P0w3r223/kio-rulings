@@ -86,7 +86,9 @@ przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o
 ```
 
 **Kreator** (ADR-0008) prowadzi przez pobranie, wznowienie, wyszukiwanie i eksport bez znajomości
-poleceń. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
+poleceń. Pierwszy ekran pokazuje, co masz w bazie i jak się tym steruje; każda pozycja menu mówi,
+co zrobi i czy kosztuje żądania; każde pytanie tekstowe niesie podpowiedź — format daty, przykład
+sygnatury, znaczenie pustej odpowiedzi. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
 najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to około trzech dób, nie godzina) —
 i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Zgoda dotyczy **tej liczby**:
 przebieg, który wyszedłby poza wycenę (kanał pomylił się co do rozmiaru zakresu albo zakres

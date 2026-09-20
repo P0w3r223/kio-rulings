@@ -159,3 +159,82 @@ def test_czas_ludzki_odmienia_doby_takze_powyzej_dwudziestu_jeden() -> None:
     assert texts.czas_ludzki(12 * doba) == "12 dób 0 h"
     assert texts.czas_ludzki(22 * doba) == "22 doby 0 h"
     assert texts.czas_ludzki(25 * doba) == "25 dób 0 h"
+
+
+# --- podpowiedzi dla operatora, który nie zna narzędzia (zgłoszenie z 2026-09-20) --------------
+
+
+def test_kazde_pytanie_tekstowe_ma_podpowiedz() -> None:
+    """Pytanie tekstowe bez podpowiedzi nie mówi, co wolno wpisać.
+
+    To jest strażnik zgłoszenia operatora: „użytkownik, który nie jest zapoznany z tematem,
+    nie będzie wiedzieć, co należy wpisać". Pole wyboru podpowiedzi nie potrzebuje — opcje
+    widać — ale pole tekstowe jest pustą linią, a format daty albo znaczenie pustej odpowiedzi
+    nie są odgadywalne.
+    """
+    tekstowe = {
+        nazwa: p
+        for nazwa, p in vars(texts).items()
+        if isinstance(p, texts.Pytanie) and p.rodzaj == "tekst"
+    }
+    bez_podpowiedzi = sorted(nazwa for nazwa, p in tekstowe.items() if not p.podpowiedz.strip())
+
+    assert tekstowe, "skan pusty — pytania tekstowe przestały być stałymi modułu"
+    assert not bez_podpowiedzi, bez_podpowiedzi
+
+
+def test_linia_tekstowa_sklada_podpowiedz_i_domyslna() -> None:
+    goły = texts.Pytanie(tresc="Data", rodzaj="tekst")
+    assert texts.linia_tekstowa(goły) == "Data"
+
+    z_podpowiedzia = texts.Pytanie(tresc="Data", rodzaj="tekst", podpowiedz="RRRR-MM-DD")
+    assert texts.linia_tekstowa(z_podpowiedzia) == "Data (RRRR-MM-DD)"
+
+    z_domyslna = texts.Pytanie(
+        tresc="Data", rodzaj="tekst", podpowiedz="RRRR-MM-DD", domyslna="2024-01-01"
+    )
+    assert texts.linia_tekstowa(z_domyslna) == "Data (RRRR-MM-DD) [domyślnie: 2024-01-01]"
+
+
+def test_pierwszy_ekran_niesie_stan_korpusu_i_zasady_obslugi() -> None:
+    """Operator ma po pierwszym ekranie wiedzieć, co ma w ręku i jak się tym steruje."""
+    stan = texts.StanKorpusu(
+        dokumentow=443, zaindeksowanych=440, przerwanych=2, sciezka="C:/baza/korpus.sqlite"
+    )
+    tekst = texts.pierwszy_ekran(pokaz=False, stan=stan).as_text()
+
+    assert "443" in tekst and "440 z 443" in tekst
+    assert "C:/baza/korpus.sqlite" in tekst
+    assert "przerwane pobrania | 2" in tekst
+    for zdanie in texts.JAK_TO_DZIALA:
+        assert zdanie in tekst
+
+    bez_stanu = texts.pierwszy_ekran(pokaz=False).as_text()
+    assert "443" not in bez_stanu, "bez stanu ekran nie zmyśla liczb"
+
+
+def test_pozycje_menu_mowia_czy_kosztuja_zadania() -> None:
+    stan = texts.StanKorpusu(
+        dokumentow=443, zaindeksowanych=443, przerwanych=1, sciezka="korpus.sqlite"
+    )
+    etykiety = {
+        o.klucz: o.etykieta for o in texts.pytanie_menu(jest_co_wznowic=True, stan=stan).opcje
+    }
+
+    assert "443 orzeczenia" in etykiety[texts.MENU_SZUKAJ]
+    assert "bez sieci" in etykiety[texts.MENU_SZUKAJ]
+    assert "bez sieci" in etykiety[texts.MENU_EKSPORTUJ]
+    assert "koszt" in etykiety[texts.MENU_POBIERZ]
+    assert texts.MENU_WZNOW in etykiety
+
+
+def test_odmiana_liczebnika_po_polsku() -> None:
+    """Ta sama reguła dla dób i orzeczeń — licznik odmieniany osobno rozjeżdża się w trzecim."""
+    assert texts.orzeczen(1) == "1 orzeczenie"
+    assert texts.orzeczen(3) == "3 orzeczenia"
+    assert texts.orzeczen(5) == "5 orzeczeń"
+    assert texts.orzeczen(12) == "12 orzeczeń"
+    assert texts.orzeczen(22) == "22 orzeczenia"
+    assert texts.orzeczen(443) == "443 orzeczenia"
+    assert texts.orzeczen(445) == "445 orzeczeń"
+    assert texts.orzeczen(0) == "0 orzeczeń"

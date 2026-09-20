@@ -304,3 +304,14 @@ I druga: `tests/test_wersja_odczytu.py` trzyma **odcisk SHA-256 źródeł odczyt
 z dwóch — podnieś wersję albo wpisz nowy odcisk z powodem, dla którego wynik się nie zmienia.
 Odcisk zapala się także przy zmianie komentarza i to jest cena przyjęta świadomie: alternatywą
 jest cisza, a wynik da się policzyć tylko na korpusie, który leży poza repozytorium.
+
+### 10.3 Złoty zbiór potwierdzony przez właściciela (2026-09-20)
+
+Z-11 mówi, że adnotacja ma **przejrzanego człowieka za sobą**. Do 2026-09-20 pole `przeglad.kto`
+kończyło się słowami „do potwierdzenia przez właściciela" — czyli mówiło prawdę o tym, że przegląd
+wykonał model, i że nikt tego nie potwierdził. Właściciel potwierdził zbiór 2026-09-20; pole niesie
+odtąd obie informacje naraz, bo to są dwa różne fakty i żaden nie zastępuje drugiego.
+
+Cytowania i przepisy **nadal** nie mają adnotacji (§10.1) i to zostaje na liście świadomie
+odłożonych jako O-4 w `docs/decisions.md`. Faza 2 jest przyjęta z tym brakiem, nie mimo niego:
+adnotacja parsera napisana przez samego parsera byłaby gorsza niż jej nieobecność.

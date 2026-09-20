@@ -62,6 +62,11 @@ class Pytanie:
     rodzaj: RodzajPytania = "wybor"
     opcje: tuple[Opcja, ...] = ()
     domyslna: str | None = None
+    podpowiedz: str = ""
+    """Co wolno wpisać, w nawiasie za pytaniem — format daty, przykład, znaczenie pustej
+    odpowiedzi. Operator, który nie zna narzędzia, nie ma tego skąd wiedzieć, a pytanie bez
+    podpowiedzi wygląda tak samo jak pytanie, na które jest jedna poprawna odpowiedź
+    (wzorzec z `ceidg-tool`, zgłoszenie operatora 2026-09-20)."""
 
 
 # ------------------------------------------------------------------------ pomoc poleceń
@@ -337,17 +342,25 @@ def czas_ludzki(sekundy: float) -> str:
     if godziny < 24:
         return f"{godziny} h {minuty} min"
     doby, godziny = divmod(godziny, 24)
-    return f"{doby} {_doby(doby)} {godziny} h"
+    return f"{doby} {odmiana(doby, 'doba', 'doby', 'dób')} {godziny} h"
 
 
-def _doby(ile: int) -> str:
-    """Odmiana licznika dób. Wycena rocznika idzie w dziesiątki dób, a reguła „od pięciu dób”
-    kończy się na 21: poprawne jest „22 doby”, nie „22 dób” (przegląd kodu fazy 3, 2026-09-20)."""
+def odmiana(ile: int, jedna: str, kilka: str, wiele: str) -> str:
+    """Polski liczebnik: 1 doba, 2–4 doby, 5+ dób — z wyjątkiem nastek (12, 13, 14).
+
+    Reguła „od pięciu — forma mnoga” kończy się na 21: poprawne jest „22 doby”, nie „22 dób”
+    (przegląd kodu fazy 3, 2026-09-20). Jedna funkcja, bo ten sam błąd wyszedł potem przy
+    liczbie orzeczeń w menu — licznik odmieniany w dwóch miejscach rozjeżdża się w trzecim."""
     if ile == 1:
-        return "doba"
+        return jedna
     if ile % 10 in (2, 3, 4) and ile % 100 not in (12, 13, 14):
-        return "doby"
-    return "dób"
+        return kilka
+    return wiele
+
+
+def orzeczen(ile: int) -> str:
+    """`443` → `443 orzeczenia`, `445` → `445 orzeczeń`."""
+    return f"{ile} {odmiana(ile, 'orzeczenie', 'orzeczenia', 'orzeczeń')}"
 
 
 def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | None = None) -> Block:
@@ -557,7 +570,35 @@ FRAZA_TO_SYGNATURA = (
 )
 
 
-def pierwszy_ekran(*, pokaz: bool) -> Block:
+@dataclass(frozen=True)
+class StanKorpusu:
+    """Liczby, które kreator pokazuje **zanim** operator cokolwiek wybierze.
+
+    Pierwszy ekran bez stanu mówi, czym narzędzie jest; ekran ze stanem mówi, co operator ma
+    w ręku — a to jest ta informacja, której brakowało, żeby wybrać pozycję menu świadomie.
+    Zero żądań: wszystkie trzy liczby są odczytem z lokalnej bazy.
+    """
+
+    dokumentow: int
+    zaindeksowanych: int
+    przerwanych: int
+    sciezka: str
+
+
+JAK_TO_DZIALA: tuple[str, ...] = (
+    "Strzałki ↑↓ wybierają pozycję, Enter zatwierdza. W pytaniach tekstowych Enter bez "
+    "wpisywania przyjmuje odpowiedź podaną w nawiasie kwadratowym.",
+    "Każde pobranie pokazuje najpierw koszt — ile dokumentów, ile żądań i ile to potrwa — "
+    "i dopiero wtedy pyta o zgodę. Nic nie wychodzi do sieci przed tą odpowiedzią.",
+    "Ctrl+C przerywa bieżącą czynność i wraca do menu, a w menu kończy program. Przerwane "
+    "pobranie wznowisz później od miejsca, w którym stanęło — nic nie pobierze się dwa razy.",
+    "Szukanie i eksport czytają wyłącznie lokalną bazę: zero żądań, działają bez internetu.",
+)
+"""Cztery zdania o obsłudze narzędzia, nie o jego przeznaczeniu. Stoją na pierwszym ekranie,
+bo operator czyta go raz i wtedy właśnie decyduje, czy wie, co robić."""
+
+
+def pierwszy_ekran(*, pokaz: bool, stan: StanKorpusu | None = None) -> Block:
     """Pierwszy ekran kreatora; w trybie pokazowym — pierwszy z sześciu znaczników (Z-3)."""
     if pokaz:
         return Block(
@@ -572,22 +613,40 @@ def pierwszy_ekran(*, pokaz: bool) -> Block:
         )
     return Block(
         title="kio-tool — korpus orzecznictwa Krajowej Izby Odwoławczej",
-        notes=(
-            "Wybierz, co zrobić. Każde pobranie pokazuje najpierw koszt i pyta o zgodę.",
-            "Wyjście w każdej chwili: Ctrl+C albo pozycja „Wyjdź”.",
-        ),
+        rows=_wiersze_stanu(stan),
+        notes=JAK_TO_DZIALA,
     )
 
 
-def pytanie_menu(*, jest_co_wznowic: bool) -> Pytanie:
+def _wiersze_stanu(stan: StanKorpusu | None) -> tuple[tuple[str, ...], ...]:
+    if stan is None:
+        return ()
+    wiersze = [
+        ("orzeczeń w korpusie", str(stan.dokumentow)),
+        ("gotowych do szukania", f"{stan.zaindeksowanych} z {stan.dokumentow}"),
+        ("baza", stan.sciezka),
+    ]
+    if stan.przerwanych:
+        wiersze.insert(0, ("przerwane pobrania", str(stan.przerwanych)))
+    return tuple(wiersze)
+
+
+def pytanie_menu(*, jest_co_wznowic: bool, stan: StanKorpusu | None = None) -> Pytanie:
+    """Menu, w którym każda pozycja mówi, co zrobi i czy kosztuje żądania.
+
+    Gołe etykiety („Szukaj w korpusie") nie odpowiadają na jedyne pytanie, jakie ma operator
+    przy pierwszym uruchomieniu: czy to wyśle coś do sieci i ile tego jest. Liczby pochodzą
+    z lokalnej bazy (wzorzec z `ceidg-tool`, gdzie pozycja menu niesie koszt w żądaniach).
+    """
+    w_korpusie = "" if stan is None else f" — {orzeczen(stan.zaindeksowanych)}, bez sieci"
     opcje = [
-        Opcja(MENU_POBIERZ, "Pobierz orzeczenia"),
-        Opcja(MENU_SZUKAJ, "Szukaj w korpusie"),
-        Opcja(MENU_EKSPORTUJ, "Eksportuj z korpusu"),
+        Opcja(MENU_POBIERZ, "Pobierz orzeczenia — najpierw koszt i pytanie o zgodę"),
+        Opcja(MENU_SZUKAJ, f"Szukaj w korpusie{w_korpusie}"),
+        Opcja(MENU_EKSPORTUJ, "Eksportuj z korpusu — Excel, Markdown, CSV albo JSONL; bez sieci"),
         Opcja(MENU_WYJDZ, "Wyjdź"),
     ]
     if jest_co_wznowic:
-        opcje.insert(0, Opcja(MENU_WZNOW, "Wznów przerwany przebieg"))
+        opcje.insert(0, Opcja(MENU_WZNOW, "Wznów przerwany przebieg — dokończy to, co zostało"))
     return Pytanie(
         tresc="Co chcesz zrobić?",
         opcje=tuple(opcje),
@@ -596,7 +655,7 @@ def pytanie_menu(*, jest_co_wznowic: bool) -> Pytanie:
 
 
 PYTANIE_CEL = Pytanie(
-    tresc="Co pobrać?",
+    tresc="Co pobrać? (koszt zobaczysz przed pobraniem, nic jeszcze nie wychodzi do sieci)",
     opcje=(
         Opcja(CEL_DATY, "Orzeczenia z zakresu dat wydania"),
         Opcja(CEL_SYGNATURA, "Jedno orzeczenie po sygnaturze (np. KIO 1205/20)"),
@@ -605,21 +664,46 @@ PYTANIE_CEL = Pytanie(
     ),
     domyslna=CEL_DATY,
 )
-PYTANIE_OD = Pytanie(tresc="Data wydania od (RRRR-MM-DD):", rodzaj="tekst")
-PYTANIE_DO = Pytanie(
-    tresc="Data wydania do (RRRR-MM-DD, puste = bez górnej granicy):", rodzaj="tekst"
+PYTANIE_OD = Pytanie(
+    tresc="Data wydania od",
+    rodzaj="tekst",
+    podpowiedz="RRRR-MM-DD, na przykład 2024-01-01; jeden miesiąc to około 300 orzeczeń",
 )
-PYTANIE_SYGNATURA = Pytanie(tresc="Sygnatura (np. KIO 1205/20):", rodzaj="tekst")
+PYTANIE_DO = Pytanie(
+    tresc="Data wydania do",
+    rodzaj="tekst",
+    podpowiedz="RRRR-MM-DD; Enter bez wpisywania = bez górnej granicy",
+)
+PYTANIE_SYGNATURA = Pytanie(
+    tresc="Sygnatura",
+    rodzaj="tekst",
+    podpowiedz="na przykład KIO 1205/20 albo KIO 1205/2020 — oba zapisy znaczą to samo",
+)
 PYTANIE_FRAZA = Pytanie(
-    tresc="Fraza do znalezienia w treści (dosłownie; puste = wszystko w zakresie):", rodzaj="tekst"
+    tresc="Fraza do znalezienia w treści",
+    rodzaj="tekst",
+    podpowiedz=(
+        "szukanie jest dosłowne i nie zna odmiany — „wadium” nie znajdzie „wadia” ani "
+        "„wadiom”; Enter bez wpisywania = wszystko w zakresie"
+    ),
 )
 PYTANIE_ROZSTRZYGNIECIE = Pytanie(
-    tresc="Rozstrzygnięcie (lista zmierzona na stu rekordach, nie słownik):",
-    opcje=tuple(Opcja(r, r) for r in ("oddalono", "uwzglednione", "umorzono", "odrzucono", "inne")),
+    tresc="Rozstrzygnięcie:",
+    opcje=(
+        Opcja("oddalono", "oddalono — Izba nie przyznała racji odwołującemu"),
+        Opcja("uwzglednione", "uwzględnione — Izba przyznała rację odwołującemu"),
+        Opcja("umorzono", "umorzono — sprawa zakończona bez rozstrzygnięcia co do meritum"),
+        Opcja("odrzucono", "odrzucono — odwołanie nie weszło pod rozpoznanie"),
+        Opcja("inne", "inne — pozostałe wartości, jakie zwraca kanał"),
+    ),
     domyslna="oddalono",
+    podpowiedz=(
+        "lista zmierzona na stu rekordach kanału, nie słownik urzędowy — kanał może zwrócić "
+        "wartość spoza niej"
+    ),
 )
 PYTANIE_EKSPORT = Pytanie(
-    tresc="Zapisać wynik do pliku?",
+    tresc="Zapisać wynik do pliku? (czyta lokalną bazę, zero żądań)",
     opcje=(
         Opcja("xlsx", "Arkusz Excel (.xlsx)"),
         Opcja("md", "Katalog plików Markdown"),
@@ -632,6 +716,13 @@ PYTANIE_EKSPORT = Pytanie(
 
 
 NIE_ROZUMIEM_TAK_NIE = "Nie rozumiem odpowiedzi — wpisz „tak” albo „nie”."
+
+
+def linia_tekstowa(pytanie: Pytanie) -> str:
+    """Pytanie tekstowe razem z podpowiedzią i odpowiedzią domyślną — jedno miejsce, żeby
+    ścieżka ze strzałkami i ścieżka awaryjna pokazywały operatorowi to samo."""
+    linia = pytanie.tresc if not pytanie.podpowiedz else f"{pytanie.tresc} ({pytanie.podpowiedz})"
+    return linia if not pytanie.domyslna else f"{linia} [domyślnie: {pytanie.domyslna}]"
 
 
 def linia_tak_nie(pytanie: Pytanie) -> str:

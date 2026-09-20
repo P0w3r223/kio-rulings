@@ -762,6 +762,65 @@ w prozie o nim.
 
 ---
 
+## Przejście operatora — tryb pokazowy (2026-09-20)
+
+Bramka fazy 3 §10 pkt 5 (ADR-0008 §11 pkt 5: wykonuje sam właściciel). Właściciel przeszedł
+`kio-tool demo` i zgłosił **trzy usterki interfejsu**; wszystkie naprawione przed przyjęciem,
+zgodnie z brzmieniem kryterium („każde pytanie przejścia jest usterką zdania albo kroku").
+
+1. **Zaznaczenie chodziło strzałkami, podświetlenie stało w miejscu.** Dwie przyczyny naraz:
+   `questionary.select(default=…)` wkłada wartość domyślną do `selected_options`, a klasa
+   `selected` wygrywa przy rysowaniu z `pointed_at` — wiersz domyślny zostawał oznaczony na
+   stałe; do tego domyślny motyw podświetla kolorem, którego ta konsola nie pokazuje. Ten sam
+   defekt został znaleziony w `ceidg-tool` 2026-09-09, więc poprawka jest przeniesiona razem
+   z powodem: bez `default=`, domyślna opcja na czele listy, jawny styl `reverse bold`.
+2. **Pytania tak/nie po cichu pomijały polskie odpowiedzi.** `questionary.confirm` wiąże na
+   sztywno `y` i `n`; wpisane „tak" dawało odpowiedź domyślną bez żadnego sygnału. Zamienione
+   na pole tekstowe z klamrą `[T/n]`, zbiorami dokładnych odpowiedzi i jednym dopytaniem.
+3. **Za mało informacji dla kogoś, kto narzędzia nie zna** — „nie będzie wiedzieć, co należy
+   wpisać". Dopisane: podpowiedź przy **każdym** pytaniu tekstowym (format daty, przykład,
+   znaczenie pustej odpowiedzi), pozycje menu mówiące, co robią i czy kosztują żądania, oraz
+   pierwszy ekran ze stanem korpusu i czterema zdaniami o obsłudze. Wzorzec z `ceidg-tool`,
+   gdzie pozycja menu niesie koszt w żądaniach, a każde pytanie tekstowe ma podpowiedź.
+
+Asystent językowy **nie wchodzi** w tym zakresie — decyzja właściciela z tego samego dnia
+(niżej, „Świadomie odłożone").
+
+---
+
+## Przyjęcie faz 2 i 3 (2026-09-20)
+
+**Właściciel przyjął fazy 2 i 3**, w tym pozostałe kryteria obu bramek, oraz **potwierdził
+złoty zbiór** (17 dokumentów, 68 granic sekcji; pole `przeglad.kto` w `tests/gold/*.json` mówi
+odtąd, że przegląd wykonał Claude, a właściciel go potwierdził). Fazę kończy przyjęcie, nie
+zielona suita — od tej daty fazy 2 i 3 są zamknięte.
+
+Stan w chwili przyjęcia: 1 319 testów, `ruff check`, `ruff format --check`,
+`mypy kio_tool scripts` — zielone; raport pokrycia `docs/raporty/pokrycie_2026-09-20.md`
+(443 dokumenty, 443 z kompletem sekcji, złoty zbiór 17 z 17 zgodnych, 0 żądań).
+
+Co przyjęcie **nie** obejmuje: fazy 4 (bramka warunkowa stoi przed nią i jest nietknięta) ani
+pozycji z listy niżej.
+
+---
+
+## Świadomie odłożone — lista otwarta, nie zapomniana (2026-09-20)
+
+Decyzja właściciela: te pytania **nie** blokują przyjęcia faz 2 i 3 i wracają później. Zapisane
+tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej.
+
+| # | Pytanie | Dlaczego odłożone | Co je odblokuje |
+|---|---|---|---|
+| O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
+| O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
+| O-3 | Postaci sygnatur nierozpoznane w pomiarze 22: `KIO/KD`, rok czterocyfrowy przy KIO, sam numer | 4,6 % cytowań; każda postać wymaga własnego pomiaru na korpusie, nie zgadywania wzorca | Przegląd okiem próbki nierozpoznanych — z korpusu, bez żądań |
+| O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | Nikt ich nie przejrzał okiem; adnotacja parsera przez samego siebie byłaby dokładnie tym, przed czym ostrzega doktryna 7.4 | Pierwszy przegląd okiem cytowań i przepisów |
+| O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
+| O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | Decyzja właściciela 2026-09-20: fazy 2 i 3 domykamy bez niego | Bramka **przed** fazą 4: opis przeznaczenia skonfrontowany z załącznikiem III AI Act oraz ADR rozstrzygający, czy treść orzeczenia wolno wysłać do modelu (audyt 9, 12) |
+| O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma | Decyzja o drugim kanale albo wejście w fazę 4 |
+
+---
+
 ## Status pomiarów
 
 **Ta sekcja zastępuje `docs/pomiary.md`** (istniał od 2026-09-17 do 2026-09-18; ADR-0005, Z-8).

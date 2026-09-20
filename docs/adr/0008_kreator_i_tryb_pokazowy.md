@@ -304,3 +304,21 @@ pokazowego nie przypisuje rekordów realnemu organowi ani realnemu dostawcy.** `
 sygnaturą **główną** innego dokumentu — zmierzone 7 z 384 — więc pokaz uczył właściwości, której
 rejestr nie ma (mina 4). Numer sprawy połączonej bierze się odtąd z numerów, których nikt nie ma
 za sygnaturę główną; `tests/test_demo.py` sprawdza, że każda sygnatura występuje w korpusie raz.
+
+---
+
+## 13. Przyjęcie fazy 3 (2026-09-20)
+
+Bramka §10 zamknięta w komplecie:
+
+1–4. Cztery kryteria techniczne zielone testami (pkt 4 dostał obserwatora dopiero po przeglądzie
+   kodu fazy 3 — `pobierz` z flag drukował tabelę kosztów, ale żaden test tego nie oglądał).
+5. **Przejście operatora wykonane** przez właściciela na `kio-tool demo`; trzy zgłoszone usterki
+   interfejsu naprawione przed przyjęciem — `docs/decisions.md`, „Przejście operatora — tryb
+   pokazowy". Dwie z nich (podświetlenie listy, ciche pomijanie polskiego „tak") były już
+   znalezione w `ceidg-tool` 2026-09-09; poprawki przeniesione razem z powodem.
+6. **Właściciel przyjął fazę** 2026-09-20 razem z fazą 2.
+
+Zakres przyjęcia nie obejmuje asystenta językowego: właściciel zdecydował tego samego dnia, że
+fazy 2 i 3 domykamy bez niego, a asystent zostaje na liście świadomie odłożonych (O-6) za bramką
+warunkową fazy 4.

@@ -177,6 +177,15 @@ class AkcjeKreatora:
             return texts.BRAK_KONTAKTU
         return None
 
+    def stan(self) -> texts.StanKorpusu:
+        """Liczby na pierwszy ekran — odczyt z lokalnej bazy, zero żądań."""
+        return texts.StanKorpusu(
+            dokumentow=self._store.count("documents"),
+            zaindeksowanych=self._store.count_indexed(),
+            przerwanych=len(self.wznawialne()),
+            sciezka=str(self._sciezka),
+        )
+
     def wznawialne(self) -> Sequence[tuple[str, str]]:
         return [
             (p.run_id, p.zakres)
