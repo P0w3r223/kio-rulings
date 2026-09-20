@@ -14,6 +14,12 @@ Cytowanie nierozpoznane nie znika: napis „sygn. akt …", za którym nie stoi 
 sygnatura, trafia do wyniku z rodzajem `inne` i sygnaturą `None` — i jest liczony w raporcie
 pokrycia (architektura 4.4: „cicha strata jest tu gorsza niż jawna dziura"). To jest też jedyny
 sposób, żeby pomiar 22 („udział nieznormalizowanych") miał mianownik.
+
+Jeden wyjątek od tej kolejności wprowadził pomiar 25 (2026-09-20): zapowiedź, za którą stoi
+**sam numer i rok** (`sygn. akt: 3376/23`, 29 trafień w korpusie), daje cytowanie rodzaju
+`kio_bez_repertorium` zamiast nierozpoznanego. Wzorzec sam numer rozpoznaje wyłącznie w tym
+miejscu — zapowiedź jest jego jedyną kotwicą, bo puszczony po tekście łapałby numery stron,
+kwoty i odesłania do przepisów.
 """
 
 from __future__ import annotations
@@ -22,7 +28,12 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ..docid import RodzajSygnatury, normalize_signature, znajdz_sygnatury
+from ..docid import (
+    RodzajSygnatury,
+    normalize_signature,
+    numer_bez_repertorium,
+    znajdz_sygnatury,
+)
 from .clean import normalizuj
 from .sections import Sekcja
 
@@ -87,6 +98,15 @@ def _w_sekcji(oryginal: str, sekcja: Sekcja) -> list[tuple[int, int, RodzajSygna
     for zapowiedz in _SYGN_AKT.finditer(widok.tekst):
         spelniona = any(0 <= p - zapowiedz.end() <= _OKNO_ZAPOWIEDZI for p in poczatki)
         if spelniona:
+            continue
+        # Sam numer po zapowiedzi (`sygn. akt: 3376/23`) — rodzina A pomiaru 25, 29 trafień.
+        # Organ pochodzi z kontekstu, nie z zapisu, więc rodzaj mówi o tym wprost. Dopasowanie
+        # **tylko tutaj**, od końca zapowiedzi: ten sam wzorzec puszczony po całym tekście
+        # złapałby numery stron, kwoty i odesłania do przepisów.
+        sam_numer = numer_bez_repertorium(widok.tekst, zapowiedz.end())
+        if sam_numer is not None:
+            a, b = widok.w_oryginale(sam_numer.start, sam_numer.koniec)
+            wynik.append((sekcja.start + a, sekcja.start + b, sam_numer.rodzaj, sam_numer.kanon))
             continue
         koniec = _koniec_napisu(widok.tekst, zapowiedz.end())
         a, b = widok.w_oryginale(zapowiedz.start(), koniec)

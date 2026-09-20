@@ -136,12 +136,25 @@ def normalize_signature_list(raw: str) -> list[Signature]:
 
 # --------------------------------------------------------------- sygnatury innych organów
 
-RodzajSygnatury = Literal["kio", "so", "sa", "sn", "nsa", "wsa", "uzp_zo", "tsue", "inne"]
+RodzajSygnatury = Literal[
+    "kio", "kio_bez_repertorium", "so", "sa", "sn", "nsa", "wsa", "uzp_zo", "tsue", "inne"
+]
 """Organ, którego sygnaturę rozpoznano — kolumna `citations.rodzaj` (architektura 4.4, ADR-0006).
 
 `nsa` stoi osobno, choć architektura 4.4 wymienia `kio | so | sn | sa | tsue | inne`: sygnatury
 NSA wystąpiły w korpusie (`GSK`, `OSK`, `FSK` — 10 trafień, 2026-09-19), a wrzucone do `inne`
 zlewałyby się z sygnaturami nierozpoznanymi.
+
+`kio_bez_repertorium` jest rodzajem **osobnym i to jest jego cała treść** (decyzja właściciela
+2026-09-20 przy pomiarze 25). Postać `sygn. akt: 3376/23` — numer i rok bez żadnego repertorium —
+wystąpiła 29 razy w cytowaniach korpusu i jest niemal na pewno sygnaturą Izby, ale „niemal na
+pewno" nie jest odczytem: sprawdzenie na korpusie potwierdziło **11 z 29** numerów odpowiednikiem
+`KIO N/RR` gdzie indziej, a pozostałych 18 nie potwierdza nic poza kontekstem. Sygnatura
+kanoniczna jest więc zapisana jako `KIO N/RR`, żeby łączyła się z indeksem, a organ **dopisany
+z kontekstu, nie odczytany z zapisu** stoi w rodzaju — czytelnik raportu i każdy przyszły
+konsument widzi tę różnicę i może te cytowania wykluczyć jednym warunkiem. Wrzucone do `kio`
+byłyby nie do odróżnienia od odczytanych; zostawione jako nierozpoznane byłyby stratą 37 %
+największej rodziny.
 
 `wsa` i `uzp_zo` doszły z pomiarem 25 (2026-09-20). Wojewódzkie sądy administracyjne piszą
 repertorium z kodem siedziby po ukośniku (`II SA/Op 4/18`, 7 trafień), więc nie mieszczą się
@@ -190,6 +203,28 @@ _WZOR_WSA = re.compile(
 już w `_REPERTORIA_NSA`; `SA` z kodem siedziby daje `wsa`. Kod siedziby wraca **wielką pierwszą
 literą i małą drugą** (`Op`, `Wa`), bo tak zapisuje go sąd, a `WA` i `Wa` byłyby dwiema
 sprawami."""
+
+_WZOR_SAM_NUMER = re.compile(r"\s*(?P<numer>\d{1,4})\s*/\s*(?P<rok>\d{2})(?!\d)")
+"""Numer i rok bez repertorium — **wyłącznie tuż za zapowiedzią `sygn. akt`**.
+
+Ten wzorzec nie ma prawa chodzić po całym tekście: `1/2`, `226/1`, numery stron, kwoty i daty
+wyglądają tak samo. Kotwicą jest zapowiedź, a jedynym wywołującym `parser/cite.py`; dlatego
+funkcja niżej bierze pozycję, od której ma dopasować, zamiast przeszukiwać napis."""
+
+
+def numer_bez_repertorium(tekst: str, od: int) -> TrafienieSygnatury | None:
+    """Sygnatura Izby bez repertorium, dopasowana **od pozycji `od`** (koniec zapowiedzi).
+
+    Zwraca rodzaj `kio_bez_repertorium`, nie `kio`: organ pochodzi z kontekstu — z tego, że
+    zapowiedź stoi w uzasadnieniu Izby — a nie z zapisu. Różnica jest zapisana w rodzaju, bo
+    tylko tam przeżyje drogę do raportu i do każdego przyszłego czytelnika indeksu.
+    """
+    dopasowanie = _WZOR_SAM_NUMER.match(tekst, od)
+    if dopasowanie is None:
+        return None
+    kanon = f"KIO {int(dopasowanie.group('numer'))}/{dopasowanie.group('rok')}"
+    return TrafienieSygnatury(dopasowanie.start(), dopasowanie.end(), "kio_bez_repertorium", kanon)
+
 
 _WZOR_UZP_ZO = re.compile(
     r"\bUZP\s*/\s*ZO\s*/\s*0\s*-\s*(?P<numer>\d{1,4})\s*/\s*(?P<rok>\d{2})(?!\d)",

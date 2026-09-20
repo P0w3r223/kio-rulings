@@ -9,16 +9,17 @@ PR #1 scalony do `master`. Praca idzie dalej z listy „Świadomie odłożone" w
 (O-1…O-7) — **przeczytaj ją, zanim cokolwiek zaczniesz**; pozycja stamtąd nie jest do zrobienia
 przy okazji.
 
-**O-3 zamknięte w części — pomiar 25 (`decisions.md`).** Wersja odczytu **4**; nierozpoznanych
-cytowań 78 → 52 (4,6 % → 3,0 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
+**O-3 zamknięte — pomiar 25 (`decisions.md`).** Wersja odczytu **5**; nierozpoznanych
+cytowań 78 → 23 (4,6 % → 1,3 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
 rok czterocyfrowy przy KIO, sądy administracyjne z kodem siedziby i Zespół Arbitrów UZP. Doszły
 rodzaje `wsa` i `uzp_zo`. Trzy rzeczy, które ten pomiar ustalił na przyszłość: repertorium
 **zostaje** w sygnaturze (`KIO/KD 3/10` ≠ `KIO 3/10`), rok czterocyfrowy jest skracany, a nie
 odrzucany, i **tolerancja składni wymaga przeliczenia całego korpusu** — myślnik w sygnaturze
 TSUE wyglądał na zbędny, a jego zdjęcie dało 3 trafienia poprawne i 12 fałszywych (klasy betonu
-`C30/37`, numery Dz.U. UE serii C). Największa rodzina, „sam numer bez repertorium" (29 trafień),
-**czeka na decyzję właściciela**, bo jej wdrożenie znaczy dopisanie organu, którego w zapisie nie
-ma.
+`C30/37`, numery Dz.U. UE serii C). Największa rodzina, „sam numer bez repertorium" (29 trafień), dostała
+**własny rodzaj** `kio_bez_repertorium` (decyzja właściciela): sygnatura kanoniczna jest pełna,
+a to, że organ dopisaliśmy z kontekstu, niesie rodzaj. Wzorzec sam numer wolno wołać **wyłącznie
+zza zapowiedzi** `sygn. akt` — puszczony po tekście łapie numery stron i kwoty.
 
 ### Stan na 2026-09-20 — przyjęcie faz 2 i 3 (gałąź `feat/finalizacja-faz-2-3`, PR #1)
 

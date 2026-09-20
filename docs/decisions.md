@@ -770,7 +770,7 @@ rozebrał). Każda rodzina niżej jest odczytem z tych 78 napisów, żadna nie p
 
 | Rodzina | Trafień | Udział | Przykłady | Stan |
 |---|---|---|---|---|
-| A — sam numer, bez repertorium | 29 | 37,2 % | `sygn. akt: 3376/23`, `sygn. akt 1004/09` | **nie wdrożone — do decyzji właściciela** |
+| A — sam numer, bez repertorium | 29 | 37,2 % | `sygn. akt: 3376/23`, `sygn. akt 1004/09` | wdrożone jako **osobny rodzaj** `kio_bez_repertorium` (decyzja właściciela) |
 | B — KIO z ukośnikiem przed numerem | 3 | 3,8 % | `KIO/582/11`, `KIO/1945/10` | wdrożone |
 | C — Zespół Arbitrów UZP i `KIO/UZP` | 4 | 5,1 % | `UZP/ZO/0-62/07`, `KIO/UZP 782/2009` | wdrożone |
 | D — repertoria kontrolne Izby | 10 | 12,8 % | `KIO/KD 44/11`, `KIO/W 2/24` | wdrożone |
@@ -781,10 +781,13 @@ rozebrał). Każda rodzina niżej jest odczytem z tych 78 napisów, żadna nie p
 | I — sklejka bez spacji | 6 | 7,7 % | `IICSK 197/15`, `X Ga254/10` | **nie wdrożone — ryzyko fałszywych trafień** |
 | J — nie do odzyskania | 11 | 14,1 % | `IV CR 403` (bez roku), `KIO 7 1 3`, `IPRN` | zostaje nierozpoznane |
 
-**Wynik wdrożenia (wersja odczytu 4):** nierozpoznanych **78 → 52** na 1 708 cytowaniach
-(4,6 % → 3,0 %). Przybyło 38 cytowań rozpoznanych — 18 KIO, 12 WSA, 7 Zespołu Arbitrów, 1 NSA —
-i **każde z nich zostało przejrzane okiem**, po jednym wierszu z kontekstem; żadne nie okazało się
-fałszywe. Raport: `docs/raporty/pokrycie_2026-09-20.md`.
+**Wynik wdrożenia.** Wersja odczytu 4 (sześć rodzin postaci) zdjęła nierozpoznanych
+**78 → 52**; wersja 5 (rodzina A jako osobny rodzaj) **52 → 23** na 1 708 cytowaniach, czyli
+z 4,6 % do **1,3 %**. Przybyło 38 cytowań rozpoznanych — 18 KIO, 12 WSA, 7 Zespołu Arbitrów,
+1 NSA — i **każde z nich zostało przejrzane okiem**, po jednym wierszu z kontekstem; żadne nie
+okazało się fałszywe. Rodzina A dała dokładnie 29 trafień, ani jednego więcej: wzorzec sam numer
+dopasowuje **tylko** od końca zapowiedzi `sygn. akt`, więc numery stron, kwoty i odesłania do
+przepisów go nie wyzwalają. Raport: `docs/raporty/pokrycie_2026-09-20.md`.
 
 ### Rodzina H — pomiar, który odrzucił własną hipotezę
 
@@ -804,15 +807,20 @@ i pomyśli to samo co ta.
 
 ### Czego pomiar nie rozstrzyga
 
-**Rodzina A (29 trafień, 37,2 % — największa) czeka na decyzję właściciela.** Napis
+**Rodzina A — rozstrzygnięta przez właściciela 2026-09-20: osobny rodzaj.** Napis
 `sygn. akt: 3376/23` wewnątrz uzasadnienia Izby jest niemal na pewno sygnaturą KIO, ale „niemal
 na pewno" nie jest pomiarem. Sprawdzenie na korpusie: **11 z 29 numerów** ma odpowiednik
 `KIO N/RR` gdzie indziej w tym samym korpusie (`3376/23`, `1020/23`, `1131/11`, `1900/11`,
-`2025/14`, `351/23`), pozostałych 18 nie da się potwierdzić niczym poza kontekstem. Wdrożenie
-znaczyłoby dopisanie organu, którego w zapisie nie ma — czyli złamanie zdania z nagłówka
-`docid.py`: „nie zgaduje organu z samego numeru". Wariant pośredni — własny rodzaj
-`kio_bez_repertorium`, widoczny w raporcie i wykluczalny przez czytelnika — jest do rozważenia,
-ale jest decyzją, nie poprawką.
+`2025/14`, `351/23`), pozostałych 18 nie da się potwierdzić niczym poza kontekstem.
+
+Właściciel wybrał wariant pośredni: sygnatura kanoniczna jest **pełna** (`KIO 3376/23`), żeby
+łączyła się z indeksem cytowań, a informacja o tym, że organ **dopisaliśmy z kontekstu, a nie
+odczytali z zapisu**, stoi w `citations.rodzaj` jako `kio_bez_repertorium`. Tylko tam przeżyje
+drogę do raportu i do każdego przyszłego czytelnika, który może te 29 cytowań wykluczyć jednym
+warunkiem. Wrzucone do `kio` byłyby nie do odróżnienia od odczytanych; zostawione jako
+nierozpoznane byłyby stratą największej rodziny. Zdanie z nagłówka `docid.py` — „nie zgaduje
+organu z samego numeru" — zostaje prawdziwe dla `znajdz_sygnatury`: sam numer rozpoznaje osobna
+funkcja, wołana wyłącznie zza zapowiedzi.
 
 **Rodzina G (3)** wymagałaby wzorca bez wydziału (`K 13/07`), a `SK` stoi już w repertoriach Sądu
 Najwyższego — tam odróżnia je wydział rzymski, którego Trybunał nie ma. Wzorzec na dwie litery
@@ -875,7 +883,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 |---|---|---|---|
 | O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
-| O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **w części zamknięte pomiarem 25 (2026-09-20)**: 78 → 52 nierozpoznanych, sześć rodzin wdrożonych. Zostaje rodzina A (sam numer bez repertorium, 29 trafień) | Decyzja właściciela: czy wolno dopisać organ, którego w zapisie nie ma — patrz „Pomiar 25”, sekcja „Czego pomiar nie rozstrzyga” |
+| O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
 | O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | Nikt ich nie przejrzał okiem; adnotacja parsera przez samego siebie byłaby dokładnie tym, przed czym ostrzega doktryna 7.4 | Pierwszy przegląd okiem cytowań i przepisów |
 | O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | Decyzja właściciela 2026-09-20: fazy 2 i 3 domykamy bez niego | Bramka **przed** fazą 4: opis przeznaczenia skonfrontowany z załącznikiem III AI Act oraz ADR rozstrzygający, czy treść orzeczenia wolno wysłać do modelu (audyt 9, 12) |

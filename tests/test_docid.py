@@ -33,6 +33,7 @@ from kio_tool.docid import (
     document_id,
     normalize_signature,
     normalize_signature_list,
+    numer_bez_repertorium,
     znajdz_sygnatury,
 )
 from kio_tool.errors import IdentityError
@@ -708,3 +709,50 @@ def test_repertorium_kontrolne_nie_zlewa_sie_ze_zwyklym_odwolaniem() -> None:
 
     assert kontrola != odwolanie
     assert (kontrola, odwolanie) == ("KIO/KD 3/10", "KIO 3/10")
+
+
+def test_sam_numer_daje_rodzaj_mowiacy_ze_organ_pochodzi_z_kontekstu() -> None:
+    """Rodzina A pomiaru 25 (29 trafień): `sygn. akt: 3376/23` — numer i rok bez repertorium.
+
+    Sygnatura kanoniczna jest pełna (`KIO 3376/23`), żeby łączyła się z indeksem, a informacja
+    o tym, że organ **dopisaliśmy z kontekstu**, stoi w rodzaju — tylko tam przeżyje drogę do
+    raportu i do czytelnika indeksu. Decyzja właściciela 2026-09-20.
+    """
+    trafienie = numer_bez_repertorium("3376/23 i dalej tekst", 0)
+
+    assert trafienie is not None
+    assert (trafienie.rodzaj, trafienie.kanon) == ("kio_bez_repertorium", "KIO 3376/23")
+    assert trafienie.rodzaj != "kio", (
+        "organ z kontekstu nie może być nie do odróżnienia od odczytanego"
+    )
+
+
+def test_sam_numer_dopasowuje_sie_wylacznie_od_podanej_pozycji() -> None:
+    """Kotwicą jest zapowiedź `sygn. akt`, nie treść — bez niej wzorzec łapałby pół dokumentu.
+
+    Numery stron, kwoty, ułamki i odesłania do przepisów mają dokładnie ten kształt, więc
+    funkcja **dopasowuje od pozycji**, a nie przeszukuje napis. Ten test jest strażnikiem tej
+    różnicy: gdyby ktoś zamienił `match` na `search`, zapali się tutaj, a nie na korpusie.
+    """
+    assert numer_bez_repertorium("art. 226 ust. 1 pkt 5 oraz 1234/21", 0) is None
+    assert numer_bez_repertorium("strona 7 z 12", 0) is None
+
+    assert numer_bez_repertorium(" 1234/21", 0) is not None, "spacja po zapowiedzi jest dozwolona"
+    assert numer_bez_repertorium("1234/2021", 0) is None, "rok czterocyfrowy to nie ta rodzina"
+
+
+def test_sam_numer_nie_jest_szukany_poza_zapowiedzia_w_cytowaniach() -> None:
+    """Ta sama granica, widziana od strony `parser/cite.py` — na prawdziwym kształcie zdania."""
+    from kio_tool.parser.cite import cytowania
+    from kio_tool.parser.sections import Sekcja
+
+    tekst = (
+        "Uzasadnienie\n"
+        "Izba w sprawie o sygn. akt: 3376/23 wskazała, że art. 226 ust. 1 pkt 5 "
+        "oraz kwota 1234/21 nie są sygnaturami.\n"
+    )
+    sekcja = Sekcja(porzadek=0, rodzaj="uzasadnienie", start=0, koniec=len(tekst))
+
+    znalezione = cytowania(tekst, [sekcja])
+
+    assert [(c.rodzaj, c.sygnatura) for c in znalezione] == [("kio_bez_repertorium", "KIO 3376/23")]

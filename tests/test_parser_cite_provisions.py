@@ -27,7 +27,8 @@ TRESC = (
     "ustawy Pzp. Izba podziela pogląd z wyroku KIO 1234/23do postępowania, z wyroku SO\n"
     "sygn. akt XXIII Zs 12/22, z uchwały III CZP 56/17 i z wyroku TSUE C-652/22.\n"
     "W sprawie o sygn. akt KIO 1/24 Izba ustaliła, że art. 353 1 k.c. nie ma zastosowania.\n"
-    "Pogląd wyrażono też w sprawie sygn. akt: 3376/23, której postaci nie rozpoznajemy.\n"
+    "Pogląd wyrażono też w sprawie sygn. akt: 3376/23 — sam numer, organ z kontekstu.\n"
+    "Odwołujący powołał się na sygn. akt IV CR 403, której nie da się rozpoznać.\n"
     "Izba zważyła, że odwołanie nie zasługuje na uwzględnienie w żadnym zakresie.\n" * 3
 )
 
@@ -84,9 +85,24 @@ def test_cytowania_tylko_z_uzasadnienia_bez_sygnatury_wlasnej() -> None:
 
 
 def test_zapowiedz_bez_sygnatury_jest_cytowaniem_nierozpoznanym() -> None:
-    """Pomiar 22 potrzebuje mianownika: nierozpoznane jest liczone, nie gubione."""
+    """Pomiar 22 potrzebuje mianownika: nierozpoznane jest liczone, nie gubione.
+
+    Przykładem nierozpoznanego jest odtąd `sygn. akt IV CR 403` — zapis bez roku, z rodziny J
+    pomiaru 25 („nie do odzyskania", 11 trafień w korpusie). Wcześniej stał tu `sygn. akt:
+    3376/23`, który od tego samego pomiaru **jest** rozpoznawany, tyle że jako
+    `kio_bez_repertorium`.
+    """
     nierozpoznane = [c for c in _cyt() if c[1] is None]
     assert nierozpoznane == [("inne", None)] * len(nierozpoznane) and nierozpoznane
+
+
+def test_sam_numer_po_zapowiedzi_jest_cytowaniem_z_organem_z_kontekstu() -> None:
+    """Rodzina A pomiaru 25 — 29 trafień w korpusie, 37 % wszystkich nierozpoznanych.
+
+    Sygnatura kanoniczna jest pełna, żeby łączyła się z indeksem; to, że organ dopisaliśmy
+    z kontekstu, a nie odczytali z zapisu, niesie rodzaj — i tylko on.
+    """
+    assert ("kio_bez_repertorium", "KIO 3376/23") in _cyt()
 
 
 def test_cytowanie_niesie_offsety_w_oryginale() -> None:

@@ -326,8 +326,15 @@ Trzy rzeczy z tego pomiaru wiążą przyszłe zmiany:
    sygnaturze TSUE wyglądał na zbędny — przeliczenie dało 3 trafienia poprawne i 12 fałszywych
    (klasy betonu `C30/37` i numery Dz.U. UE serii C). Hipoteza odrzucona przez własny pomiar.
 
-Największa rodzina — sam numer bez repertorium, 29 trafień — **nie jest wdrożona** i wymaga
-decyzji właściciela, bo wdrożenie znaczy dopisanie organu, którego w zapisie nie ma.
+Największa rodzina — sam numer bez repertorium, 29 trafień — dostała **własny rodzaj**
+`kio_bez_repertorium` (decyzja właściciela 2026-09-20, wersja odczytu 5). Sygnatura kanoniczna
+jest pełna, żeby łączyła się z indeksem; informacja o tym, że organ dopisaliśmy z kontekstu,
+a nie odczytali z zapisu, niesie rodzaj — i tylko on. Wzorzec sam numer ma jedną kotwicę,
+zapowiedź `sygn. akt`, i jednego wywołującego, `parser/cite.py`; puszczony po tekście łapałby
+numery stron, kwoty i odesłania do przepisów, więc dopasowuje **od pozycji**, a nie przeszukuje
+napis. Strażnikiem tej różnicy jest test, który zapali się przy zamianie `match` na `search`.
+
+Wynik całego pomiaru 25: nierozpoznanych cytowań **78 → 23** (4,6 % → 1,3 %).
 
 ### 10.3 Złoty zbiór potwierdzony przez właściciela (2026-09-20)
 
