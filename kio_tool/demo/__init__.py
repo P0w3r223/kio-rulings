@@ -47,11 +47,16 @@ class ZegarDemo:
         return time.time()
 
     def sleep(self, seconds: float) -> None:
+        """Śpi `seconds / tempo`, ale przesuwa zegar o **pełne** `seconds`.
+
+        Przesunięcie liczy się od zmierzonego czasu snu, nie od zakładanego: limiter ma widzieć
+        odstęp produkcyjny niezależnie od tego, ile sen naprawdę trwał — a pod podstawionym
+        `time.sleep` (testy) nie trwa wcale (znalezisko testera 2026-09-19)."""
         if seconds <= 0:
             return
-        prawdziwe = seconds / self.tempo
-        time.sleep(prawdziwe)
-        self._przesuniecie += seconds - prawdziwe
+        start = time.monotonic()
+        time.sleep(seconds / self.tempo)
+        self._przesuniecie += max(0.0, seconds - (time.monotonic() - start))
 
 
 @dataclass(frozen=True)
