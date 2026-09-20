@@ -39,6 +39,9 @@ KODY_ODMOWY = frozenset({401, 402, 403, 407, 429})
 
 Nie ma tu 5xx: awaria po stronie serwisu jest czym innym niż odmowa i prowadzi do innego
 wniosku — pierwsze powtarza się za jakiś czas, drugie wymaga pisma albo klucza.
+
+Zbiór odpowiada na pytanie „czy serwis odmówił temu żądaniu" i czyta go wyłącznie sonda. To nie
+jest polityka ponowień (ADR-0007 §2 pkt 1): ta stoi w `contract.yaml` kanału, blok `ponowienia`.
 """
 
 
@@ -65,6 +68,11 @@ class Wynik:
     """Prośba serwisu z nagłówka `Retry-After` przy tym żądaniu, w sekundach — do dziennika,
     żeby przeżyła proces (znalezisko testera 2026-09-18: wznowienie po 429 odczekiwało własną
     blokadę limitera zamiast tej, o którą serwis prosił)."""
+    proba: int = 1
+    """Numer próby tego samego żądania (1 = pierwsza) — ADR-0007 Z-8. Bez niego dwie próby
+    jednego dokumentu są w dzienniku nie do odróżnienia od dwóch różnych żądań, a pomiar 24
+    (skuteczność ponowień) wymagałby ponownego obciążenia serwisu. Dziennik markdown sondy tej
+    kolumny nie dostaje: sonda nie ponawia, a nowa kolumna rozjechałaby tabelę żywego pliku."""
     wyslane: bool = True
     """Czy to żądanie opuściło proces.
 

@@ -28,6 +28,7 @@ z uzasadnień, czyli o największy dostępny zbiór testowy.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Literal, NewType
 
 from .errors import IdentityError
@@ -61,8 +62,12 @@ czyli minę 1 z nagłówka tego modułu.
 # tę zasadę cytuje w nagłówku. Opcjonalność zostaje jako świadoma tolerancja wejścia dla
 # `parser/cite.py`, nie jako opis zaobserwowanego zapisu; czy postać sklejona w ogóle
 # występuje, rozstrzygnie pomiar 22 na prawdziwych uzasadnieniach.
+#
+# Koniec roku jest `(?!\d)`, nie `\b`: w uzasadnieniach stoi „KIO 1234/23do postępowania"
+# (2 wystąpienia w korpusie 443 dokumentów, 2026-09-19, 0 żądań) — ekstrakcja z PDF-a zjada
+# spację, a `\b` między cyfrą a literą nie pada, więc sygnatura przepadała w ciszy.
 _WZOR_KIO = re.compile(
-    r"\b(?P<prefiks>KIO\s*/\s*UZP|KIO\s*/\s*KU|KIO)\s*(?P<numer>\d{1,5})\s*/\s*(?P<rok>\d{2})\b",
+    r"\b(?P<prefiks>KIO\s*/\s*UZP|KIO\s*/\s*KU|KIO)\s*(?P<numer>\d{1,5})\s*/\s*(?P<rok>\d{2})(?!\d)",
     re.IGNORECASE,
 )
 
@@ -122,6 +127,93 @@ def normalize_signature_list(raw: str) -> list[Signature]:
         if sygnatura is not None and sygnatura not in widziane:
             widziane[sygnatura] = sygnatura
     return list(widziane.values())
+
+
+# --------------------------------------------------------------- sygnatury innych organów
+
+RodzajSygnatury = Literal["kio", "so", "sa", "sn", "nsa", "tsue", "inne"]
+"""Organ, którego sygnaturę rozpoznano — kolumna `citations.rodzaj` (architektura 4.4, ADR-0006).
+
+`nsa` stoi osobno, choć architektura 4.4 wymienia `kio | so | sn | sa | tsue | inne`: sygnatury
+NSA wystąpiły w korpusie (`GSK`, `OSK`, `FSK` — 10 trafień, 2026-09-19), a wrzucone do `inne`
+zlewałyby się z sygnaturami nierozpoznanymi."""
+
+# Repertoria — **z pomiaru**, nie z pamięci: każdy wpis wystąpił w uzasadnieniach korpusu
+# 443 dokumentów (2026-09-19, 0 żądań) z liczbą trafień w nawiasie przy grupie. Repertorium
+# spoza tych zbiorów daje rodzaj `inne` z sygnaturą kanoniczną — nie zgadujemy sądu z litery.
+_REPERTORIA_SN = frozenset(
+    {"CSK", "CZP", "CKN", "CK", "CRN", "CR", "CZ", "PK", "PKN", "SK", "PZ", "CKU", "CSR", "UKN"}
+)
+"""Sąd Najwyższy (CSK 28, CZP 26, CKN 15, CK 12, CRN 5, CR 3, CZ 3, PK 3, PKN 2, pozostałe po 1)."""
+_REPERTORIA_SA = frozenset({"ACa", "AGa", "ACr", "ACz", "AGz"})
+"""Sądy apelacyjne (ACa 12, AGa 6 — w tym `Aga` 4, ACr 1). Porównanie bez wielkości liter."""
+_REPERTORIA_SO = frozenset({"Ga", "Zs", "Ca", "GC", "C", "Gz", "Cz", "AmA", "AmZ", "AmR", "Ns"})
+"""Sądy okręgowe, w tym Sąd Zamówień Publicznych (`Zs`, 45) i SOKiK (`AmA`/`AmZ`/`AmR`, 6)."""
+_REPERTORIA_NSA = frozenset({"GSK", "OSK", "FSK", "FPS", "OPS", "GPS"})
+"""Naczelny Sąd Administracyjny (GSK 6, OSK 2, FSK 2, FPS 1)."""
+
+_ORGANY: tuple[tuple[frozenset[str], RodzajSygnatury], ...] = (
+    (_REPERTORIA_SN, "sn"),
+    (_REPERTORIA_SA, "sa"),
+    (_REPERTORIA_SO, "so"),
+    (_REPERTORIA_NSA, "nsa"),
+)
+_KANON_REPERTORIUM: dict[str, tuple[str, RodzajSygnatury]] = {
+    r.casefold(): (r, rodzaj) for zbior, rodzaj in _ORGANY for r in zbior
+}
+"""Repertorium bez wielkości liter → pisownia kanoniczna i organ (`Aga` → `AGa`, `sa`)."""
+
+_WZOR_SADU = re.compile(
+    r"\b(?P<wydzial>[IVXL]{1,6})\s+(?P<rep>[A-Z][A-Za-z]{0,4})\s+(?P<numer>\d{1,6})\s*/\s*"
+    r"(?P<rok>\d{2}(?:\d{2})?)(?!\d)"
+)
+"""Sygnatura sądu: wydział rzymski, repertorium, numer, rok — `XXIII Zs 12/22`, `III CZP 56/17`."""
+
+_WZOR_TSUE = re.compile(r"\b(?P<sad>[CT])\s*[-‑–]\s*(?P<numer>\d{1,4})\s*/\s*(?P<rok>\d{2})(?!\d)")
+"""Sprawa TSUE: `C-652/22` (59 trafień w korpusie, 2026-09-19). `T-` to Sąd Unii Europejskiej."""
+
+
+@dataclass(frozen=True)
+class TrafienieSygnatury:
+    """Sygnatura znaleziona w tekście: przedział w **podanym** napisie, organ, postać kanoniczna."""
+
+    start: int
+    koniec: int
+    rodzaj: RodzajSygnatury
+    kanon: str
+
+
+def znajdz_sygnatury(tekst: str) -> list[TrafienieSygnatury]:
+    """Wszystkie sygnatury KIO, sądów i TSUE w tekście, w kolejności wystąpienia.
+
+    Jedyny normalizator sygnatur innych organów, z tego samego powodu co `normalize_signature`
+    dla KIO (reguła 14): `parser/cite.py` ma zapisywać postać kanoniczną, a nie składać ją sam.
+    Trafienia na siebie nie nachodzą — przy kolizji wygrywa wcześniejsze, a przy równym
+    początku dłuższe.
+    """
+    trafienia: list[TrafienieSygnatury] = []
+    for m in _WZOR_KIO.finditer(tekst):
+        sygnatura_kio = normalize_signature(m.group(0))
+        if sygnatura_kio is not None:
+            trafienia.append(TrafienieSygnatury(m.start(), m.end(), "kio", sygnatura_kio))
+    for m in _WZOR_SADU.finditer(tekst):
+        nieznane: tuple[str, RodzajSygnatury] = (m.group("rep"), "inne")
+        repertorium, rodzaj = _KANON_REPERTORIUM.get(m.group("rep").casefold(), nieznane)
+        # Rok czterocyfrowy skracany do dwóch: `X Ga 7/2010` i `X Ga 7/10` to jedna sprawa, a pięć
+        # takich par w korpusie (przegląd kodu 2026-09-19) rozdzielało się w indeksie cytowań.
+        # Skrócenie nie dokłada informacji — w odróżnieniu od rozwinięcia, którego moduł nie robi.
+        sad = f"{m.group('wydzial')} {repertorium} {int(m.group('numer'))}/{m.group('rok')[-2:]}"
+        trafienia.append(TrafienieSygnatury(m.start(), m.end(), rodzaj, sad))
+    for m in _WZOR_TSUE.finditer(tekst):
+        sprawa = f"{m.group('sad')}-{int(m.group('numer'))}/{m.group('rok')}"
+        trafienia.append(TrafienieSygnatury(m.start(), m.end(), "tsue", sprawa))
+    trafienia.sort(key=lambda t: (t.start, -(t.koniec - t.start)))
+    wynik: list[TrafienieSygnatury] = []
+    for trafienie in trafienia:
+        if wynik and trafienie.start < wynik[-1].koniec:
+            continue
+        wynik.append(trafienie)
+    return wynik
 
 
 def normalize_source_name(source: str) -> SourceName:

@@ -142,11 +142,11 @@ class ResumableError(KioError):
 
 
 class ServerError(ResumableError):
-    """5xx po wyczerpaniu prób."""
+    """5xx po wyczerpaniu prób z `contract.yaml` (`ponowienia.proby`, ADR-0007)."""
 
 
 class TransportError(ResumableError):
-    """Timeout, DNS, zerwane połączenie."""
+    """Timeout, DNS, zerwane połączenie, urwane ciało przy 200 — po wyczerpaniu prób."""
 
 
 class RateLimitError(ResumableError):
@@ -155,6 +155,14 @@ class RateLimitError(ResumableError):
 
 class ExportError(KioError):
     """Nie da się zapisać wyniku (np. przekroczony limit wierszy arkusza)."""
+
+
+class ZlotyZbiorError(KioError):
+    """Adnotacje złotego zbioru nie zgadzają się z korpusem albo nie dały się sprawdzić.
+
+    Raport i tak jest zapisany — to jest wynik, nie awaria — ale kod wyjścia jest niezerowy, bo
+    ADR-0006 §7 mówi, że rozbieżność „jest błędem testu, nie ostrzeżeniem", a bramka fazy 2
+    potrzebuje czegoś, co naprawdę się zapala (przegląd kodu 2026-09-19)."""
 
 
 class ParseError(KioError):

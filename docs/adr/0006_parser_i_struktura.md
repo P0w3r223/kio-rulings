@@ -1,7 +1,7 @@
 # ADR-0006: Faza 2 — parser nad tekstem z PDF-a, pochodzenie w tabelach pochodnych, raport pokrycia jako produkt
 
 Data: 2026-09-19
-Status: proposed — do przyjęcia albo odrzucenia przez właściciela; sekcja 9 wylicza, co czeka
+Status: accepted (2026-09-19, decyzja właściciela — z poprawką liczbową z pomiaru 5, sekcja 10)
 Autor: P0w3r223
 Related to: `docs/AUDYT_KIO_ORZECZENIA.md` (9 — bramka fazy 2; 5.1; 7; 8.2; 10 — pomiary 5 i 10; 11 — miny 1, 2, 4), `docs/ARCHITEKTURA_KIO_TOOL.md` (4.2, 4.4, 4.5, 4.8, 4.9; 6 — pomiary 18 i 22), `docs/adr/0001_tozsamosc_dokumentu.md`, `docs/adr/0005_bramka_per_kanal.md` (Z-3, Z-5), `docs/decisions.md` („Jakość pól Atlasu", „Przebieg 2", „Status pomiarów"), `kio_tool/parser/details.py`, `kio_tool/store.py`, `tests/test_bramki_faz.py`
 
@@ -253,3 +253,65 @@ Bramka jest domknięta, gdy jednocześnie:
 5. złoty zbiór istnieje w postaci z Z-11, jego adnotacje przechodzą wobec korpusu, a raport podaje,
    ile dokumentów złotego zbioru sprawdzono;
 6. właściciel przyjmuje fazę — bo fazę kończy przyjęcie, nie zielona suita (audyt 9).
+
+---
+
+## 10. Przyjęcie (2026-09-19)
+
+Właściciel przyjął ten ADR 2026-09-19 razem z zakresem „fazy 2 i 3 plus ADR-0007" i ze zgodą na
+pobranie korpusu od nowa z Atlasu w tej sesji (korpus z 2026-09-18 nie istnieje na maszynie, na
+której sesja pracuje — repozytorium niesie kod, nie bazę). Trzy rozstrzygnięcia przy przyjęciu:
+
+- **Poprawka liczbowa z pomiaru 5.** Zdanie z §1.1 i wariantu A w §3, że wzorce z architektury 4.5
+  dają korpus „w całości `nieprzypisany`", jest nieprawdziwe: `^Uzasadnienie$` jako osobna linia
+  trafia w 63,0 % dokumentów (`docs/decisions.md`, „Pomiar 5, część lokalna"). Wybór wariantu B
+  stoi mimo to, na mocniejszym argumencie z tego samego pomiaru: `\f` i łamanie wiersza w zdaniu
+  występują w 100 % dokumentów, więc normalizacja przed segmentacją jest warunkiem, nie opcją.
+- **Próbka rocznikowa (Z-3) ma zgodę w tej sesji** — zgoda obejmuje odtworzenie korpusu i próbkę.
+- **Złoty zbiór: postać z Z-11, rozmiar N nie jest przesądzony tym przyjęciem.** Wychodzi
+  z próbki rocznikowej (etap II) i raport pokrycia podaje go liczbą „sprawdzonych z N".
+
+### 10.1 Poprawka po przeglądzie kodu (2026-09-19): złoty zbiór obejmuje dziś wyłącznie sekcje
+
+Z-11 mówi, że adnotacja niesie „oczekiwane sygnatury i przepisy". Wdrożony zbiór (`tests/gold/`,
+17 dokumentów, po jednym z rocznika 2010–2026) niesie **wyłącznie granice sekcji** ze skrótem
+każdego fragmentu. Powód: granice sekcji zostały przejrzane okiem (68 granic, jedna usterka
+znaleziona i naprawiona — `decisions.md`, „Przegląd złotego zbioru"), a cytowań i przepisów nikt
+nie przejrzał. Wpisanie do adnotacji tego, co parser dziś wyciąga, byłoby adnotacją parsera przez
+samego siebie — dokładnie tym, przed czym ostrzega doktryna 7.4. Cytowania i przepisy dostaną
+swoje pola w adnotacji razem z pierwszym przeglądem okiem; do tego czasu ich jedynym sprawdzianem
+są liczby w raporcie pokrycia (pomiar 22, zawieranie kanał ↔ treść w obie strony).
+
+Druga połowa tej samej poprawki: §7 mówi, że rozbieżność ze złotym zbiorem „jest błędem testu, nie
+ostrzeżeniem". Suita pytest nie ma korpusu (leży poza repozytorium), więc tę rolę pełni polecenie
+`kio-tool pokrycie --zloty tests/gold` — od 2026-09-19 kończy się **kodem 1**, gdy którakolwiek
+adnotacja jest rozbieżna albo niesprawdzona, i **kodem 3**, gdy katalogu nie ma. Raport jest wtedy
+zapisany mimo to: rozbieżność jest wynikiem, nie awarią.
+
+### 10.2 Poprawka po przeglądzie kodu fazy 3 (2026-09-20): `PARSE_VERSION` dostaje obserwatora
+
+Z-10 mówi „jedna wersja odczytu na pakiet, podnoszona przy każdej zmianie parsera", a 2026-09-19
+`docid.znajdz_sygnatury` zaczęło skracać rok czterocyfrowy do dwucyfrowego przy tej samej
+`PARSE_VERSION = 2`. Zmiana bez podniesienia wersji jest cicha z definicji: `przelicz` bez
+`--wszystko` bierze wersje **starsze** niż bieżąca, więc nie ma czego przeliczyć, korpus zostaje
+z wynikiem sprzed zmiany, a powód zmiany (pięć par rozdzielonych spraw) nie jest na nim osiągnięty.
+
+Dwie rzeczy z tego wynikają. `PARSE_VERSION` ma dziś **3**, a korpus operatora został przeliczony
+(443 wersje, 0 żądań) — po przeliczeniu liczby raportu pokrycia są identyczne co do cytowania,
+bo ta baza była już przeliczona po tamtej zmianie ręcznie; obserwatora zabrakło, nie danych.
+I druga: `tests/test_wersja_odczytu.py` trzyma **odcisk SHA-256 źródeł odczytu** (`parser/`,
+`docid.py`, `odczyt.py`). Zmiana źródeł bez ruszenia wersji zapala test, a reakcja jest jedna
+z dwóch — podnieś wersję albo wpisz nowy odcisk z powodem, dla którego wynik się nie zmienia.
+Odcisk zapala się także przy zmianie komentarza i to jest cena przyjęta świadomie: alternatywą
+jest cisza, a wynik da się policzyć tylko na korpusie, który leży poza repozytorium.
+
+### 10.3 Złoty zbiór potwierdzony przez właściciela (2026-09-20)
+
+Z-11 mówi, że adnotacja ma **przejrzanego człowieka za sobą**. Do 2026-09-20 pole `przeglad.kto`
+kończyło się słowami „do potwierdzenia przez właściciela" — czyli mówiło prawdę o tym, że przegląd
+wykonał model, i że nikt tego nie potwierdził. Właściciel potwierdził zbiór 2026-09-20; pole niesie
+odtąd obie informacje naraz, bo to są dwa różne fakty i żaden nie zastępuje drugiego.
+
+Cytowania i przepisy **nadal** nie mają adnotacji (§10.1) i to zostaje na liście świadomie
+odłożonych jako O-4 w `docs/decisions.md`. Faza 2 jest przyjęta z tym brakiem, nie mimo niego:
+adnotacja parsera napisana przez samego parsera byłaby gorsza niż jej nieobecność.

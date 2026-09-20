@@ -1,0 +1,70 @@
+# Cechy Atlasu, które korpus pokazowy ma odwzorować (ADR-0008 Z-12) — każda z wartością zmierzoną,
+# tolerancją, źródłem w docs/decisions.md i datą. Test: tests/test_demo_cechy.py. Odstępstwa
+# pokazu od pomiaru stoją w tym samym pliku, z powodem — nie w komentarzu przy generatorze.
+
+cechy:
+  wysuw_strony:
+    udzial: 1.0
+    tolerancja: 0.0
+    zrodlo: "Pomiar 5, część lokalna — 341 z 341 dokumentów"
+    data: 2026-09-19
+  lamanie_w_zdaniu:
+    udzial: 1.0
+    tolerancja: 0.0
+    zrodlo: "Pomiar 5, część lokalna — 341 z 341 dokumentów"
+    data: 2026-09-19
+  naglowek_rozstrzelony:
+    udzial: 0.258
+    tolerancja: 0.08
+    zrodlo: "Pomiar 5, część lokalna — 88 z 341 dokumentów"
+    data: 2026-09-19
+  kotwica_sentencji:
+    udzial: 0.997
+    tolerancja: 0.01
+    zrodlo: "Pomiar 5, część lokalna — `orzeka:`/`postanawia:` 340 z 341"
+    data: 2026-09-19
+  pouczenie:
+    udzial: 0.988
+    tolerancja: 0.02
+    zrodlo: "Pomiar 5, część lokalna — 337 z 341"
+    data: 2026-09-19
+  wiele_sygnatur:
+    udzial: 0.058
+    tolerancja: 0.04
+    zrodlo: "Pomiar 17, dopełnienie — 17 z 295"
+    data: 2026-09-18
+  cytowania:
+    udzial: 0.438
+    tolerancja: 0.12
+    zrodlo: "Pomiar 22 — 194 z 443 dokumentów z cytowaniem"
+    data: 2026-09-19
+  przepisy_puste:
+    udzial: 0.093
+    tolerancja: 0.06
+    zrodlo: "Pomiar 22 / Przebieg 3 — lista kanału pusta w 41 z 443"
+    data: 2026-09-19
+
+filtry_atrapy:
+  fraza: {semantyka: "sygnatura, nie treść", status: zmierzone, zrodlo: "Pomiar filtrów Atlasu, 2026-09-18"}
+  rozstrzygniecie: {semantyka: "równość", status: zmierzone, zrodlo: "Pomiar filtrów Atlasu, 2026-09-18"}
+  rodzaj: {semantyka: "równość", status: niezmierzone, zrodlo: "dokumentacja Atlasu, odczyt 2026-09-18"}
+  przepis: {semantyka: "podnapis etykiety", status: niezmierzone, zrodlo: "dokumentacja Atlasu, odczyt 2026-09-18"}
+  przewodniczacy: {semantyka: "podnapis", status: niezmierzone, zrodlo: "dokumentacja Atlasu, odczyt 2026-09-18"}
+  strona: {semantyka: "podnapis stron", status: niezmierzone, zrodlo: "dokumentacja Atlasu, odczyt 2026-09-18"}
+
+odstepstwa:
+  - cecha: dlugosc_tresci
+    powod: >-
+      Korpus ma medianę 11 416 znaków i maksimum 355 527 (pomiar 5); pokaz generuje uzasadnienia
+      rzędu kilku tysięcy znaków, bo pokaz ma przejść w minutę, a długość nie zmienia ścieżki.
+  - cecha: rodzaj_postanowienia
+    powod: >-
+      Korpus ma 218 postanowień z 443 (49,2 %; `rodzaje` we wzorcach), pokaz wychodzi na 43,5 %,
+      bo rodzaj jest **wyprowadzany** z rozstrzygnięcia (umorzenie i odrzucenie to postanowienia),
+      a nie losowany osobno. Wyprowadzanie jest wierniejsze wobec rejestru niż zgodny udział
+      przy niespójnych parach, więc zostaje różnica 5,7 pkt proc. Zapisana 2026-09-20 po
+      przeglądzie kodu fazy 3, bo do tej pory nie była zapisana nigdzie.
+  - cecha: rozjazd_daty_rozprawy
+    powod: >-
+      9 z 295 rekordów ma datę wydania wcześniejszą niż rozprawy (Jakość pól Atlasu); pokaz tego
+      nie odwzorowuje — żaden krok ścieżki operatora od tego nie zależy.

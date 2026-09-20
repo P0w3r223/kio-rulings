@@ -394,7 +394,10 @@ def test_status_spoza_kontraktu_konczy_sie_wlasciwym_wyjatkiem(
     with pytest.raises(wyjatek):
         kanal.fetch(DOKUMENT_PORA["slug"])
 
-    assert [w.status for w in slad.wyniki] == [status]
+    # 5xx jest ponawiany (`ponowienia.proby`), reszta leci od pierwszej próby (ADR-0007 Z-1).
+    prob = KONTRAKT.ponowienia.proby if status >= 500 else 1
+    assert [w.status for w in slad.wyniki] == [status] * prob
+    assert [w.proba for w in slad.wyniki] == list(range(1, prob + 1))
 
 
 def test_blad_transportu_zostawia_slad_i_jest_wznawialny() -> None:
@@ -404,8 +407,8 @@ def test_blad_transportu_zostawia_slad_i_jest_wznawialny() -> None:
     with pytest.raises(TransportError):
         kanal.fetch(DOKUMENT_PORA["slug"])
 
-    assert len(slad.wyniki) == 1
-    assert slad.wyniki[0].status is None and "ConnectError" in slad.wyniki[0].uwaga
+    assert [w.proba for w in slad.wyniki] == list(range(1, KONTRAKT.ponowienia.proby + 1))
+    assert all(w.status is None and "ConnectError" in w.uwaga for w in slad.wyniki)
 
 
 # --- klucz API i reguła 19 --------------------------------------------------------------------

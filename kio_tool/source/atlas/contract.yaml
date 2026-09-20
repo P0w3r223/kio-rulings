@@ -95,6 +95,26 @@ tempo:
     epoch czy sekundy do resetu) jest niezmierzona; adapter czyta obie i mówi o tym
     w `channel.py` (`PROG_EPOCH`)
 
+ponowienia:
+  # ADR-0007 (przyjęty 2026-09-19, wariant Z-1). Ponowienie idzie przez limiter jak każde żądanie
+  # (`RateLimiter.acquire(extra_delay_s=…)`), więc nie może skrócić żadnego hamulca, a do okien
+  # liczy się tak samo jak żądanie pierwsze. Bez losowego rozrzutu: klient jest jeden (§3.1).
+  klasy: [transport, urwana, serwis_5xx, odmowa_429]
+  proby: 3            # 1 pierwsza + 2 ponowienia; dla `odmowa_429` patrz `proby_429`
+  proby_429: 2        # 1 pierwsza + 1 ponowienie, po pełnej blokadzie limitera
+  podstawa_s: 2.0     # postój przed próbą 2
+  mnoznik: 3.0        # postój przed próbą 3 = podstawa_s * mnoznik
+  pod_rzad_max: 3     # tyle kolejnych żądań z ponowieniem = serwis leży, nie mruga
+  retry_after_max_s: 3600  # dłuższy Retry-After = przebieg przerwany ze zdaniem, nie sen procesu
+  zrodlo: >-
+    decyzja tego projektu (ADR-0007, 2026-09-19), nie odczyt u dostawcy. Liczby są progami,
+    nie pomiarem — jak `pipeline.PROG_ZGODY` i `pipeline.PROG_404_POD_RZAD`. Wejściem do ich
+    korekty jest pomiar 24 (Z-8): pierwszy przebieg kwartalny po wdrożeniu. Awaryjność kanału
+    jest na 2026-09-19 niezmierzona: 352 żądania z 2026-09-18 wróciły ze statusem 200.
+    `retry_after_max_s` dopisany po przeglądzie kodu 2026-09-19: godzina to najdłuższe okno
+    limitu, jakiego przebieg i tak musi dostosować się do (`tempo.okna`, 60 s i doba), a dłuższy
+    postój bez człowieka przy maszynie jest usterką, nie grzecznością
+
 strony:
   na_strone: 100
   # 29 580 dokumentów / 100 = 296 stron (`total`, zmierzone 2026-09-18). Twardy limit z zapasem

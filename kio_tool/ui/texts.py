@@ -14,8 +14,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Literal
 
 from ..criteria import ETYKIETY, Criteria
+from ..wycena import Wycena
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,36 @@ class Block:
         return "\n".join(lines)
 
 
+RodzajPytania = Literal["wybor", "tekst", "tak_nie"]
+
+
+@dataclass(frozen=True)
+class Opcja:
+    """Jedna odpowiedź do wyboru: `klucz` wraca do programu, `etykieta` idzie na ekran."""
+
+    klucz: str
+    etykieta: str
+
+
+@dataclass(frozen=True)
+class Pytanie:
+    """Pytanie jako dane (ADR-0008 Z-7): treść pisze ten moduł, zadaje je `ui/prompts.py`.
+
+    `domyslna` jest odpowiedzią na sam Enter — i dlatego przy pytaniu o zgodę na przebieg
+    masowy wynosi „nie": Enter nie ma prawa pobrać czterech tysięcy orzeczeń (ADR-0008 §10).
+    """
+
+    tresc: str
+    rodzaj: RodzajPytania = "wybor"
+    opcje: tuple[Opcja, ...] = ()
+    domyslna: str | None = None
+    podpowiedz: str = ""
+    """Co wolno wpisać, w nawiasie za pytaniem — format daty, przykład, znaczenie pustej
+    odpowiedzi. Operator, który nie zna narzędzia, nie ma tego skąd wiedzieć, a pytanie bez
+    podpowiedzi wygląda tak samo jak pytanie, na które jest jedna poprawna odpowiedź
+    (wzorzec z `ceidg-tool`, zgłoszenie operatora 2026-09-20)."""
+
+
 # ------------------------------------------------------------------------ pomoc poleceń
 
 POMOC_PROGRAMU = "kio-tool — lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej."
@@ -54,9 +86,25 @@ POMOC_EKSPORTUJ = (
     "(--run-id) albo pasujące do kryteriów (--od, --do, --fraza …)."
 )
 POMOC_RUNY = "Wypisuje ostatnie przebiegi z bazy: status, zakres, liczbę dokumentów i żądań."
+POMOC_KREATOR = (
+    "Kreator dla operatora: menu, pytania i tabela kosztów przed każdym pobraniem. To samo "
+    "otwiera `kio-tool` bez polecenia na terminalu."
+)
+POMOC_DEMO = (
+    "Tryb pokazowy: kreator nad fikcyjnym korpusem generowanym w procesie — bez sieci, bez adresu "
+    "kontaktowego, w osobnym katalogu danych. Ta sama ścieżka co na danych prawdziwych."
+)
+POMOC_OD_NOWA = "zacznij pokaz od pustej bazy (kasuje wyłącznie bazę trybu pokazowego)"
 POMOC_PRZELICZ = (
     "Przelicza metadane i indeks pełnotekstowy z surowych wersji w bazie — zero żądań do sieci."
 )
+POMOC_POKRYCIE = (
+    "Raport pokrycia parsera z bazy (sekcje, cytowania, przepisy po roczniku z sygnatury) do "
+    "`docs/raporty/` — zero żądań, bez tekstu orzeczeń; z `--zloty` sprawdza adnotacje złotego "
+    "zbioru."
+)
+POMOC_CEL_RAPORTU = "katalog raportu (domyślnie `docs/raporty` w bieżącym katalogu)"
+POMOC_ZLOTY = "katalog złotego zbioru (`tests/gold`) — adnotacje sprawdzane wobec korpusu"
 POMOC_SZUKAJ = (
     "Szuka frazy dosłownie w pełnym tekście korpusu lokalnego (FTS5) z filtrami; wynik zawsze "
     "mówi, ile dokumentów objął."
@@ -192,6 +240,7 @@ def podsumowanie(
     zadan_lacznie: int | None = None,
     bledow_odczytu: int = 0,
     brakujacych: int = 0,
+    ponowien_lacznie: int = 0,
 ) -> str:
     """Rachunek przebiegu — liczba żądań wypisana, nie zostawiona do policzenia z ekranu.
 
@@ -226,6 +275,13 @@ def podsumowanie(
         linie.append(
             f"Dokumentów z listy, których kanał już nie ma (404): {brakujacych} — pominięte, "
             "przebieg poszedł dalej"
+        )
+    if ponowien_lacznie:
+        # ADR-0007 Z-7 ujście 4: liczba z bazy, nie z pamięci procesu — to jest też wejście
+        # pomiaru 24, więc ma przeżyć wznowienie tak samo jak `zadan_lacznie`.
+        linie.append(
+            f"Ponowień w całym przebiegu (z bazy): {ponowien_lacznie} — żądania powtórzone "
+            "po zerwanym łączu, 5xx albo 429; każde liczy się do limitów tempa i do zgody"
         )
     linie.append(f"Baza: {baza}")
     return "\n".join(linie)
@@ -273,6 +329,99 @@ def blok_runow(wiersze: Sequence[tuple[str, ...]], lacznie: int) -> Block:
         headers=NAGLOWKI_RUNOW,
         rows=tuple(wiersze),
     )
+
+
+def czas_ludzki(sekundy: float) -> str:
+    """`259200` → `3 doby 0 h`, `4320` → `1 h 12 min`, `42` → `42 s` — bez udawanej precyzji."""
+    if sekundy < 60:
+        return f"{sekundy:.0f} s"
+    minuty = int(sekundy // 60)
+    if minuty < 60:
+        return f"{minuty} min"
+    godziny, minuty = divmod(minuty, 60)
+    if godziny < 24:
+        return f"{godziny} h {minuty} min"
+    doby, godziny = divmod(godziny, 24)
+    return f"{doby} {odmiana(doby, 'doba', 'doby', 'dób')} {godziny} h"
+
+
+def odmiana(ile: int, jedna: str, kilka: str, wiele: str) -> str:
+    """Polski liczebnik: 1 doba, 2–4 doby, 5+ dób — z wyjątkiem nastek (12, 13, 14).
+
+    Reguła „od pięciu — forma mnoga” kończy się na 21: poprawne jest „22 doby”, nie „22 dób”
+    (przegląd kodu fazy 3, 2026-09-20). Jedna funkcja, bo ten sam błąd wyszedł potem przy
+    liczbie orzeczeń w menu — licznik odmieniany w dwóch miejscach rozjeżdża się w trzecim."""
+    if ile == 1:
+        return jedna
+    if ile % 10 in (2, 3, 4) and ile % 100 not in (12, 13, 14):
+        return kilka
+    return wiele
+
+
+def orzeczen(ile: int) -> str:
+    """`443` → `443 orzeczenia`, `445` → `445 orzeczeń`."""
+    return f"{ile} {odmiana(ile, 'orzeczenie', 'orzeczenia', 'orzeczeń')}"
+
+
+def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | None = None) -> Block:
+    """Koszt reszty przebiegu przed pierwszym dokumentem (ADR-0008 Z-5) — ten sam blok na
+    ścieżce flag, w kreatorze i w pokazie. Czas jest **produkcyjny**; pokaz dopisuje swój obok."""
+    if wycena.zadan is None:
+        return Block(
+            title="Koszt przebiegu",
+            rows=(("dokumentów w zakresie", "kanał nie podał liczby"),),
+            notes=(
+                f"Bez liczby z kanału próg zgody pilnuje licznik żądań: bez zgody najwyżej "
+                f"{prog_zgody} żądań.",
+            ),
+        )
+    wiersze = [
+        ("dokumentów do pobrania (najwyżej)", str(wycena.dokumentow)),
+        ("dalszych stron listy", str(wycena.stron_listy)),
+        ("żądań do serwisu (najwyżej)", str(wycena.zadan)),
+        ("czas przy tempie kontraktu (co najmniej)", czas_ludzki(wycena.czas_s or 0.0)),
+    ]
+    if czas_pokazu_s is not None:
+        wiersze.append(("czas w trybie pokazowym", czas_ludzki(czas_pokazu_s)))
+    uwagi = [
+        "Liczby są górną granicą: dokument już w bazie nie kosztuje żądania.",
+    ]
+    if wycena.zadan + wycena.zadan_juz > prog_zgody:
+        uwagi.append(
+            f"To przebieg masowy (ponad {prog_zgody} żądań) — wymaga zgody udzielonej w tej sesji."
+        )
+    return Block(title="Koszt przebiegu", rows=tuple(wiersze), notes=tuple(uwagi))
+
+
+def blok_pokrycia(
+    dokumentow: int,
+    komplet: int,
+    nierozpoznanych: int,
+    cytowan: int,
+    zloty: tuple[int, int, int] | None,
+    sciezki: tuple[str, ...],
+) -> Block:
+    """Skrót raportu na ekran; `zloty` = (plików, sprawdzonych, zgodnych)."""
+    wiersze = [
+        ("dokumentów", str(dokumentow)),
+        ("z kompletem sekcji", f"{komplet} z {dokumentow}"),
+        ("cytowań nierozpoznanych", f"{nierozpoznanych} z {cytowan}"),
+    ]
+    uwagi: list[str] = []
+    if zloty is None:
+        uwagi.append("Złoty zbiór nie był podany — raport mówi „sprawdzono 0 z 0”.")
+    else:
+        plikow, sprawdzonych, zgodnych = zloty
+        wiersze.append(
+            ("złoty zbiór", f"sprawdzono {sprawdzonych} z {plikow}, zgodnych {zgodnych}")
+        )
+        if sprawdzonych < plikow:
+            uwagi.append(
+                f"{plikow - sprawdzonych} adnotacji niesprawdzonych — tej wersji dokumentu nie ma "
+                "w korpusie; lista w raporcie."
+            )
+    wiersze += [("plik", sciezka) for sciezka in sciezki]
+    return Block(title="Raport pokrycia zapisany", rows=tuple(wiersze), notes=tuple(uwagi))
 
 
 def blok_przeliczenia(
@@ -391,3 +540,243 @@ def zero_kandydatow(kryteria: Criteria) -> Block:
         "`szukaj` po pobraniu zakresu dat."
     )
     return Block(title="Kanał nie zwrócił żadnego kandydata", notes=tuple(uwagi))
+
+
+# ------------------------------------------------------------------ kreator (ADR-0008 Z-7…Z-10)
+
+MENU_WZNOW = "wznow"
+MENU_POBIERZ = "pobierz"
+MENU_SZUKAJ = "szukaj"
+MENU_EKSPORTUJ = "eksportuj"
+MENU_WYJDZ = "wyjdz"
+WROC = "wroc"
+
+CEL_DATY = "daty"
+CEL_SYGNATURA = "sygnatura"
+CEL_ROZSTRZYGNIECIE = "rozstrzygniecie"
+
+BRAK_KONTAKTU = (
+    "Pobieranie wymaga adresu kontaktowego w zmiennej KIO_TOOL_CONTACT — narzędzie przedstawia się "
+    "nim serwisowi (reguła 16). Ustaw ją i uruchom program ponownie; wyszukiwanie i eksport "
+    "działają bez niej."
+)
+PRZERWANO_AKCJE = (
+    "Przerwano (Ctrl+C). Przebieg został zapisany jako przerwany — pozycja „Wznów” w menu "
+    "dokończy go bez ponownego pobierania tego, co już przyszło."
+)
+FRAZA_TO_SYGNATURA = (
+    "Wyszukiwarka Atlasu dopasowuje sygnaturę, nie treść (zmierzone 2026-09-18). Żeby szukać "
+    "w treści, pobierz zakres dat, a potem użyj „Szukaj w korpusie”."
+)
+
+
+@dataclass(frozen=True)
+class StanKorpusu:
+    """Liczby, które kreator pokazuje **zanim** operator cokolwiek wybierze.
+
+    Pierwszy ekran bez stanu mówi, czym narzędzie jest; ekran ze stanem mówi, co operator ma
+    w ręku — a to jest ta informacja, której brakowało, żeby wybrać pozycję menu świadomie.
+    Zero żądań: wszystkie trzy liczby są odczytem z lokalnej bazy.
+    """
+
+    dokumentow: int
+    zaindeksowanych: int
+    przerwanych: int
+    sciezka: str
+
+
+JAK_TO_DZIALA: tuple[str, ...] = (
+    "Strzałki ↑↓ wybierają pozycję, Enter zatwierdza. W pytaniach tekstowych Enter bez "
+    "wpisywania przyjmuje odpowiedź podaną w nawiasie kwadratowym.",
+    "Każde pobranie pokazuje najpierw koszt — ile dokumentów, ile żądań i ile to potrwa — "
+    "i dopiero wtedy pyta o zgodę. Nic nie wychodzi do sieci przed tą odpowiedzią.",
+    "Ctrl+C przerywa bieżącą czynność i wraca do menu, a w menu kończy program. Przerwane "
+    "pobranie wznowisz później od miejsca, w którym stanęło — nic nie pobierze się dwa razy.",
+    "Szukanie i eksport czytają wyłącznie lokalną bazę: zero żądań, działają bez internetu.",
+)
+"""Cztery zdania o obsłudze narzędzia, nie o jego przeznaczeniu. Stoją na pierwszym ekranie,
+bo operator czyta go raz i wtedy właśnie decyduje, czy wie, co robić."""
+
+
+def pierwszy_ekran(*, pokaz: bool, stan: StanKorpusu | None = None) -> Block:
+    """Pierwszy ekran kreatora; w trybie pokazowym — pierwszy z sześciu znaczników (Z-3)."""
+    if pokaz:
+        return Block(
+            title="TRYB POKAZOWY — dane fikcyjne, żadne żądanie nie wychodzi do sieci",
+            notes=(
+                "Orzeczenia, sygnatury (KIO 9000–9999), osoby i strony są wygenerowane. "
+                "Nic stąd nie "
+                "jest cytatem z Krajowej Izby Odwoławczej ani z Atlasu Przetargów.",
+                "Ścieżka jest ta sama co na danych prawdziwych: tabela kosztów, zgoda, przerwanie, "
+                "wznowienie, wyszukiwanie i eksport.",
+            ),
+        )
+    return Block(
+        title="kio-tool — korpus orzecznictwa Krajowej Izby Odwoławczej",
+        rows=_wiersze_stanu(stan),
+        notes=JAK_TO_DZIALA,
+    )
+
+
+def _wiersze_stanu(stan: StanKorpusu | None) -> tuple[tuple[str, ...], ...]:
+    if stan is None:
+        return ()
+    wiersze = [
+        ("orzeczeń w korpusie", str(stan.dokumentow)),
+        ("gotowych do szukania", f"{stan.zaindeksowanych} z {stan.dokumentow}"),
+        ("baza", stan.sciezka),
+    ]
+    if stan.przerwanych:
+        wiersze.insert(0, ("przerwane pobrania", str(stan.przerwanych)))
+    return tuple(wiersze)
+
+
+def pytanie_menu(*, jest_co_wznowic: bool, stan: StanKorpusu | None = None) -> Pytanie:
+    """Menu, w którym każda pozycja mówi, co zrobi i czy kosztuje żądania.
+
+    Gołe etykiety („Szukaj w korpusie") nie odpowiadają na jedyne pytanie, jakie ma operator
+    przy pierwszym uruchomieniu: czy to wyśle coś do sieci i ile tego jest. Liczby pochodzą
+    z lokalnej bazy (wzorzec z `ceidg-tool`, gdzie pozycja menu niesie koszt w żądaniach).
+    """
+    w_korpusie = "" if stan is None else f" — {orzeczen(stan.zaindeksowanych)}, bez sieci"
+    opcje = [
+        Opcja(MENU_POBIERZ, "Pobierz orzeczenia — najpierw koszt i pytanie o zgodę"),
+        Opcja(MENU_SZUKAJ, f"Szukaj w korpusie{w_korpusie}"),
+        Opcja(MENU_EKSPORTUJ, "Eksportuj z korpusu — Excel, Markdown, CSV albo JSONL; bez sieci"),
+        Opcja(MENU_WYJDZ, "Wyjdź"),
+    ]
+    if jest_co_wznowic:
+        opcje.insert(0, Opcja(MENU_WZNOW, "Wznów przerwany przebieg — dokończy to, co zostało"))
+    return Pytanie(
+        tresc="Co chcesz zrobić?",
+        opcje=tuple(opcje),
+        domyslna=MENU_WZNOW if jest_co_wznowic else MENU_POBIERZ,
+    )
+
+
+PYTANIE_CEL = Pytanie(
+    tresc="Co pobrać? (koszt zobaczysz przed pobraniem, nic jeszcze nie wychodzi do sieci)",
+    opcje=(
+        Opcja(CEL_DATY, "Orzeczenia z zakresu dat wydania"),
+        Opcja(CEL_SYGNATURA, "Jedno orzeczenie po sygnaturze (np. KIO 1205/20)"),
+        Opcja(CEL_ROZSTRZYGNIECIE, "Orzeczenia z zakresu dat o danym rozstrzygnięciu"),
+        Opcja(WROC, "Wróć do menu"),
+    ),
+    domyslna=CEL_DATY,
+)
+PYTANIE_OD = Pytanie(
+    tresc="Data wydania od",
+    rodzaj="tekst",
+    podpowiedz="RRRR-MM-DD, na przykład 2024-01-01; jeden miesiąc to około 300 orzeczeń",
+)
+PYTANIE_DO = Pytanie(
+    tresc="Data wydania do",
+    rodzaj="tekst",
+    podpowiedz="RRRR-MM-DD; Enter bez wpisywania = bez górnej granicy",
+)
+PYTANIE_SYGNATURA = Pytanie(
+    tresc="Sygnatura",
+    rodzaj="tekst",
+    podpowiedz="na przykład KIO 1205/20 albo KIO 1205/2020 — oba zapisy znaczą to samo",
+)
+PYTANIE_FRAZA = Pytanie(
+    tresc="Fraza do znalezienia w treści",
+    rodzaj="tekst",
+    podpowiedz=(
+        "szukanie jest dosłowne i nie zna odmiany — „wadium” nie znajdzie „wadia” ani "
+        "„wadiom”; Enter bez wpisywania = wszystko w zakresie"
+    ),
+)
+PYTANIE_ROZSTRZYGNIECIE = Pytanie(
+    tresc="Rozstrzygnięcie:",
+    opcje=(
+        Opcja("oddalono", "oddalono — Izba nie przyznała racji odwołującemu"),
+        Opcja("uwzglednione", "uwzględnione — Izba przyznała rację odwołującemu"),
+        Opcja("umorzono", "umorzono — sprawa zakończona bez rozstrzygnięcia co do meritum"),
+        Opcja("odrzucono", "odrzucono — odwołanie nie weszło pod rozpoznanie"),
+        Opcja("inne", "inne — pozostałe wartości, jakie zwraca kanał"),
+    ),
+    domyslna="oddalono",
+    podpowiedz=(
+        "lista zmierzona na stu rekordach kanału, nie słownik urzędowy — kanał może zwrócić "
+        "wartość spoza niej"
+    ),
+)
+PYTANIE_EKSPORT = Pytanie(
+    tresc="Zapisać wynik do pliku? (czyta lokalną bazę, zero żądań)",
+    opcje=(
+        Opcja("xlsx", "Arkusz Excel (.xlsx)"),
+        Opcja("md", "Katalog plików Markdown"),
+        Opcja("csv", "CSV"),
+        Opcja("jsonl", "JSONL"),
+        Opcja(WROC, "Nie zapisuj"),
+    ),
+    domyslna="xlsx",
+)
+
+
+NIE_ROZUMIEM_TAK_NIE = "Nie rozumiem odpowiedzi — wpisz „tak” albo „nie”."
+
+
+def linia_tekstowa(pytanie: Pytanie) -> str:
+    """Pytanie tekstowe razem z podpowiedzią i odpowiedzią domyślną — jedno miejsce, żeby
+    ścieżka ze strzałkami i ścieżka awaryjna pokazywały operatorowi to samo."""
+    linia = pytanie.tresc if not pytanie.podpowiedz else f"{pytanie.tresc} ({pytanie.podpowiedz})"
+    return linia if not pytanie.domyslna else f"{linia} [domyślnie: {pytanie.domyslna}]"
+
+
+def linia_tak_nie(pytanie: Pytanie) -> str:
+    """Pytanie tak/nie razem z klamrą akceptowanych odpowiedzi; WIELKA litera to sam Enter.
+
+    Klamra jest tutaj, a nie w pytającym, bo to jest zdanie do operatora — `ui/texts.py`
+    pisze zdania, `ui/prompts.py` je zadaje. Bez niej operator nie ma skąd wiedzieć, że Enter
+    coś znaczy, ani co wolno wpisać (zgłoszenie operatora, 2026-09-20)."""
+    klamra = "T/n" if pytanie.domyslna == "tak" else "t/N"
+    return f"{pytanie.tresc} [{klamra}]"
+
+
+def pytanie_zgody(*, masowy: bool) -> Pytanie:
+    """Pytanie po tabeli kosztów. Przy przebiegu masowym Enter znaczy „nie” (ADR-0008 §10)."""
+    return Pytanie(
+        tresc="Pobrać? To jest zgoda na ten przebieg w tej sesji." if masowy else "Pobrać?",
+        rodzaj="tak_nie",
+        domyslna="nie" if masowy else "tak",
+    )
+
+
+def pytanie_poszerzenia(kryteria: Criteria) -> Pytanie:
+    """Zero kandydatów → wybór poszerzenia zamiast ślepej uliczki (ADR-0008 Z-10)."""
+    opcje = [
+        Opcja(pole, f"Spróbuj bez pola „{ETYKIETY[pole]}”: {kandydat.describe()}")
+        for pole, kandydat in kryteria.poszerzenia()
+    ]
+    opcje.append(Opcja(WROC, "Wróć do menu"))
+    return Pytanie(
+        tresc="Kanał nie zwrócił żadnego orzeczenia. Co dalej?",
+        opcje=tuple(opcje),
+        domyslna=opcje[0].klucz,
+    )
+
+
+def pytanie_wznowienia(przebiegi: Sequence[tuple[str, str]]) -> Pytanie:
+    """`przebiegi` = (run_id, etykieta zakresu) — etykieta z bazy, więc idzie przez neutralizator
+    pytającego (reguła 10), a nie jest tu formatowana w nic, co terminal mógłby zinterpretować."""
+    return Pytanie(
+        tresc="Który przebieg wznowić?",
+        opcje=(
+            *(Opcja(run_id, f"{run_id} — {etykieta}") for run_id, etykieta in przebiegi),
+            Opcja(WROC, "Wróć do menu"),
+        ),
+        domyslna=przebiegi[0][0] if przebiegi else WROC,
+    )
+
+
+def niepoprawne(powod: str) -> str:
+    return f"Tego nie da się użyć: {powod}. Spróbuj jeszcze raz albo zostaw puste, żeby wrócić."
+
+
+def blad_akcji(powod: str) -> str:
+    return f"Nie udało się: {powod}. Wracam do menu — nic nie zostało utracone."
+
+
+PRZERWANO_PYTANIE = "Przerwano pytanie — wracam do menu; nic nie zostało pobrane ani zapisane."

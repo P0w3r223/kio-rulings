@@ -730,7 +730,8 @@ przeglądem — z jednym wyjątkiem, który tam też jest wyjątkiem: reguła 14
 strict na typie własnym, nie przez skan, i dokument projektowy ma to mówić wprost, zamiast liczyć
 ją do pokrycia skanu. Dwie ostatnie są nowe i wynikają z tego audytu.
 
-1. `criteria.py`, `docid.py`, `dictionaries.py` oraz **każdy moduł w `parser/` (rekursywnie)**
+1. `criteria.py`, `docid.py`, `dictionaries.py`, `wycena.py`, `demo/korpus.py` (dwa ostatnie od
+   ADR-0008 Z-16, 2026-09-19) oraz **każdy moduł w `parser/` (rekursywnie)**
    nie importują `httpx`, `sqlite3`, `openpyxl`, `rich`, `os`. Moduły czyste spoza `parser/`
    są w teście wyliczone wprost i mają test istnienia pliku; `parser/` jest skanowany
    rekursywnie, żeby nowy moduł parsera podlegał regule bez dopisywania go do listy.
@@ -751,7 +752,9 @@ ją do pokrycia skanu. Dwie ostatnie są nowe i wynikają z tego audytu.
    importują `rich`.
 8. `ui/*` nie importuje `source` ani `store` — idzie przez `pipeline`.
 9. `cli.py` nie pisze żadnego zdania do użytkownika; każdy blok pochodzi z `ui/texts.py`.
-10. Każdy napis z zewnątrz trafiający do `rich` przechodzi przez `richtext.safe`.
+10. Każdy napis z zewnątrz trafiający do `rich` przechodzi przez `richtext.safe`, a do
+    `questionary` — przez `ui/prompts._do_pytania` (ADR-0008 Z-15, 2026-09-19: terminal czyta
+    sekwencje sterujące tak samo, czy przyszły przez `rich`, czy przez pytającego).
 11. **Jeden właściciel na protokół, jedna kopia polityki wyjścia.** *(brzmienie z ADR-0003,
     przyjęte 2026-09-15)* Konstrukt otwierający połączenie sieciowe powstaje wyłącznie
     w module-właścicielu przypisanym do jego protokołu. Dziś właściciel jest jeden —

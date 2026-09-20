@@ -1,7 +1,7 @@
 # ADR-0007: Polityka ponowień — pętla w kanale, postój przez limiter, liczby w kontrakcie
 
 Data: 2026-09-19
-Status: proposed (czeka na decyzję właściciela)
+Status: accepted (2026-09-19, decyzja właściciela — wariant Z-1, pomiar 24, Z-9 razem z resztą)
 Autor: P0w3r223
 Related to: `AUDYT_KIO_ORZECZENIA.md` (7.2 cisza jest usterką, 8.3 reguła 16), `ARCHITEKTURA_KIO_TOOL.md` (4.1 reguły 17 i 22, 4.3, 4.7), `docs/decisions.md` („Przebieg 1", „Przebieg 2", „Status pomiarów"), `docs/adr/0005_bramka_per_kanal.md`, `docs/adr/0006_parser_i_struktura.md` (oba powstały 2026-09-19; ten dokument dostał numer 0007, bo 0006 zajęła faza 2), `kio_tool/source/atlas/channel.py`, `kio_tool/ratelimit.py`, `kio_tool/logbook.py`, `kio_tool/errors.py`, `kio_tool/pipeline.py`, `kio_tool/store.py`, `tests/test_odpornosc_sieci.py`
 
@@ -264,3 +264,29 @@ dokładnie tak, jak opisuje `RateLimitError`.
 3. **Czy Z-9 wdrożyć osobno i wcześniej.** Poprawka licznika zgody jest logicznie niezależna od
    ponowień i dotyczy zabezpieczenia; dziś jej skutek jest ograniczony, bo pierwszy wyjątek
    transportowy kończy przebieg — ale jest warunkiem, żeby ponowienia nie rozszczelniły progu zgody.
+
+### 8.1 Rozstrzygnięcie (2026-09-19)
+
+Właściciel wybrał **wariant Z-1** (429 dostaje jedno ponowienie po pełnej blokadzie) i przyjął
+numer **24** dla pomiaru z Z-8. Z-9 weszło w tym samym commicie co pętla — przed nią w kolejności
+prac, nie osobnym wydaniem, bo drzewo nie było wydawane między jednym a drugim.
+
+Dwa odstępstwa od §5, oba świadome:
+
+- **Dziennik markdown sondy (`docs/dziennik_zadan.md`) nie dostaje kolumny `proba`.** Sonda nie
+  ponawia, więc kolumna niosłaby wyłącznie jedynki, a dopisana do żywej tabeli rozjechałaby
+  wiersze sprzed zmiany. `Wynik.proba` istnieje i idzie do `requests_log` (schemat 5).
+- **`ponowienia.retry_after_max_s` (3 600 s) — dopisane po przeglądzie kodu 2026-09-19.** Z-4
+  każe honorować `Retry-After` przy 5xx, a nic go nie ograniczało: `Retry-After: 1e18` usypiał
+  proces na zawsze (odejmowanie plastrów po 300 s ginęło w precyzji liczby zmiennoprzecinkowej).
+  Dłuższa prośba serwisu kończy teraz przebieg jako `przerwany` ze zdaniem; honoruje ją `wznow`.
+- **404 przerywa serię z Z-6** — także po przeglądzie. „Kolejne żądania wymagające ponowienia"
+  czytamy jako kolejne **żądania**: 404 jest odpowiedzią działającego serwisu, więc seria
+  „5xx, 404, 5xx, 404, 5xx" nie znaczy „serwis leży".
+- **Otwarte:** historia żądań odtwarza `Retry-After` w następnym procesie wyłącznie dla 429.
+  Po wyczerpaniu prób 5xx natychmiastowy `wznow` nie czeka na prośbę serwisu — Z-4 domyka tę lukę
+  tylko w obrębie procesu. Do decyzji przy pomiarze 24.
+- **§5.1 mylił się co do `test_429_zatrzymuje_przebieg_i_zostawia_go_wznawialnym`.** Test nie
+  przeszedł bez zmian: przebieg nadal staje na `RateLimitError`, ale dziennik ma teraz **dwa**
+  wiersze 429 (`proba` 1 i 2), a test liczył jeden. Asercja poprawiona na dokładną listę par
+  (status, próba) — czyli mierzy teraz także to, że drugiego ponowienia nie było.

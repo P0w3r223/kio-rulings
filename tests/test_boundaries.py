@@ -176,7 +176,7 @@ def test_skan_importow_widzi_obie_pisownie_tej_samej_zaleznosci(
 # wyliczona wprost, a `parser/` wchodzi w całości i rekursywnie. `config.py` do listy
 # **nie** należy — importuje `os` i ma do tego powód (`CONTACT_ENV`). `criteria.py` doszedł
 # 2026-09-18 (etap IV) — reguła 1 wymienia go z nazwy od pierwszego brzmienia.
-MODULY_CZYSTE_WPROST = ("criteria.py", "docid.py", "safetext.py")
+MODULY_CZYSTE_WPROST = ("criteria.py", "docid.py", "safetext.py", "wycena.py", "demo/korpus.py")
 
 # Reguła 1: moduł czysty nie zna wejścia/wyjścia ani systemu.
 ZAKAZANE_REGULA_1 = frozenset({"httpx", "sqlite3", "openpyxl", "rich", "os"})
@@ -798,7 +798,9 @@ def pomoce_spoza_tekstow(tree: ast.Module) -> list[int]:
 
 
 def pliki_cli() -> tuple[Path, ...]:
-    return istniejace("kio_tool/cli.py")
+    """`cli.py` i jego przedłużenie `obsluga.py` (wydruki wspólne z kreatorem, ADR-0008 Z-7) —
+    oba stoją po tej samej stronie reguły 9: żadnego zdania własnego, każdy napis z `texts`."""
+    return istniejace("kio_tool/cli.py", "kio_tool/obsluga.py")
 
 
 def _naruszenia_w_cli(skan: Callable[[ast.Module], list[int]]) -> list[str]:
@@ -1933,11 +1935,16 @@ REGULY: tuple[Regula, ...] = (
         lambda: wzgledne(pliki_pakietu()),
     ),
     Regula(8, ("kio_tool/ui/**/*.py",), lambda: wzgledne(pliki_ui())),
-    Regula(9, ("kio_tool/cli.py",), lambda: wzgledne(pliki_cli())),
+    Regula(9, ("kio_tool/cli.py", "kio_tool/obsluga.py"), lambda: wzgledne(pliki_cli())),
     Regula(
         10,
-        ("kio_tool/richtext.py", "kio_tool/console.py", "kio_tool/ui/render.py"),
-        lambda: wzgledne(pliki_rich()),
+        (
+            "kio_tool/richtext.py",
+            "kio_tool/console.py",
+            "kio_tool/ui/render.py",
+            "kio_tool/ui/prompts.py",
+        ),
+        lambda: wzgledne((*pliki_rich(), *istniejace("kio_tool/ui/prompts.py"))),
     ),
     Regula(
         11,
@@ -2364,3 +2371,118 @@ def test_granica_skanu_reguly_21_zaglusza_sie_glosno_a_nie_cicho(tmp_path: Path)
         "Nieczytelne `REGISTRY` ma dawać rozjazd trzech zbiorów, czyli czerwony test — "
         "nie zbiór pusty, który przy pustym `source/` byłby nie do odróżnienia od porządku."
     )
+
+
+# --------------------- reguła 10 na `questionary` (ADR-0008 Z-15) i reguła 7 w równości
+
+WYWOLANIA_PYTAN = frozenset(
+    {"confirm", "text", "select", "Choice", "checkbox", "rawselect", "autocomplete", "print"}
+)
+"""Konstrukty `questionary`, które wypisują napis na terminal."""
+SLOWA_PYTAN = frozenset({"message", "title", "instruction", "qmark"})
+NEUTRALIZATOR_PYTAN = "_do_pytania"
+
+
+def naruszenia_pytan(tree: ast.Module) -> list[int]:
+    """Linie, w których napis idzie do `questionary` z pominięciem `_do_pytania`.
+
+    `default` liczy się wyłącznie przy `text` — tam jest wpisanym na ekran napisem; przy
+    `select` jest kluczem opcji, przy `confirm` wartością logiczną. Bezpieczny jest napis
+    programu (stała) albo **całe** wyrażenie będące wywołaniem neutralizatora — ta sama zasada
+    korzenia wyrażenia co `argument_bezpieczny` dla `rich`.
+    """
+    naruszenia: list[int] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if not (
+            isinstance(func, ast.Attribute)
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "questionary"
+            and func.attr in WYWOLANIA_PYTAN
+        ):
+            continue
+        slowa = SLOWA_PYTAN | ({"default"} if func.attr == "text" else set())
+        argumenty = [*node.args, *(kw.value for kw in node.keywords if kw.arg in slowa)]
+        for argument in argumenty:
+            napis = isinstance(argument, ast.Constant) and isinstance(argument.value, str)
+            if not napis and nazwa_wywolania(argument) != NEUTRALIZATOR_PYTAN:
+                naruszenia.append(argument.lineno)
+    return naruszenia
+
+
+def test_regula_10_pytania_questionary_ida_przez_neutralizator() -> None:
+    """Etykieta przebiegu z bazy albo kryterium wpisane przez operatora dociera do terminala
+    przez `questionary` tak samo jak przez `rich` — sekwencja ESC steruje ekranem w obu."""
+    for wzgledna in sorted(MODULY_QUESTIONARY):
+        sciezka = PAKIET / wzgledna
+        assert naruszenia_pytan(drzewo(sciezka)) == [], f"{wzgledna}: napis bez `_do_pytania`"
+
+
+@pytest.mark.parametrize(
+    ("zrodlo", "ile"),
+    [
+        ("questionary.select(_do_pytania(p.tresc), choices=[])", 0),
+        ('questionary.confirm("Kontynuować?", default=True)', 0),
+        ("questionary.Choice(title=_do_pytania(o.etykieta), value=o.klucz)", 0),
+        ("questionary.select(p.tresc)", 1),
+        ("questionary.text(_do_pytania(p.tresc), default=p.domyslna)", 1),
+        ('questionary.Choice(title=f"{o.etykieta}", value=o.klucz)', 1),
+        ("questionary.select(_do_pytania(a) + b)", 1),
+    ],
+)
+def test_samosprawdzenie_skanu_pytan(zrodlo: str, ile: int) -> None:
+    assert len(naruszenia_pytan(ast.parse(zrodlo))) == ile
+
+
+def test_regula_7_pytajacy_naprawde_zna_questionary() -> None:
+    """Lustro testu dla `rich`: zawieranie przechodzi też dla zbioru pustego."""
+    assert uzytkownicy("questionary") == MODULY_QUESTIONARY
+
+
+# ------------------------------------------------------------------ sufit rozmiaru modułu
+
+SUFIT_LINII = 800
+"""Sufit z zasad projektu („pliki 200–400 linii typowo, 800 maksimum")."""
+
+PONAD_SUFITEM: dict[str, int] = {
+    "store.py": 1466,
+    "pipeline.py": 971,
+}
+"""Moduły, które sufit przekraczają dziś, z **pomiarem** z 2026-09-20 jako granicą.
+
+Do przeglądu kodu fazy 3 sufit żył wyłącznie w prozie: docstring `obsluga.py` powoływał się
+na niego jako na powód własnego wydzielenia, a dwa moduły stały ponad nim i nic tego nie
+mówiło. Wyjątek z liczbą jest tu czymś innym niż wyłączenie reguły: moduł z tej tablicy nie
+ma prawa **urosnąć**, a nowy moduł nie ma prawa się w niej znaleźć bez decyzji. Rozbicie obu
+jest długiem fazy 4, nie pracą do wciśnięcia w bramkę fazy 3.
+"""
+
+
+def test_zaden_modul_nie_przekracza_sufitu_linii() -> None:
+    za_duze = {
+        str(p.relative_to(PAKIET)): len(p.read_text(encoding="utf-8").splitlines())
+        for p in sorted(PAKIET.rglob("*.py"))
+        if len(p.read_text(encoding="utf-8").splitlines()) > SUFIT_LINII
+    }
+    dozwolone = {k: v for k, v in za_duze.items() if k in PONAD_SUFITEM}
+    nowe = {k: v for k, v in za_duze.items() if k not in PONAD_SUFITEM}
+
+    assert not nowe, (
+        f"moduły ponad sufitem {SUFIT_LINII} linii bez wpisu: {nowe}; rozbij albo dopisz "
+        "do `PONAD_SUFITEM` razem z powodem"
+    )
+    urosly = {k: (v, PONAD_SUFITEM[k]) for k, v in dozwolone.items() if v > PONAD_SUFITEM[k]}
+    assert not urosly, f"moduł z wyjątkiem urósł (jest, było): {urosly}"
+
+
+def test_metatest_kazdy_wpis_ponad_sufitem_naprawde_przekracza_sufit() -> None:
+    """Wpis o module, który już zszedł pod sufit, kłamałby o stanie drzewa."""
+    for nazwa, granica in PONAD_SUFITEM.items():
+        plik = PAKIET / nazwa
+        assert plik.exists(), nazwa
+        assert granica > SUFIT_LINII, nazwa
+        assert len(plik.read_text(encoding="utf-8").splitlines()) > SUFIT_LINII, (
+            f"{nazwa} mieści się już w suficie — zdejmij wpis zamiast go nosić"
+        )

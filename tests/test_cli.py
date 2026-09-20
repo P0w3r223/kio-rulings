@@ -612,3 +612,119 @@ def test_przebieg_sprzed_migracji_ma_dokumenty_w_korpusie_i_zero_w_run_documents
             "ślad po żądaniach przebiegu **jest** w bazie — to z niego dałby się odtworzyć "
             "`run_documents`, gdyby właściciel wybrał backfill"
         )
+
+
+def test_ponowienie_widac_na_ekranie_i_w_podsumowaniu(
+    baza: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ADR-0007 Z-7 od strony operatora: zdanie o ponowieniu w trakcie i liczba na końcu —
+    oba przez `cli` i konsolę, nie tylko w `Podsumowanie`."""
+    serwer = Serwer(
+        [strona(LISTA[KLUCZ][:3], ma_wiecej=False, total=3)],
+        przerwij_na_dokumencie=2,
+        wyjatek=httpx.ConnectError("siec znikla (wymyslone)"),
+    )
+    podstaw(monkeypatch, serwer)
+
+    kod, wyjscie = pobierz(baza)
+
+    assert kod == 0, wyjscie
+    assert "zerwane łącze (ConnectError), próba 2 z 3" in wyjscie
+    assert "Ponowień w całym przebiegu (z bazy): 1" in wyjscie
+    assert dokumentow(baza) == 3
+
+
+def test_pokrycie_zapisuje_raport_bez_zadan_i_mowi_o_braku_zlotego(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """ADR-0006 Z-12: raport jest plikiem, nie ekranem; brak złotego zbioru jest powiedziany."""
+    baza, _ = korpus
+    cel = tmp_path / "raporty"
+
+    wynik = runner.invoke(app, ["pokrycie", "--baza", str(baza), "--cel", str(cel)])
+
+    assert wynik.exit_code == 0, wynik.output
+    pliki = sorted(p.suffix for p in cel.iterdir())
+    assert pliki == [".json", ".md"]
+    assert "sprawdzono 0 z 0" in wynik.output
+    tresc = next(cel.glob("*.md")).read_text(encoding="utf-8")
+    assert "tresc wymyslona" not in tresc, "raport nie niesie tekstu orzeczeń"
+
+
+def test_pokrycie_z_nieistniejacym_zlotym_zbiorem_to_blad_konfiguracji(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """Literówka w `--zloty` dawała „sprawdzono 0 z 0” jak brak flagi (przegląd 2026-09-19)."""
+    baza, _ = korpus
+    wynik = runner.invoke(
+        app,
+        ["pokrycie", "--baza", str(baza), "--cel", str(tmp_path), "--zloty", str(tmp_path / "x")],
+    )
+    assert wynik.exit_code == 3, wynik.output
+
+
+def test_pokrycie_z_rozbieznym_zlotym_zbiorem_zapala_kod_wyjscia(
+    korpus: tuple[Path, str], tmp_path: Path
+) -> None:
+    """ADR-0006 §7: rozbieżność jest błędem, nie ostrzeżeniem — raport zapisany, kod niezerowy."""
+    baza, _ = korpus
+    zloty = tmp_path / "gold"
+    zloty.mkdir()
+    (zloty / "a.json").write_text(
+        json.dumps(
+            {
+                "doc_id": "atlas:nie-ma-takiego",
+                "content_sha256": "0" * 64,
+                "sekcje": [],
+                "przeglad": {"kto": "test", "data": "2026-09-19"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    cel = tmp_path / "raporty"
+    wynik = runner.invoke(
+        app, ["pokrycie", "--baza", str(baza), "--cel", str(cel), "--zloty", str(zloty)]
+    )
+    assert wynik.exit_code == 1, wynik.output
+    assert any(cel.glob("*.md")), "raport zapisany mimo rozbieżności"
+
+
+def test_pobierz_z_flag_drukuje_tabele_kosztow_przed_pierwszym_dokumentem(
+    baza: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bramka fazy 3, ADR-0008 §10 pkt 4 — do przeglądu kodu fazy 3 nie miała obserwatora.
+
+    Asercje są dwie, bo kryterium jest dwuczęściowe: tabela pada **przed** pierwszym żądaniem
+    o dokument (stąd podgląd licznika dokumentów atrapy w chwili jej składania) i liczba żądań
+    przebiegu jest taka jak przed ADR-0008 (dwie strony listy i sto dokumentów).
+    """
+    serwer = Serwer()
+    podstaw(monkeypatch, serwer)
+    dokumentow_przy_tabeli: list[int] = []
+    oryginal = texts.tabela_kosztow
+
+    def podglad(*args: object, **kwargs: object) -> object:
+        dokumentow_przy_tabeli.append(serwer.dokumentow)
+        return oryginal(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(texts, "tabela_kosztow", podglad)
+
+    kod, wyjscie = pobierz(baza, "--zgoda")
+
+    assert kod == 0, wyjscie
+    assert dokumentow_przy_tabeli == [0], "dokładnie jedna wycena, przed pierwszym dokumentem"
+    assert "Koszt przebiegu" in wyjscie
+    assert len(serwer.zadania) == 102, "ADR-0008 nie dokłada żądań"
+
+
+def test_kreator_bez_wejscia_konczy_zdaniem_z_texts_a_nie_cudzym_slowem(baza: Path) -> None:
+    """Koniec wejścia to przerwanie operatora, tylko innym klawiszem niż Ctrl+C.
+
+    Kreator poza terminalem spada na `input()`; `EOFError` przechwytywał click i kończył
+    angielskim „Aborted." z kodem 1 (przegląd kodu fazy 3, 2026-09-20).
+    """
+    wynik = runner.invoke(app, ["kreator", "--baza", str(baza)], input="")
+
+    assert wynik.exit_code == KOD_WYJSCIA_PRZERWANIE, wynik.output
+    assert "Aborted" not in wynik.output
+    assert texts.PRZERWANE.split(".")[0] in wynik.output

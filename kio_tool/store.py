@@ -35,6 +35,14 @@ zaczepiona o wersję 1 nie zapaliłaby się na bazie stojącej już na 3 — czy
 która lukę ma. Odtworzenie jest dokładne, nie zgadywane; czym stoi, mówi
 `_odtworz_powiazania_sprzed_schematu_2`.
 
+**Schemat 6 (2026-09-19, ADR-0006 Z-4)** dokłada `sections`, `citations` i `provisions` — samym
+`CREATE TABLE IF NOT EXISTS`, bez ruszania istniejących tabel. Stare wersje dostają strukturę przy
+`przelicz`, bo `PARSE_VERSION` wzrósł do 2.
+
+**Schemat 5 (2026-09-19, ADR-0007 Z-8)** dokłada kolumnę `requests_log.proba`: dwie próby jednego
+żądania mają być w dzienniku odróżnialne od dwóch różnych żądań, bo inaczej pomiaru 24
+(skuteczność ponowień) nie dałoby się zrobić bez ponownego obciążenia serwisu.
+
 Czego tu **nie ma** wobec wzorca z `ceidg-tool` (1 208 linii), z powodem przy każdym: dzierżawy
 blokady (jeden operator i jeden proces; wraca razem z harmonogramem), kwarantanny uszkodzonej bazy
 i `integrity_check` przy otwarciu (bez pomiaru, że to się zdarza, byłoby to mechanizmem bez
@@ -47,11 +55,12 @@ import hashlib
 import json
 import sqlite3
 import uuid
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date, datetime
 from pathlib import Path
+from typing import TypeVar
 
 from .clock import Clock, utc_iso
 from .config import mask_tokens
@@ -59,13 +68,31 @@ from .criteria import Criteria
 from .errors import ConfigError, KioError, RunNotFoundError, StoreError
 from .ratelimit import RequestStamp
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
+ID_BAZY_POKAZOWEJ = 0x4B494F44
+"""`PRAGMA application_id` bazy trybu pokazowego („KIOD") — znacznik w samym pliku (ADR-0008 Z-2).
+
+Jedzie z plikiem przy kopiowaniu i zmianie nazwy, więc `--baza` wskazujące plik pokazowy nie
+otworzy go po cichu w trybie produkcyjnym (wtedy `pobierz` dopisywałby prawdziwe orzeczenia do
+fikcyjnych), a `kio-tool demo` nie zacznie pisać fikcji do niepustej bazy operatora."""
+_W = TypeVar("_W")
 STATUSY_PRZEBIEGU = ("w_toku", "zakonczony", "przerwany", "blad")
 STATUSY_WZNAWIALNE = ("przerwany", "w_toku")
 """Stany, z których `resume_run` wraca do pracy: przerwany właściwym wyjątkiem albo osierocony
 (`w_toku` po ubiciu procesu) — powód w docstringu `resume_run`."""
 TABELE = frozenset(
-    {"documents", "raw_versions", "runs", "requests_log", "run_documents", "metadata", "fts"}
+    {
+        "documents",
+        "raw_versions",
+        "runs",
+        "requests_log",
+        "run_documents",
+        "metadata",
+        "fts",
+        "sections",
+        "citations",
+        "provisions",
+    }
 )
 """Tabele, które `count` zna z nazwy — nazwa tabeli nie jest parametrem zapytania, więc nie
 wolno jej wstawić do SQL z zewnątrz bez tej listy."""
@@ -122,7 +149,8 @@ CREATE TABLE IF NOT EXISTS requests_log (
   bajtow          INTEGER NOT NULL,
   sha256          TEXT,
   ksztalt         TEXT NOT NULL,
-  retry_after_s   REAL
+  retry_after_s   REAL,
+  proba           INTEGER NOT NULL DEFAULT 1
 )""",
     "CREATE INDEX IF NOT EXISTS requests_log_ts_idx ON requests_log(ts)",
     """
@@ -153,6 +181,51 @@ CREATE TABLE IF NOT EXISTS metadata (
   dlugosc_tresci          INTEGER NOT NULL,
   PRIMARY KEY (doc_id, content_sha256)
 )""",
+    # Schemat 6 (ADR-0006 Z-4, Z-5, Z-7): struktura bieżącej wersji jako **offsety w oryginale**,
+    # nie kopia tekstu, kluczowana `(doc_id, content_sha256)` jak `metadata`. `zrodlo` rozróżnia
+    # nasz odczyt z treści od opracowania kanału (reguła 19) i nigdy nie jest nadpisywane.
+    """
+CREATE TABLE IF NOT EXISTS sections (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  rodzaj          TEXT NOT NULL,
+  char_start      INTEGER NOT NULL,
+  char_end        INTEGER NOT NULL,
+  sha256          TEXT NOT NULL,
+  PRIMARY KEY (doc_id, content_sha256, porzadek)
+)""",
+    """
+CREATE TABLE IF NOT EXISTS citations (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  zrodlo          TEXT NOT NULL CHECK (zrodlo IN ('tresc', 'kanal')),
+  rodzaj          TEXT NOT NULL,
+  sygnatura       TEXT,
+  surowy          TEXT NOT NULL,
+  char_start      INTEGER,
+  char_end        INTEGER,
+  PRIMARY KEY (doc_id, content_sha256, zrodlo, porzadek)
+)""",
+    """
+CREATE TABLE IF NOT EXISTS provisions (
+  doc_id          TEXT NOT NULL REFERENCES documents(doc_id),
+  content_sha256  TEXT NOT NULL,
+  parse_version   INTEGER NOT NULL,
+  porzadek        INTEGER NOT NULL,
+  zrodlo          TEXT NOT NULL CHECK (zrodlo IN ('tresc', 'kanal')),
+  postac          TEXT NOT NULL,
+  akt             TEXT NOT NULL,
+  surowy          TEXT NOT NULL,
+  char_start      INTEGER,
+  char_end        INTEGER,
+  PRIMARY KEY (doc_id, content_sha256, zrodlo, porzadek)
+)""",
+    "CREATE INDEX IF NOT EXISTS citations_sygnatura_idx ON citations(sygnatura)",
+    "CREATE INDEX IF NOT EXISTS provisions_postac_idx ON provisions(postac, akt)",
     "CREATE INDEX IF NOT EXISTS runs_fingerprint_idx ON runs(fingerprint)",
     # Kopia treści w FTS5, nie `content=`: treść leży w JSON-ie `raw_versions.content_bytes`,
     # a tabela zewnętrzna FTS5 czyta kolumny zwykłej tabeli — nie wyrażenie nad blobem.
@@ -209,6 +282,64 @@ class Metryka:
     koszty: float | None
     url_zrodla: str | None
     tresc: str
+
+
+@dataclass(frozen=True)
+class WierszSekcji:
+    """Sekcja w oryginale — kształt `parser.sections.Sekcja` plus skrót fragmentu (Z-11)."""
+
+    porzadek: int
+    rodzaj: str
+    start: int
+    koniec: int
+    sha256: str
+
+
+@dataclass(frozen=True)
+class WierszCytowania:
+    porzadek: int
+    zrodlo: str
+    rodzaj: str
+    sygnatura: str | None
+    surowy: str
+    start: int | None
+    koniec: int | None
+
+
+@dataclass(frozen=True)
+class WierszPrzepisu:
+    porzadek: int
+    zrodlo: str
+    postac: str
+    akt: str
+    surowy: str
+    start: int | None
+    koniec: int | None
+
+
+@dataclass(frozen=True)
+class Struktura:
+    """Struktura wersji (ADR-0006 Z-4): sekcje, cytowania, przepisy. Magazyn nie zna parsera —
+    `pipeline` przepisuje wyniki `parser/*` na te wiersze, jak `Metryka` z `Szczegoly`."""
+
+    sekcje: tuple[WierszSekcji, ...]
+    cytowania: tuple[WierszCytowania, ...]
+    przepisy: tuple[WierszPrzepisu, ...]
+
+
+@dataclass(frozen=True)
+class StrukturaDokumentu:
+    """Struktura bieżącej wersji jednego dokumentu, tak jak leży w bazie — wejście raportu
+    pokrycia (ADR-0006 Z-12). Bez tekstu: raport liczy, nie cytuje."""
+
+    doc_id: str
+    content_sha256: str
+    sygnatura_glowna: str | None
+    data_wydania: str | None
+    parse_version: int | None
+    sekcje: tuple[WierszSekcji, ...]
+    cytowania: tuple[WierszCytowania, ...]
+    przepisy: tuple[WierszPrzepisu, ...]
 
 
 @dataclass(frozen=True)
@@ -304,6 +435,12 @@ class _Polaczenie:
         except sqlite3.Error as blad:
             raise blad_bazy(self._sciezka, blad) from blad
 
+    def executemany(self, sql: str, wiersze: Sequence[Sequence[object]]) -> sqlite3.Cursor:
+        try:
+            return self._conn.executemany(sql, wiersze)
+        except sqlite3.Error as blad:
+            raise blad_bazy(self._sciezka, blad) from blad
+
     def wycofaj(self) -> None:
         """`ROLLBACK`, który nie zastępuje wyjątku w locie.
 
@@ -367,7 +504,7 @@ def blad_bazy(sciezka: str, blad: sqlite3.Error) -> KioError:
 class Store:
     """Baza lokalna korpusu. `open` tworzy katalog i schemat; `":memory:"` do testów."""
 
-    def __init__(self, path: Path | str, *, clock: Clock) -> None:
+    def __init__(self, path: Path | str, *, clock: Clock, pokazowa: bool = False) -> None:
         self._path = str(path)
         self._clock = clock
         self.nowa = self._path != ":memory:" and not Path(self._path).exists()
@@ -400,11 +537,34 @@ class Store:
             else:
                 self.journal_mode = "memory"
             self._migruj()
+            self.pokazowa = self._sprawdz_tryb(pokazowa)
         except KioError:
             # `with Store.open(...)` nie wchodzi w `__exit__`, gdy `__init__` rzuci — bez tego
             # plik bazy zostawał zajęty na Windowsie po nieudanej migracji (przegląd 2026-09-18).
             polaczenie.close()
             raise
+
+    def _sprawdz_tryb(self, pokazowa: bool) -> bool:
+        """Znacznik bazy pokazowej zgodny z trybem otwarcia — albo `StoreError` ze zdaniem."""
+        znacznik = int(self._conn.execute("PRAGMA application_id").fetchone()[0])
+        if not pokazowa:
+            if znacznik == ID_BAZY_POKAZOWEJ:
+                raise StoreError(
+                    f"Baza {self._path} jest bazą trybu pokazowego (dane fikcyjne). Otwórz ją "
+                    "przez `kio-tool demo`; tryb produkcyjny nie dopisze do niej prawdziwych "
+                    "orzeczeń."
+                )
+            return False
+        if znacznik == ID_BAZY_POKAZOWEJ:
+            return True
+        pusta = self.count("documents") == 0 and self.count("runs") == 0
+        if znacznik != 0 or not pusta:
+            raise StoreError(
+                f"Baza {self._path} nie jest bazą pokazową i nie jest pusta — tryb pokazowy nie "
+                "zapisze fikcji do korpusu operatora."
+            )
+        self._conn.execute(f"PRAGMA application_id = {ID_BAZY_POKAZOWEJ}")
+        return True
 
     def _migruj(self) -> None:
         """Schemat do wersji `SCHEMA_VERSION` w jednej transakcji — bez utraty danych.
@@ -430,6 +590,8 @@ class Store:
                 self._migruj_do_3()
             if 0 < wersja < 4:
                 self._odtworz_powiazania_sprzed_schematu_2()
+            if 0 < wersja < 5:
+                self._migruj_do_5()
             self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 
     def _migruj_1_do_2(self) -> None:
@@ -450,6 +612,18 @@ class Store:
         obecne = {str(w["name"]) for w in self._conn.execute("PRAGMA table_info(requests_log)")}
         if "retry_after_s" not in obecne:
             self._conn.execute("ALTER TABLE requests_log ADD COLUMN retry_after_s REAL")
+
+    def _migruj_do_5(self) -> None:
+        """Kolumna `requests_log.proba` (schemat 5, ADR-0007 Z-8) — numer próby żądania.
+
+        Wiersze sprzed schematu 5 dostają 1 z wartości domyślnej i to jest prawda o nich: przed
+        ADR-0007 żaden kanał nie ponawiał. Obecność kolumny sprawdzana, nie zakładana — jak
+        w `_migruj_do_3`."""
+        obecne = {str(w["name"]) for w in self._conn.execute("PRAGMA table_info(requests_log)")}
+        if "proba" not in obecne:
+            self._conn.execute(
+                "ALTER TABLE requests_log ADD COLUMN proba INTEGER NOT NULL DEFAULT 1"
+            )
 
     def _dopisz_odciski_przebiegom_sprzed_schematu_2(self) -> None:
         """Przebieg sprzed schematu 2 miał wyłącznie zakres dat (`od..do`), więc jego kryteria
@@ -535,8 +709,8 @@ class Store:
                 self.link_run_document(run_id, str(wiersz["doc_id"]), position=position, nowy=True)
 
     @classmethod
-    def open(cls, path: Path | str, *, clock: Clock) -> Store:
-        return cls(path, clock=clock)
+    def open(cls, path: Path | str, *, clock: Clock, pokazowa: bool = False) -> Store:
+        return cls(path, clock=clock, pokazowa=pokazowa)
 
     def close(self) -> None:
         self._conn.close()
@@ -688,8 +862,19 @@ class Store:
 
     # ------------------------------------------------------------- metadane i indeks
 
-    def index_document(self, doc_id: str, content_sha256: str, metryka: Metryka) -> None:
+    def index_document(
+        self,
+        doc_id: str,
+        content_sha256: str,
+        metryka: Metryka,
+        struktura: Struktura | None,
+    ) -> None:
         """Metadane wersji i wiersz FTS bieżącej wersji — poprzedni wiersz FTS dokumentu znika.
+
+        `struktura` jest wymagana, choć może być `None`: wołający, który ją pominie, zapisywał
+        metadane z `parse_version` 2 bez sekcji, a `przelicz` bez `--wszystko` nie wracał już do
+        takiego dokumentu (przegląd kodu 2026-09-19). `None` wolno podać świadomie — w testach
+        magazynu, które struktury nie dotyczą.
 
         `metadata` jest przypięte do wersji (klucz z `content_sha256`), więc dwie wersje mają
         dwa wiersze; `fts` niesie wyłącznie bieżącą (architektura 4.4), więc stary wiersz jest
@@ -733,6 +918,64 @@ class Store:
         self._conn.execute(
             "INSERT INTO fts (doc_id, sygnatury, tresc) VALUES (?, ?, ?)",
             (doc_id, " ".join(metryka.sygnatury), metryka.tresc),
+        )
+        if struktura is not None:
+            self._zapisz_strukture(doc_id, content_sha256, metryka.parse_version, struktura)
+
+    def _zapisz_strukture(
+        self, doc_id: str, content_sha256: str, parse_version: int, struktura: Struktura
+    ) -> None:
+        """Struktura wersji **zastępuje** poprzednią tej samej wersji — przeliczenie nie dokłada
+        drugiego kompletu wierszy. W transakcji wołającego, razem z metadanymi."""
+        klucz = (doc_id, content_sha256)
+        for tabela in ("sections", "citations", "provisions"):
+            self._conn.execute(
+                f"DELETE FROM {tabela} WHERE doc_id = ? AND content_sha256 = ?", klucz
+            )
+        self._conn.executemany(
+            "INSERT INTO sections (doc_id, content_sha256, parse_version, porzadek, rodzaj, "
+            "char_start, char_end, sha256) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (*klucz, parse_version, w.porzadek, w.rodzaj, w.start, w.koniec, w.sha256)
+                for w in struktura.sekcje
+            ],
+        )
+        self._conn.executemany(
+            "INSERT INTO citations (doc_id, content_sha256, parse_version, porzadek, zrodlo, "
+            "rodzaj, sygnatura, surowy, char_start, char_end) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    *klucz,
+                    parse_version,
+                    w.porzadek,
+                    w.zrodlo,
+                    w.rodzaj,
+                    w.sygnatura,
+                    w.surowy,
+                    w.start,
+                    w.koniec,
+                )
+                for w in struktura.cytowania
+            ],
+        )
+        self._conn.executemany(
+            "INSERT INTO provisions (doc_id, content_sha256, parse_version, porzadek, zrodlo, "
+            "postac, akt, surowy, char_start, char_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    *klucz,
+                    parse_version,
+                    w.porzadek,
+                    w.zrodlo,
+                    w.postac,
+                    w.akt,
+                    w.surowy,
+                    w.start,
+                    w.koniec,
+                )
+                for w in struktura.przepisy
+            ],
         )
 
     def versions_to_index(self, parse_version: int | None) -> Iterator[Dokument]:
@@ -937,10 +1180,12 @@ class Store:
             ).fetchone()[0]
         )
 
-    def count_requests(self, run_id: str) -> int:
+    def count_requests(self, run_id: str, *, ponowienia: bool = False) -> int:
+        """Żądania przebiegu z dziennika; `ponowienia=True` liczy wyłącznie próby od drugiej."""
+        warunek = " AND proba > 1" if ponowienia else ""
         return int(
             self._conn.execute(
-                "SELECT COUNT(*) FROM requests_log WHERE run_id = ?", (run_id,)
+                f"SELECT COUNT(*) FROM requests_log WHERE run_id = ?{warunek}", (run_id,)
             ).fetchone()[0]
         )
 
@@ -1016,11 +1261,12 @@ class Store:
         sha256: str | None,
         ksztalt: str,
         retry_after_s: float | None = None,
+        proba: int = 1,
     ) -> None:
         """Jeden wiersz na żądanie, trwały natychmiast — poza `transakcja()` zapis jest atomowy sam."""  # noqa: E501
         self._conn.execute(
             "INSERT INTO requests_log (run_id, ts, metoda, url_redacted, status, ms, bajtow, "
-            "sha256, ksztalt, retry_after_s) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "sha256, ksztalt, retry_after_s, proba) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
                 ts,
@@ -1032,6 +1278,7 @@ class Store:
                 sha256,
                 ksztalt,
                 retry_after_s,
+                proba,
             ),
         )
 
@@ -1060,6 +1307,74 @@ class Store:
             for w in wiersze
         ]
         return [z for z in znaczniki if z.ts_epoch >= since_epoch]
+
+    def struktury(self) -> Iterator[StrukturaDokumentu]:
+        """Struktura bieżącej wersji każdego dokumentu korpusu — także bez metadanych i sekcji.
+
+        Dokument bez wiersza w `metadata` albo bez sekcji **nie wypada**: wraca z pustymi
+        krotkami i `parse_version = None`, bo raport pokrycia ma go policzyć jako brak, nie
+        pominąć (doktryna 7.2). Zmaterializowane przed `yield`, jak `versions_to_index`.
+        """
+        dokumenty = self._conn.execute(
+            "SELECT d.doc_id, d.current_sha256, m.sygnatura_glowna, d.data_wydania, "
+            "m.parse_version FROM documents d LEFT JOIN metadata m "
+            "ON m.doc_id = d.doc_id AND m.content_sha256 = d.current_sha256 ORDER BY d.doc_id"
+        ).fetchall()
+        sekcje = self._pogrupuj(
+            "SELECT doc_id, content_sha256, porzadek, rodzaj, char_start, char_end, sha256 "
+            "FROM sections ORDER BY doc_id, porzadek",
+            lambda w: WierszSekcji(
+                int(w["porzadek"]),
+                str(w["rodzaj"]),
+                int(w["char_start"]),
+                int(w["char_end"]),
+                str(w["sha256"]),
+            ),
+        )
+        cytowania = self._pogrupuj(
+            "SELECT * FROM citations ORDER BY doc_id, zrodlo, porzadek",
+            lambda w: WierszCytowania(
+                int(w["porzadek"]),
+                str(w["zrodlo"]),
+                str(w["rodzaj"]),
+                None if w["sygnatura"] is None else str(w["sygnatura"]),
+                str(w["surowy"]),
+                w["char_start"],
+                w["char_end"],
+            ),
+        )
+        przepisy = self._pogrupuj(
+            "SELECT * FROM provisions ORDER BY doc_id, zrodlo, porzadek",
+            lambda w: WierszPrzepisu(
+                int(w["porzadek"]),
+                str(w["zrodlo"]),
+                str(w["postac"]),
+                str(w["akt"]),
+                str(w["surowy"]),
+                w["char_start"],
+                w["char_end"],
+            ),
+        )
+        for d in dokumenty:
+            klucz = (str(d["doc_id"]), str(d["current_sha256"]))
+            yield StrukturaDokumentu(
+                doc_id=klucz[0],
+                content_sha256=klucz[1],
+                sygnatura_glowna=d["sygnatura_glowna"],
+                data_wydania=d["data_wydania"],
+                parse_version=d["parse_version"],
+                sekcje=tuple(sekcje.get(klucz, ())),
+                cytowania=tuple(cytowania.get(klucz, ())),
+                przepisy=tuple(przepisy.get(klucz, ())),
+            )
+
+    def _pogrupuj(
+        self, sql: str, wiersz: Callable[[sqlite3.Row], _W]
+    ) -> dict[tuple[str, str], list[_W]]:
+        wynik: dict[tuple[str, str], list[_W]] = {}
+        for w in self._conn.execute(sql).fetchall():
+            wynik.setdefault((str(w["doc_id"]), str(w["content_sha256"])), []).append(wiersz(w))
+        return wynik
 
     def count(self, tabela: str) -> int:
         if tabela not in TABELE:

@@ -22,8 +22,9 @@ Cztery operacje **bez sieci** — `eksportuj`, `przelicz`, `szukaj`, `wznow` prz
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 import httpx
 
@@ -41,25 +42,26 @@ from .errors import (
     SourceContractBroken,
     StoreError,
 )
-from .exporter import FORMATY, Wpis
+from .exporter import ATRYBUCJA_POKAZU, FORMATY, ORGAN_POKAZU, PRZEDROSTEK_POKAZU, Wpis
 from .exporter import eksportuj as zapisz_eksport
 from .httpclient import build_http_client
 from .logbook import Wynik
-from .parser.details import PARSE_VERSION, MapaPol, Szczegoly, rekord_z_bajtow, wyczytaj
+from .odczyt import metryka, odczytaj, struktura
+from .parser.details import PARSE_VERSION, MapaPol, rekord_z_bajtow, wyczytaj
 from .progress import Events, NullEvents
 from .ratelimit import DOBA_S, InMemoryHistory, RateLimiter
-from .source.contract import Contract, load_contract
+from .source.contract import Contract, Ponowienia, load_contract
 from .source.protocol import Channel, Scope
 from .source.registry import REGISTRY
 from .store import (
     STATUSY_WZNAWIALNE,
     Dokument,
     Filtr,
-    Metryka,
     Przebieg,
     Store,
     Wyszukanie,
 )
+from .wycena import Wycena, wycen
 
 KANAL_DOMYSLNY = SourceName("atlas")
 """Pierwszy adapter (ADR-0004 §6, ADR-0005 Z-3) — jedyny wpis `REGISTRY`, więc jedyna domyślna."""
@@ -89,6 +91,48 @@ przemieliłoby całą listę, czyli ~29 580 żądań do cudzego serwisu za nic (
 
 KlientFactory = Callable[..., httpx.Client]
 
+Werdykt = Literal["zgoda", "bez_zgody", "odmowa"]
+"""Odpowiedź na wycenę (ADR-0008 Z-6). `zgoda` — przebieg masowy dozwolony w tej sesji;
+`bez_zgody` — obowiązuje próg `PROG_ZGODY` (ścieżka flag bez `--zgoda`); `odmowa` — operator
+zobaczył koszt i nie chce: przebieg zostaje `przerwany`, wznawialny, bez żądania za dokument."""
+
+Decyzja = Callable[[Wycena], Werdykt]
+"""Wołana **raz na wywołanie**, przy pierwszym kandydacie — po pierwszej stronie listy, kiedy
+`total` jest znany, a przed pierwszym dokumentem. Zero dodatkowych żądań (ADR-0008 §1.1)."""
+
+
+def decyzja_z_flagi(zgoda: bool) -> Decyzja:
+    """Polityka ścieżki flag: `--zgoda` znaczy zgodę, brak flagi — próg jak przed ADR-0008."""
+    werdykt: Werdykt = "zgoda" if zgoda else "bez_zgody"
+    return lambda _wycena: werdykt
+
+
+ODMOWA_PO_WYCENIE = (
+    "Operator odmówił po wycenie — przebieg zostaje zapisany jako przerwany, bez żadnego "
+    "żądania o dokument. Wznowi go to samo polecenie albo `wznow`, znowu z wyceną."
+)
+
+
+class _Zgoda:
+    """Zgoda w obrębie jednego wywołania — zmienia ją werdykt wyceny, czyta ją też bramka
+    ponowień kanału (ADR-0007 Z-9), więc jest obiektem, a nie parametrem przekazanym raz.
+
+    `sufit` jest drugą połową tej samej zgody, dopisaną po przeglądzie kodu fazy 3
+    (2026-09-20, HIGH; ADR-0008 §12). „Tak" pada pod tabelą kosztów, więc zgoda dotyczy
+    **liczby, którą operator zobaczył** — a do tej pory ustawiała wyłącznie `jest`, co zdejmowało
+    `PROG_ZGODY` na resztę wywołania. Zmierzone na atrapie zgłaszającej `total = 5`: wycena
+    pokazała 5 żądań, operator nacisnął Enter (przy małej wycenie pytanie ma domyślne „tak"),
+    wyszły **103** żądania przy progu 50. Sufit wraca do tej liczby z zapasem na ponowienia,
+    bo wycena ich nie zna, a ADR-0007 Z-9 liczy je do zgody.
+    """
+
+    def __init__(self, jest: bool) -> None:
+        self.jest = jest
+        self.sufit: int | None = None
+        """Żądań wolno wysłać najwyżej tyle; `None` = zgoda udzielona bez znanego rozmiaru."""
+        self.wycenionych: int | None = None
+        """Liczba z tabeli kosztów — zdanie zatrzymujące przebieg wymienia ją obok sufitu."""
+
 
 @dataclass(frozen=True)
 class Podsumowanie:
@@ -109,6 +153,8 @@ class Podsumowanie:
     zakres: str
     brakujacych: int = 0
     """Kandydaci z listy, których kanał już nie miał (404) — pominięci, nie zatrzymujący."""
+    ponowien_lacznie: int = 0
+    """Próby od drugiej w całym przebiegu, czytane **z bazy** (ADR-0007 Z-7 ujście 4, Z-8)."""
 
 
 @dataclass(frozen=True)
@@ -129,7 +175,13 @@ class WynikPrzeliczenia:
 
 
 class _Puls:
-    """Otulina `Events`: liczy żądania i pamięta liczbę dokumentów w zakresie, resztę przekazuje."""
+    """Otulina `Events`: pamięta liczbę dokumentów w zakresie i liczbę żądań **wysłanych**.
+
+    `zadan` rośnie w `_SladDoBazy.zanotuj`, nie w `on_request` (ADR-0007 Z-9): `on_request` pada
+    wyłącznie na ścieżce odpowiedzi, więc żądanie, które opuściło proces i nie wróciło, nie
+    liczyło się do progu zgody. Z ponowieniami ta różnica przestaje być ograniczona — przebieg
+    mógłby wysłać ponad `PROG_ZGODY` żądań, nie pytając o zgodę ani razu.
+    """
 
     def __init__(self, inner: Events) -> None:
         self._inner = inner
@@ -137,7 +189,6 @@ class _Puls:
         self.razem: int | None = None
 
     def on_request(self, endpoint: str, status: int, elapsed_s: float) -> None:
-        self.zadan += 1
         self._inner.on_request(endpoint, status, elapsed_s)
 
     def on_page(self, page_index: int, candidates: int, total: int | None) -> None:
@@ -170,12 +221,17 @@ class _Puls:
 class _SladDoBazy:
     """`SladZadan` nad `requests_log`: wiersz w chwili powrotu żądania, nie po całym przebiegu."""
 
-    def __init__(self, store: Store, run_id: str, zegar: Clock) -> None:
+    def __init__(self, store: Store, run_id: str, zegar: Clock, puls: _Puls) -> None:
         self._store = store
         self._run_id = run_id
         self._zegar = zegar
+        self._puls = puls
 
     def zanotuj(self, wynik: Wynik) -> Wynik:
+        # Licznik zgody tutaj, nie w `on_request` (ADR-0007 Z-9): kanał woła `zanotuj` dla
+        # **każdego** żądania, które opuściło proces — z odpowiedzią i bez niej.
+        if wynik.wyslane:
+            self._puls.zadan += 1
         ksztalt = (
             "—"
             if wynik.ksztalt_zgodny is None
@@ -192,6 +248,7 @@ class _SladDoBazy:
             sha256=wynik.sha256,
             ksztalt=ksztalt,
             retry_after_s=wynik.retry_after_s,
+            proba=wynik.proba,
         )
         return wynik
 
@@ -235,7 +292,9 @@ def pobierz(
     *,
     zgoda: bool,
     user_agent: str,
+    decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
+    klucz_z_srodowiska: bool = True,
     zegar: Clock | None = None,
     wznow_run_id: str | None = None,
 ) -> Podsumowanie:
@@ -303,6 +362,7 @@ def pobierz(
         events=puls,
     )
     licznik = _Licznik(pozycja=store.count_run_documents(run_id))
+    stan = _Zgoda(zgoda)
     status = "blad"
     powod: str | None = None
     try:
@@ -313,8 +373,16 @@ def pobierz(
                 kontrakt,
                 puls,
                 zegar=zegar,
-                slad=_SladDoBazy(store, run_id, zegar),
-                klucz_api=klucz_api(kontrakt.tempo.klucz_api.zmienna),
+                slad=_SladDoBazy(store, run_id, zegar, puls),
+                # Pokaz nie czyta klucza (ADR-0008 Z-14): `register_secret` odmawia sekretu
+                # krótszego niż 12 znaków, więc zły klucz w środowisku blokowałby pokaz, który
+                # klucza nie potrzebuje.
+                klucz_api=(
+                    klucz_api(kontrakt.tempo.klucz_api.zmienna) if klucz_z_srodowiska else None
+                ),
+                # ADR-0007 Z-9: ponowienie jest żądaniem jak każde inne, więc przed nim też
+                # pada pytanie o zgodę — inaczej pętla prób przekraczała próg o `proby - 1`.
+                przed_ponowieniem=lambda: _wymagaj_zgody(stan, puls, kryteria.maks),
             )
             _przebieg(
                 kanal_obj,
@@ -324,8 +392,9 @@ def pobierz(
                 run_id,
                 od_strony,
                 puls,
-                zgoda,
+                stan,
                 licznik,
+                decyzja or decyzja_z_flagi(zgoda),
                 maks=kryteria.maks,
             )
         status = "zakonczony"
@@ -368,6 +437,7 @@ def pobierz(
         bledow_odczytu=licznik.bledow_odczytu,
         zakres=scope.etykieta,
         brakujacych=licznik.brakujacych,
+        ponowien_lacznie=store.count_requests(run_id, ponowienia=True),
     )
 
 
@@ -428,15 +498,21 @@ def _przebieg(
     run_id: str,
     od_strony: int,
     puls: _Puls,
-    zgoda: bool,
+    zgoda: _Zgoda,
     licznik: _Licznik,
+    decyzja: Decyzja,
     *,
     maks: int | None,
 ) -> None:
     mapa = mapa_pol(kontrakt)
+    wyceniono = False
     for kandydat in kanal.list_candidates(scope, od_strony=od_strony):
         if maks is not None and licznik.kandydatow >= maks:
             return
+        if not wyceniono:
+            wyceniono = True
+            wycena = _wycena(kontrakt, puls, licznik, maks)
+            _rozstrzygnij(decyzja(wycena), zgoda, wycena, kontrakt.ponowienia)
         # Zgoda sprawdzana **przed** rozstrzygnięciem „nowy czy pominięty" (przegląd kodu
         # 2026-09-18, HIGH): strony listy są żądaniami do cudzego serwisu tak samo jak dokumenty,
         # a przebieg, w którym wszyscy kandydaci są już w bazie, nie dochodził do sprawdzenia ani
@@ -476,7 +552,7 @@ def _przebieg(
         licznik.brakujacych_pod_rzad = 0
         # Odczyt **przed** transakcją: `ParseError` w jej środku cofałby zapis surowych bajtów,
         # a reguła 19 każe zapisać je w całości niezależnie od tego, czy dają się odczytać.
-        szczegoly = _odczytaj(surowy.content, mapa)
+        szczegoly = odczytaj(surowy.content, mapa)
         with store.transakcja():
             store.upsert_document(
                 doc_id=doc_id,
@@ -495,7 +571,9 @@ def _przebieg(
                 expected_sha256=surowy.sha256,
             )
             if szczegoly is not None:
-                store.index_document(doc_id, surowy.sha256, metryka(szczegoly))
+                store.index_document(
+                    doc_id, surowy.sha256, metryka(szczegoly), struktura(szczegoly)
+                )
             else:
                 licznik.bledow_odczytu += 1
             store.link_run_document(run_id, doc_id, position=licznik.pozycja, nowy=True)
@@ -504,25 +582,59 @@ def _przebieg(
         puls.on_document(licznik.nowych, _przewidywane(puls.razem, maks))
 
 
-def _odczytaj(content: bytes, mapa: MapaPol) -> Szczegoly | None:
-    try:
-        return wyczytaj(rekord_z_bajtow(content), mapa)
-    except ParseError:
-        return None
-
-
-def metryka(szczegoly: Szczegoly) -> Metryka:
-    return Metryka(parse_version=PARSE_VERSION, **asdict(szczegoly))
-
-
 def _przewidywane(razem: int | None, maks: int | None) -> int | None:
     if razem is None:
         return maks
     return razem if maks is None else min(razem, maks)
 
 
-def _wymagaj_zgody(zgoda: bool, puls: _Puls, maks: int | None) -> None:
-    if zgoda:
+def _wycena(kontrakt: Contract, puls: _Puls, licznik: _Licznik, maks: int | None) -> Wycena:
+    return wycen(
+        zgloszone=puls.razem,
+        maks=maks,
+        juz_objetych=licznik.pozycja,
+        zadan_juz=puls.zadan,
+        na_strone=kontrakt.strony.na_strone,
+        odstep_s=kontrakt.tempo.odstep_s,
+        okna=[(okno.limit, okno.sekund) for okno in kontrakt.tempo.okna],
+    )
+
+
+def _rozstrzygnij(werdykt: Werdykt, zgoda: _Zgoda, wycena: Wycena, ponowienia: Ponowienia) -> None:
+    if werdykt == "odmowa":
+        raise ConsentMissingError(ODMOWA_PO_WYCENIE)
+    if werdykt == "zgoda":
+        zgoda.jest = True
+        zgoda.wycenionych = None if wycena.zadan is None else wycena.zadan + wycena.zadan_juz
+        zgoda.sufit = _sufit(wycena, ponowienia)
+
+
+def _sufit(wycena: Wycena, ponowienia: Ponowienia) -> int | None:
+    """Ile żądań wolno wysłać po zgodzie udzielonej pod tą wyceną.
+
+    `None`, gdy kanał nie podał liczby: tabela kosztów mówi wtedy wprost „kanał nie podał liczby",
+    a pytanie jest pytaniem o przebieg masowy z domyślnym „nie" — zgoda pada więc świadomie na
+    przebieg o nieznanym rozmiarze i sufitu nie ma z czego policzyć.
+
+    Zapas to `proby` z bloku `ponowienia` kontraktu, nie liczba wzięta stąd: wycena liczy żądania
+    udane, a ponowienie jest żądaniem jak każde inne (ADR-0007 Z-9), więc sufit bez zapasu
+    zatrzymywałby przebieg za awarię cudzego serwisu zamiast za rozjazd wyceny.
+    """
+    if wycena.zadan is None:
+        return None
+    return (wycena.zadan + wycena.zadan_juz) * max(ponowienia.proby, ponowienia.proby_429)
+
+
+def _wymagaj_zgody(zgoda: _Zgoda, puls: _Puls, maks: int | None) -> None:
+    if zgoda.jest:
+        if zgoda.sufit is not None and puls.zadan >= zgoda.sufit:
+            raise ConsentMissingError(
+                f"Przebieg wyszedł poza wycenę, pod którą padła zgoda: tabela kosztów mówiła "
+                f"o najwyżej {zgoda.wycenionych} żądaniach, sufit z zapasem na ponowienia wynosi "
+                f"{zgoda.sufit}, a wysłano {puls.zadan}. Kanał pomylił się co do rozmiaru zakresu "
+                "albo zakres urósł od czasu wyceny. Przebieg zostaje zapisany jako przerwany — "
+                "wznowienie policzy koszt od nowa i zapyta jeszcze raz."
+            )
         return
     przewidywane = _przewidywane(puls.razem, maks)
     if puls.zadan >= PROG_ZGODY or (przewidywane is not None and przewidywane > PROG_ZGODY):
@@ -581,7 +693,9 @@ def wznow(
     *,
     zgoda: bool,
     user_agent: str,
+    decyzja: Decyzja | None = None,
     klient_factory: KlientFactory | None = None,
+    klucz_z_srodowiska: bool = True,
     zegar: Clock | None = None,
 ) -> Podsumowanie:
     wybrany, kryteria = do_wznowienia(store, run_id)
@@ -593,7 +707,9 @@ def wznow(
         events,
         zgoda=zgoda,
         user_agent=user_agent,
+        decyzja=decyzja,
         klient_factory=klient_factory,
+        klucz_z_srodowiska=klucz_z_srodowiska,
         zegar=zegar,
         wznow_run_id=wybrany,
     )
@@ -619,6 +735,7 @@ def eksportuj(
     bez przebiegu są błędem, a zero dokumentów nie tworzy pliku — plik pusty wyglądałby na wynik.
     """
     zegar = zegar or SystemClock()
+    pokaz = store.pokazowa
     for fmt in formaty:
         if fmt not in FORMATY:
             raise ConfigError(f"Nieznany format {fmt!r}; dostępne: {', '.join(FORMATY)}.")
@@ -645,7 +762,7 @@ def eksportuj(
 
     def zrodlo() -> Iterator[Wpis]:
         for dokument in dokumenty():
-            yield _wpis(dokument, mapy)
+            yield _wpis(dokument, mapy, pokaz=pokaz)
 
     # Pierwsze przejście liczy dokumenty **i** ładuje kontrakty kanałów, które w eksporcie
     # wystąpią — atrybucja per kanał ma trafić do `Metadane`, a te powstają przed zapisem.
@@ -665,8 +782,11 @@ def eksportuj(
         cel=cel,
         zegar=zegar,
         atrybucje=mapy.atrybucje(),
+        pokaz=pokaz,
     )
     nazwa = _nazwa_eksportu(run_ids, kryteria, zegar)
+    if pokaz:
+        nazwa = PRZEDROSTEK_POKAZU + nazwa
     # `--out` wskazujące istniejący katalog: plik o nazwie domyślnej **w środku**, nie obok —
     # pomoc flagi mówiła o katalogu `wyniki/`, więc operator podawał katalog i dostawał
     # `wyniki.xlsx` przy pustym `wyniki\` (tester 2026-09-18).
@@ -676,6 +796,9 @@ def eksportuj(
         rdzen = out / nazwa
     else:
         rdzen = out
+    if pokaz and not rdzen.name.startswith(PRZEDROSTEK_POKAZU):
+        # Także pod `--out`: nazwa podana przez operatora nie zdejmuje znacznika (Z-3, pkt 3).
+        rdzen = rdzen.with_name(PRZEDROSTEK_POKAZU + rdzen.name)
     sciezki = zapisz_eksport(rdzen, zrodlo, formaty=formaty, metadane=metadane, events=events)
     return WynikEksportu(tuple(sciezki), dokumentow, tuple(formaty), tuple(run_ids), bez_daty)
 
@@ -698,7 +821,7 @@ class _MapyPol:
         return dict(self._atrybucje)
 
 
-def _wpis(dokument: Dokument, mapy: _MapyPol) -> Wpis:
+def _wpis(dokument: Dokument, mapy: _MapyPol, *, pokaz: bool = False) -> Wpis:
     mapa, atrybucja = mapy.dla(dokument.source)
     try:
         rekord = rekord_z_bajtow(dokument.content_bytes)
@@ -717,7 +840,8 @@ def _wpis(dokument: Dokument, mapy: _MapyPol) -> Wpis:
         fetched_at=dokument.fetched_at,
         szczegoly=wyczytaj(rekord, mapa),
         rekord=rekord,
-        atrybucja=atrybucja,
+        atrybucja=ATRYBUCJA_POKAZU if pokaz else atrybucja,
+        pokaz=pokaz,
     )
 
 
@@ -738,6 +862,7 @@ def build_metadata(
     cel: str | None,
     zegar: Clock,
     atrybucje: dict[str, str],
+    pokaz: bool = False,
 ) -> list[tuple[str, object]]:
     """Arkusz `Metadane`: kryteria, przebiegi, liczby z bazy, licencja, wersja narzędzia.
 
@@ -745,7 +870,11 @@ def build_metadata(
     (`total` z listy), drugie naszą (`run_documents`) — ich różnica jest informacją, nie błędem.
     """
     przebiegi = [store.get_run(r) for r in run_ids]
-    meta: list[tuple[str, object]] = []
+    # Wiersz `tryb` pierwszy i zawsze — także w eksporcie produkcyjnym, żeby jego brak nie był
+    # jedynym sposobem odróżnienia arkusza pokazowego (ADR-0008 Z-3, znacznik 2).
+    meta: list[tuple[str, object]] = [
+        ("tryb", "POKAZOWY — dane fikcyjne" if pokaz else "produkcyjny")
+    ]
     if kryteria is not None:
         meta.append(("kryteria", kryteria.describe()))
         meta.append(("kryteria_json", kryteria.canonical_json()))
@@ -780,11 +909,13 @@ def build_metadata(
             ("eksport_utc", utc_iso(zegar.wall())),
             ("wersja_narzedzia", __version__),
             ("wersja_odczytu", PARSE_VERSION),
-            ("organ", "Krajowa Izba Odwoławcza"),
+            ("organ", ORGAN_POKAZU if pokaz else "Krajowa Izba Odwoławcza"),
         ]
     )
+    # Atrybucja licencyjna kanału jest twierdzeniem o pochodzeniu danych, więc w eksporcie
+    # pokazowym byłaby fałszywa tak samo jak nazwa organu (przegląd kodu fazy 3, 2026-09-20).
     for kanal, atrybucja in sorted(atrybucje.items()):
-        meta.append((f"atrybucja_{kanal}", atrybucja))
+        meta.append((f"atrybucja_{kanal}", ATRYBUCJA_POKAZU if pokaz else atrybucja))
     return meta
 
 
@@ -807,12 +938,17 @@ def przelicz(
     do_przeliczenia = list(store.versions_to_index(None if wszystko else PARSE_VERSION))
     for numer, dokument in enumerate(do_przeliczenia, start=1):
         mapa, _ = mapy.dla(dokument.source)
-        szczegoly = _odczytaj(dokument.content_bytes, mapa)
+        szczegoly = odczytaj(dokument.content_bytes, mapa)
         if szczegoly is None:
             bledow += 1
         else:
             with store.transakcja():
-                store.index_document(dokument.doc_id, dokument.current_sha256, metryka(szczegoly))
+                store.index_document(
+                    dokument.doc_id,
+                    dokument.current_sha256,
+                    metryka(szczegoly),
+                    struktura(szczegoly),
+                )
             przeliczonych += 1
         reporter.on_parse(numer, len(do_przeliczenia))
     return WynikPrzeliczenia(

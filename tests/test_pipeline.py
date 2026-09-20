@@ -28,7 +28,7 @@ from kio_tool import pipeline
 from kio_tool.config import MAX_FILENAME_STEM, safe_filename
 from kio_tool.criteria import Criteria
 from kio_tool.docid import SourceName
-from kio_tool.errors import ConfigError, ConsentMissingError, RateLimitError, TransportError
+from kio_tool.errors import ConfigError, ConsentMissingError, RateLimitError
 from kio_tool.httpclient import build_http_client
 from kio_tool.progress import NullEvents
 from kio_tool.source.contract import load_contract
@@ -207,22 +207,30 @@ def test_prog_zgody_dziala_takze_gdy_kanal_nie_zglasza_liczby(store: Store) -> N
 
 
 def test_wpis_w_requests_log_powstaje_w_chwili_powrotu_zadania(store: Store) -> None:
+    """Zerwane łącze na trzecim dokumencie, jednorazowe: od ADR-0007 ponowienie je dokańcza.
+
+    Mierzone jest to samo co przed ponowieniami — żądanie, które nie doszło, ma własny wiersz,
+    zapisany w chwili powrotu, **przed** kolejną próbą — plus kolumna `proba`, bez której dwie
+    próby jednego dokumentu byłyby w dzienniku dwoma różnymi żądaniami (Z-8).
+    """
     serwer = Serwer(
         przerwij_na_dokumencie=3, wyjatek=httpx.ConnectError("zerwane polaczenie (wymyslone)")
     )
 
-    with pytest.raises(TransportError):
-        uruchom(store, serwer)
+    wynik = uruchom(store, serwer)
 
-    statusy = [
-        wiersz[0]
-        for wiersz in store._conn.execute("SELECT status FROM requests_log ORDER BY rowid")
-    ]
-    assert statusy == [200, 200, 200, None], (
-        "lista, dwa dokumenty i żądanie, które nie doszło — każde ze swoim wierszem, "
-        "zanim wyjątek opuścił `pobierz`"
-    )
-    assert store.count("documents") == 2
+    wiersze = store._conn.execute(
+        "SELECT status, proba, url_redacted FROM requests_log ORDER BY rowid"
+    ).fetchall()
+    assert [(w[0], w[1]) for w in wiersze[:5]] == [
+        (200, 1),
+        (200, 1),
+        (200, 1),
+        (None, 1),
+        (200, 2),
+    ], "lista, dwa dokumenty, próba bez odpowiedzi i jej ponowienie — każde ze swoim wierszem"
+    assert wiersze[3][2] == wiersze[4][2], "ponowienie dotyczy tego samego adresu"
+    assert wynik.status == "zakonczony" and wynik.ponowien_lacznie == 1
 
 
 def test_finish_run_zapisuje_koniec_takze_przy_ctrl_c(store: Store) -> None:
@@ -373,8 +381,9 @@ def test_429_zatrzymuje_przebieg_i_zostawia_go_wznawialnym(store: Store) -> None
 
     przebieg = store.get_run(store._conn.execute("SELECT run_id FROM runs").fetchone()[0])
     assert przebieg.status == "przerwany" and przebieg.powod is not None
-    statusy = [w[0] for w in store._conn.execute("SELECT status FROM requests_log ORDER BY rowid")]
-    assert statusy == [200, 200, 200, 429]
+    wiersze = store._conn.execute("SELECT status, proba FROM requests_log ORDER BY rowid")
+    # ADR-0007 wariant Z-1: jedno ponowienie po pełnej blokadzie; drugie 429 pod rząd zatrzymuje.
+    assert [tuple(w) for w in wiersze] == [(200, 1), (200, 1), (200, 1), (429, 1), (429, 2)]
     assert store.count("documents") == 2
 
 
@@ -897,3 +906,69 @@ def test_odtworzone_powiazania_zgadzaja_sie_z_tym_co_zapisal_przebieg(tmp_path: 
         assert list(store.iter_run_documents(wynik.run_id)) == pierwotne
         assert store.count_run_documents(wynik.run_id, nowe=True) == 100
         assert store.count_requests(wynik.run_id) == 102
+
+
+# --- sufit zgody: zgoda dotyczy liczby, którą operator zobaczył (przegląd kodu fazy 3) ---------
+
+
+def _serwer_mylacy_sie_co_do_rozmiaru() -> Serwer:
+    """Kanał zgłasza `total = 5`, a oddaje trzy strony po sto rekordów.
+
+    Nie potrzeba do tego złośliwego serwisu: dokładność `total` Atlasu nie jest zmierzona
+    (pomiar 24 czeka na pierwszy przebieg kwartalny), a zakres może urosnąć między wyceną
+    a końcem przebiegu.
+    """
+    pierwsza = dict(LISTA)
+    pierwsza[LICZNIK] = 5
+    rekordy: list[dict[str, object]] = list(LISTA[KLUCZ])
+    return Serwer(
+        strony=[
+            json.dumps(pierwsza).encode(),
+            strona(rekordy, ma_wiecej=True, total=5),
+            strona(rekordy, ma_wiecej=False, total=5),
+        ]
+    )
+
+
+def test_zgoda_pod_wycena_nie_zdejmuje_progu_na_caly_przebieg(store: Store) -> None:
+    """Enter pod tabelą „5 żądań" nie jest zgodą na 103 żądania.
+
+    Przed poprawką werdykt `zgoda` ustawiał wyłącznie `stan.jest`, więc `_wymagaj_zgody`
+    wychodziło natychmiast — także z bramki przed ponowieniem (ADR-0007 Z-9). Zmierzone
+    na tej atrapie: wycena 5 żądań, wysłane 103 przy `PROG_ZGODY = 50`.
+    """
+    serwer = _serwer_mylacy_sie_co_do_rozmiaru()
+    pokazane: list[pipeline.Wycena] = []
+
+    def decyzja(wycena: pipeline.Wycena) -> pipeline.Werdykt:
+        pokazane.append(wycena)
+        return "zgoda"
+
+    with pytest.raises(ConsentMissingError) as blad:
+        pipeline.pobierz(
+            "atlas",
+            KRYTERIA,
+            store,
+            NullEvents(),
+            zgoda=False,
+            decyzja=decyzja,
+            user_agent=UA_TESTOWY,
+            klient_factory=partial(build_http_client, transport=httpx.MockTransport(serwer)),
+            zegar=ZegarTestowy(),
+        )
+
+    proby = max(KONTRAKT.ponowienia.proby, KONTRAKT.ponowienia.proby_429)
+    sufit = (pokazane[0].zadan or 0) + pokazane[0].zadan_juz
+    assert pokazane[0].zadan == 5, "operator zobaczył liczbę kanału, nie prawdę"
+    assert len(serwer.zadania) <= sufit * proby
+    assert str(sufit) in str(blad.value) and str(sufit * proby) in str(blad.value), (
+        "zdanie ma wymienić obie liczby: wycenę i sufit"
+    )
+    assert store.get_run(store.list_runs(1)[0].run_id).status == "przerwany"
+
+
+def test_przebieg_zgodny_z_wycena_przechodzi_pod_sufitem(store: Store) -> None:
+    """Sufit nie może zatrzymywać przebiegu, który mieści się w tym, co pokazała tabela."""
+    wynik = uruchom(store, Serwer())
+
+    assert (wynik.status, wynik.zadan) == ("zakonczony", 102)

@@ -858,7 +858,7 @@ def zaindeksuj(store: Store, doc_id: str, tresc: str, **zmiany: object) -> None:
     m = metryka(tresc, **zmiany)
     sha, _ = zapisz(store, doc_id, tresc.encode(), data_wydania=m.data_wydania)
     with store.transakcja():
-        store.index_document(doc_id, sha, m)
+        store.index_document(doc_id, sha, m, None)
 
 
 def test_szukaj_zwraca_trafienia_z_liczbami_z_bazy(store: Store) -> None:
@@ -939,3 +939,92 @@ def test_iter_documents_z_filtrem_tekstowym_i_fraza(store: Store) -> None:
 def test_szukaj_odrzuca_limit_niedodatni(store: Store) -> None:
     with pytest.raises(StoreError):
         store.szukaj("x", limit=0)
+
+
+# --- schemat 5: `requests_log.proba` (ADR-0007 Z-8) -----------------------------------------
+
+
+def zaloguj(store: Store, run_id: str, *, proba: int = 1, status: int | None = 200) -> None:
+    store.log_request(
+        run_id,
+        ts=TS,
+        metoda="GET",
+        url="https://wymyslony.example/dokument/x",
+        status=status,
+        ms=5,
+        bajtow=10,
+        sha256=None,
+        ksztalt="zgodny",
+        proba=proba,
+    )
+
+
+def baza_schematu_4(sciezka: Path) -> None:
+    """Baza na wersji 4 z jednym wierszem dziennika — jak korpus sprzed ADR-0007.
+
+    Budowana przez `Store` i cofnięta, jak `baza_schematu_3_z_luka`: schemat 4 różni się od
+    bieżącego wyłącznie brakiem kolumny `proba`, więc ta jedna różnica jest tu zdjęta wprost."""
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        zaloguj(store, start(store))
+    with sqlite3.connect(sciezka) as p:
+        p.execute("ALTER TABLE requests_log DROP COLUMN proba")
+        p.execute("PRAGMA user_version = 4")
+
+
+def test_migracja_4_do_5_doklada_probe_i_daje_starym_wierszom_jedynke(tmp_path: Path) -> None:
+    """Przed ADR-0007 żaden kanał nie ponawiał, więc 1 jest prawdą o starych wierszach, nie
+    zgadywaniem — a liczba ponowień przebiegu sprzed migracji wychodzi zero, nie `NULL`."""
+    sciezka = tmp_path / "czwarty.sqlite"
+    baza_schematu_4(sciezka)
+    with sqlite3.connect(sciezka) as p:
+        assert "proba" not in {w[1] for w in p.execute("PRAGMA table_info(requests_log)")}
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        run_id = str(store._conn.execute("SELECT run_id FROM runs").fetchone()[0])
+        assert store.count_requests(run_id) == 1
+        assert store.count_requests(run_id, ponowienia=True) == 0
+        zaloguj(store, run_id, proba=2)
+        assert store.count_requests(run_id) == 2
+        assert store.count_requests(run_id, ponowienia=True) == 1
+
+    with sqlite3.connect(sciezka) as p:
+        assert p.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
+        assert [w[0] for w in p.execute("SELECT proba FROM requests_log ORDER BY rowid")] == [1, 2]
+
+
+def test_migracja_do_5_nie_wywraca_sie_na_kolumnie_ktora_juz_jest(tmp_path: Path) -> None:
+    """Obecność kolumny sprawdzana, nie zakładana (jak `_migruj_do_3`): baza z `proba`, ale
+    z wersją 4, nie może skończyć się `duplicate column name` przy otwarciu."""
+    sciezka = tmp_path / "czwarty.sqlite"
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        zaloguj(store, start(store), proba=3)
+    with sqlite3.connect(sciezka) as p:
+        p.execute("PRAGMA user_version = 4")
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store._conn.execute("SELECT proba FROM requests_log").fetchone()[0] == 3
+
+
+def test_migracja_ze_schematu_1_dochodzi_do_kolumny_proba(tmp_path: Path) -> None:
+    """Cały łańcuch 1 → 5: baza z etapu III dostaje `proba` tak samo jak baza z wersji 4."""
+    sciezka = tmp_path / "stary.sqlite"
+    baza_schematu_1(sciezka)
+
+    with Store.open(sciezka, clock=ZegarTestowy()) as store:
+        assert store.count_requests("atlas-stary", ponowienia=True) == 0
+        assert store._conn.execute("SELECT proba FROM requests_log").fetchone()[0] == 1
+
+
+def test_count_requests_z_ponowieniami_liczy_proby_od_drugiej_w_jednym_przebiegu(
+    store: Store,
+) -> None:
+    pierwszy = start(store)
+    drugi = start(store, "2024-02-01..2024-02-29")
+    for proba in (1, 2, 3):
+        zaloguj(store, pierwszy, proba=proba, status=None)
+    zaloguj(store, pierwszy)
+    zaloguj(store, drugi, proba=2)
+
+    assert store.count_requests(pierwszy) == 4
+    assert store.count_requests(pierwszy, ponowienia=True) == 2
+    assert store.count_requests(drugi, ponowienia=True) == 1, "cudzy przebieg się nie wlicza"

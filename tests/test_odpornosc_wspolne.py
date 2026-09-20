@@ -84,6 +84,11 @@ class SerwisAwaryjny:
     Awaria jest **funkcją**, a nie wartością, bo `httpx.Response` zużywa swój strumień: ten sam
     punkt bywa odpytywany dwa razy (raz przed przerwaniem, raz po wznowieniu) i odpowiedź
     zbudowana raz przy konstrukcji atrapy nie przeżyłaby drugiego odczytu.
+
+    Awaria jest domyślnie **trwała** (ADR-0007 §5.1): po wprowadzeniu ponowień „awaria zdarzyła
+    się raz" przestała przerywać przebieg, więc testy obietnicy wznowienia mierzą awarię, która
+    nie ustępuje — każda próba tego samego dokumentu albo tej samej strony dostaje ją znowu.
+    `jednorazowa=True` psuje wyłącznie pierwszą próbę: to jest rodzina testów ponowień.
     """
 
     def __init__(
@@ -93,6 +98,7 @@ class SerwisAwaryjny:
         na_dokumencie: int | None = None,
         na_stronie: int | None = None,
         reakcja: Reakcja | None = None,
+        jednorazowa: bool = False,
     ) -> None:
         self.strony = list(strony) if strony is not None else list(DWIE_STRONY)
         self.na_dokumencie = na_dokumencie
@@ -101,18 +107,27 @@ class SerwisAwaryjny:
         self.zadania: list[httpx.Request] = []
         self.dokumentow = 0
         self.awarii = 0
+        self.jednorazowa = jednorazowa
+        self._slug_awarii: str | None = None
+        self._rozne_dokumenty: list[str] = []
 
     def __call__(self, zadanie: httpx.Request) -> httpx.Response:
         self.zadania.append(zadanie)
         if zadanie.url.path == KONTRAKT.punkty.lista:
             numer = int(zadanie.url.params[KONTRAKT.parametry_listy.strona])
-            if numer == self.na_stronie:
+            if numer == self.na_stronie and not (self.jednorazowa and self.awarii):
                 return self._awaria(zadanie)
             return httpx.Response(200, content=self.strony[numer - 1])
         self.dokumentow += 1
-        if self.dokumentow == self.na_dokumencie:
+        slug = zadanie.url.path.rsplit("/", 1)[1]
+        if slug not in self._rozne_dokumenty:
+            self._rozne_dokumenty.append(slug)
+            if len(self._rozne_dokumenty) == self.na_dokumencie:
+                self._slug_awarii = slug
+                return self._awaria(zadanie)
+        elif slug == self._slug_awarii and not self.jednorazowa:
             return self._awaria(zadanie)
-        return httpx.Response(200, content=dokument(zadanie.url.path.rsplit("/", 1)[1]))
+        return httpx.Response(200, content=dokument(slug))
 
     def _awaria(self, zadanie: httpx.Request) -> httpx.Response:
         self.awarii += 1
@@ -191,8 +206,9 @@ def test_awaria_wstrzyknieta_w_atrape_naprawde_dociera_do_produkcji(store: Store
     with pytest.raises(TransportError):
         uruchom(store, serwis)
 
-    assert serwis.awarii == 1, "scenariusz awarii nie odpalił się ani razu"
-    assert serwis.dokumentow == 3, "awaria padła na trzecim dokumencie, nie wcześniej"
+    proby = KONTRAKT.ponowienia.proby
+    assert serwis.awarii == proby, "awaria trwała dostała każdą próbę z `ponowienia.proby`"
+    assert serwis.dokumentow == 2 + proby, "awaria padła na trzecim dokumencie, nie wcześniej"
     assert store.count("documents") == 2, "dwa dokumenty sprzed awarii są w bazie"
 
 

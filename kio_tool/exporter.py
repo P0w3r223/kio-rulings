@@ -57,6 +57,23 @@ EXPORT_REPORT_EVERY = 250
 PLIK_INDEKSU = "INDEX.md"
 SUFIKS_KATALOGU_MD = "_md"
 PLIK_ZNACZNIKA = ".kio-tool-eksport"
+PRZEDROSTEK_POKAZU = "DEMO_"
+"""Przedrostek każdego pliku i katalogu eksportu z bazy pokazowej (ADR-0008 Z-3, znacznik 3)."""
+ATRYBUCJA_POKAZU = (
+    "TRYB POKAZOWY — rekord fikcyjny, wygenerowany przez kio-tool; nie jest orzeczeniem Krajowej "
+    "Izby Odwoławczej ani materiałem Atlasu Przetargów i nie wolno go cytować."
+)
+ORGAN_POKAZU = "brak — rekordy pokazowe nie pochodzą od żadnego organu"
+"""Wartość wiersza `organ` w arkuszu `Metadane` eksportu pokazowego (przegląd kodu fazy 3,
+2026-09-20). Wiersz `tryb` mówił „POKAZOWY”, a dwa wiersze niżej ten sam arkusz twierdził
+`organ = Krajowa Izba Odwoławcza` i powtarzał atrybucję licencyjną Atlasu — czyli dokładnie to,
+czemu `ATRYBUCJA_POKAZU` zapobiega w rekordzie. Znacznik 2 był prawdziwy, a arkusz obok niego
+fałszywy."""
+"""Zdanie zastępujące blok cytowania rekordu pokazowego (ADR-0008 Z-3, znacznik 5).
+
+Blok cytowania z organem i źródłem jest tu jednostką eksportu: pojedynczy `.md` albo wiersz JSONL
+wyjęty z katalogu nie niesie przedrostka nazwy, więc gdyby blok zostawał bez zmian, fikcyjny rekord
+stawałby się fałszywym cytatem przypisanym realnemu organowi (ADR-0008 §1.2)."""
 """Znacznik własności katalogu `_md` — porównywany dosłownie po nazwie, nie przez `exists()`.
 
 `INDEX.md` nie nadaje się na znacznik: NTFS składa wielkość liter, więc cudzy `index.md`
@@ -120,6 +137,8 @@ class Wpis:
     rekord: Mapping[str, object]
     """Surowy rekord kanału w całości — wyłącznie do JSONL (zrzut surowca)."""
     atrybucja: str
+    pokaz: bool = False
+    """Rekord z bazy pokazowej — blok cytowania zastępuje `ATRYBUCJA_POKAZU` (Z-3, Z-4)."""
 
 
 Zrodlo = Callable[[], Iterator[Wpis]]
@@ -160,6 +179,8 @@ def blok_atrybucji(wpis: Wpis) -> str:
     s = wpis.szczegoly
     rodzaj = (s.rodzaj or "orzeczenie").capitalize()
     sygnatury = ", ".join(s.sygnatury) or wpis.source_ref
+    if wpis.pokaz:
+        return f"{ATRYBUCJA_POKAZU}\nsygn. {sygnatury} (fikcyjna); wersja: {wpis.sha256[:12]}"
     return (
         f"{rodzaj} KIO z {s.data_wydania or DATA_NIEZNANA}, sygn. {sygnatury}, {ORGAN}; "
         f"źródło: {s.url_zrodla or wpis.source_ref}; wersja: {wpis.sha256[:12]}; "

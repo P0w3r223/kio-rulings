@@ -13,6 +13,7 @@ własny, `Ctrl+C` daje 130.
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,19 +22,30 @@ from typing import Annotated
 import typer
 from pydantic import ValidationError
 
-from . import pipeline
-from .clock import SystemClock
-from .config import default_db_path, user_agent
+from . import obsluga, pipeline
+from . import pokrycie as raport_pokrycia
+from .clock import SystemClock, utc_iso
+from .config import (
+    KATALOG_WYNIKOW,
+    PLIK_BAZY,
+    default_db_path,
+    katalog_pokazu,
+    user_agent,
+)
 from .console import PulsKonsoli
 from .criteria import Criteria, bledy_po_polsku
+from .demo import Pokaz, zbuduj_pokaz
 from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, KioError
 from .exporter import FORMATY
+from .parser.details import PARSE_VERSION
 from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
-from .ui import texts
+from .ui import texts, wizard
+from .ui.prompts import KonsolaPrompter, Prompter
 from .ui.render import ConsoleView
+from .wycena import Wycena
 
-app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False, no_args_is_help=True)
+app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False)
 view = ConsoleView()
 
 OpcjaOd = Annotated[str | None, typer.Option("--od", help=texts.POMOC_OD)]
@@ -66,12 +78,19 @@ LIMIT_RUNOW = 20
 LIMIT_TRAFIEN = 20
 
 
-@app.callback(help=texts.POMOC_PROGRAMU)
-def _program() -> None:
+@app.callback(help=texts.POMOC_PROGRAMU, invoke_without_command=True)
+def _program(ctx: typer.Context) -> None:
     # `typer` z jednym poleceniem i bez wywołania zwrotnego zwija je do polecenia głównego —
     # `kio-tool pobierz …` przestawałoby wtedy istnieć, a drugie polecenie zmieniałoby składnię
-    # pierwszego. Pusty callback utrwala kształt `kio-tool <polecenie>`.
-    return None
+    # pierwszego. Callback utrwala kształt `kio-tool <polecenie>`.
+    if ctx.invoked_subcommand is not None:
+        return
+    # ADR-0008 Z-8 (decyzja właściciela 2026-09-19): bez polecenia na terminalu — kreator dla
+    # operatora, który nie zna poleceń; poza terminalem (potok, skrypt) — pomoc jak dotąd.
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        _uruchom_kreator(baza=None)
+    else:
+        view.message(ctx.get_help())  # pomoc złożona z `texts.POMOC_*` przez typer
 
 
 @contextmanager
@@ -86,7 +105,10 @@ def _obsluga_bledow() -> Iterator[None]:
     except KioError as blad:
         view.error(texts.blad(str(blad)))
         raise typer.Exit(code=blad.exit_code) from blad
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
+        # `EOFError` obok Ctrl+C: kreator poza terminalem spada na `input()`, a koniec wejścia
+        # przechwytywał click i kończył angielskim „Aborted.” z kodem 1 (przegląd kodu fazy 3,
+        # 2026-09-20). Zamknięte wejście jest przerwaniem operatora, tylko innym klawiszem.
         view.error(texts.PRZERWANE)
         raise typer.Exit(code=KOD_WYJSCIA_PRZERWANIE) from None
 
@@ -156,67 +178,92 @@ def _limit(limit: int) -> int:
     return limit
 
 
-def _eksport_i_raport(
-    store: Store,
-    *,
-    run_ids: Sequence[str],
-    kryteria: Criteria | None,
-    formaty: Sequence[str],
-    out: Path | None,
-    cel: str | None,
-    zegar: SystemClock,
+def _decyzja_flag(zgoda: bool) -> pipeline.Decyzja:
+    """Ścieżka flag: tabela kosztów zawsze na ekranie, werdykt z `--zgoda` (ADR-0008 Z-6)."""
+    polityka = pipeline.decyzja_z_flagi(zgoda)
+
+    def decyzja(wycena: Wycena) -> pipeline.Werdykt:
+        view.block(texts.tabela_kosztow(wycena, prog_zgody=pipeline.PROG_ZGODY))
+        return polityka(wycena)
+
+    return decyzja
+
+
+@app.command(help=texts.POMOC_KREATOR)
+def kreator(baza: OpcjaBaza = None) -> None:
+    _uruchom_kreator(baza=baza)
+
+
+def _uruchom_kreator(*, baza: Path | None, prompter: Prompter | None = None) -> None:
+    """Kreator nad bazą operatora — `Akcje` z `obsluga.py`, pytający z `ui/prompts.py`."""
+    zegar = SystemClock()
+    with _obsluga_bledow():
+        sciezka = baza or default_db_path()
+        with _otworz_baze(sciezka, zegar) as store:
+            akcje = obsluga.AkcjeKreatora(view, store, sciezka, zegar)
+            wizard.uruchom(prompter or KonsolaPrompter(), akcje, view)
+
+
+OpcjaOdNowa = Annotated[bool, typer.Option("--od-nowa", help=texts.POMOC_OD_NOWA)]
+
+
+@app.command(help=texts.POMOC_DEMO)
+def demo(od_nowa: OpcjaOdNowa = False) -> None:
+    _uruchom_pokaz(od_nowa=od_nowa)
+
+
+def _uruchom_pokaz(
+    *, od_nowa: bool, prompter: Prompter | None = None, pokaz: Pokaz | None = None
 ) -> None:
-    """Eksport z bazy plus podsumowanie — te same zdania po `pobierz`, `wznow` i `eksportuj`."""
-    wynik = pipeline.eksportuj(
-        store, run_ids=run_ids, kryteria=kryteria, formaty=formaty, out=out, cel=cel, zegar=zegar
-    )
-    if wynik.dokumentow == 0:
-        view.message(texts.NIC_DO_EKSPORTU)
-        for run_id in run_ids:
-            # Przebieg sprzed schematu 2 ma żądania i dokumenty w korpusie, ale nie ma wierszy
-            # w `run_documents` — „żaden dokument nie pasuje" jest wtedy prawdziwe i mylące naraz
-            # (znalezisko testera 2026-09-18, zmierzone na bazie operatora).
-            przebieg = store.get_run(run_id)
-            if przebieg.dokumentow == 0 and przebieg.zadan > 0:
-                view.message(texts.przebieg_bez_powiazan(przebieg.run_id, przebieg.zakres))
-        if kryteria is not None:
-            view.block(
-                texts.zero_trafien(
-                    kryteria,
-                    w_korpusie=store.count("documents"),
-                    zaindeksowanych=store.count_indexed(),
-                    bez_daty=wynik.bez_daty_poza_filtrem,
-                )
+    """Kreator nad bazą pokazową (ADR-0008 Z-1, Z-8): atrapa Atlasu jako transport, osobny
+    katalog danych, znacznik w pliku bazy. Bez `KIO_TOOL_CONTACT` i bez klucza (Z-14)."""
+    katalog = katalog_pokazu()
+    sciezka = katalog / PLIK_BAZY
+    with _obsluga_bledow():
+        # Budowa pokazu **wewnątrz** obsługi błędów (przegląd kodu fazy 3, 2026-09-20):
+        # `zbuduj_pokaz` czyta kontrakt i wzorce, więc zgłasza `ConfigError` — na zewnątrz
+        # wychodził on śladem stosu i kodem 1 zamiast zdaniem i kodem 3, akurat w poleceniu,
+        # które ma działać „w dniu klonu” u kogoś, kto projektu nie zna.
+        pokaz = pokaz or zbuduj_pokaz()
+        if od_nowa:
+            _usun_baze_pokazowa(sciezka)
+        with Store.open(sciezka, clock=pokaz.zegar, pokazowa=True) as store:
+            przestarzale = store.count_indexed() < store.count("documents")
+            if przestarzale or any(True for _ in store.versions_to_index(PARSE_VERSION)):
+                pipeline.przelicz(store)
+            akcje = obsluga.AkcjeKreatora(
+                view,
+                store,
+                sciezka,
+                pokaz.zegar,
+                klient_factory=pokaz.klient_factory,
+                tozsamosc=lambda: pokaz.user_agent,
+                czas_pokazu=pokaz.czas_pokazu,
+                klucz_z_srodowiska=False,
+                katalog_wynikow=_katalog(katalog / KATALOG_WYNIKOW),
             )
+            wizard.uruchom(prompter or KonsolaPrompter(), akcje, view, pokaz=True)
+
+
+def _katalog(sciezka: Path) -> Path:
+    """Katalog wyników pokazu, założony z góry — `eksportuj` traktuje istniejący katalog `--out`
+    jako miejsce na plik o nazwie domyślnej (z przedrostkiem `DEMO_`)."""
+    sciezka.mkdir(parents=True, exist_ok=True)
+    return sciezka
+
+
+def _usun_baze_pokazowa(sciezka: Path) -> None:
+    """`--od-nowa` kasuje **wyłącznie** plik ze znacznikiem pokazu (ADR-0008 Z-2)."""
+    if not sciezka.exists():
         return
-    view.block(
-        texts.blok_eksportu(
-            [str(s) for s in wynik.sciezki],
-            wynik.dokumentow,
-            wynik.formaty,
-            wynik.bez_daty_poza_filtrem,
-        )
-    )
-
-
-def _raport_przebiegu(wynik: pipeline.Podsumowanie, baza: Path) -> None:
-    view.message(
-        texts.podsumowanie(
-            run_id=wynik.run_id,
-            status=wynik.status,
-            kandydatow=wynik.kandydatow,
-            nowych=wynik.nowych,
-            pominietych=wynik.pominietych,
-            zadan=wynik.zadan,
-            baza=str(baza),
-            zgloszone=wynik.zgloszone,
-            objetych_lacznie=wynik.objetych_lacznie,
-            pobranych_lacznie=wynik.pobranych_lacznie,
-            zadan_lacznie=wynik.zadan_lacznie,
-            bledow_odczytu=wynik.bledow_odczytu,
-            brakujacych=wynik.brakujacych,
-        )
-    )
+    with Store.open(sciezka, clock=SystemClock(), pokazowa=True):
+        pass  # otwarcie z `pokazowa=True` odmawia pliku bez znacznika — to jest ta kontrola
+    for plik in (
+        sciezka,
+        sciezka.with_name(sciezka.name + "-wal"),
+        sciezka.with_name(sciezka.name + "-shm"),
+    ):
+        plik.unlink(missing_ok=True)
 
 
 @app.command(help=texts.POMOC_POBIERZ)
@@ -269,13 +316,15 @@ def pobierz(
                 PulsKonsoli(),
                 zgoda=zgoda,
                 user_agent=tozsamosc,
+                decyzja=_decyzja_flag(zgoda),
                 zegar=zegar,
             )
-            _raport_przebiegu(wynik, sciezka)
+            obsluga.raport_przebiegu(view, wynik, sciezka)
             if wynik.objetych_lacznie == 0:
                 view.block(texts.zero_kandydatow(kryteria))
                 return
-            _eksport_i_raport(
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -310,10 +359,17 @@ def wznow(
                 texts.start_przebiegu(przebieg.kanal, kryteria.describe(), str(sciezka), tozsamosc)
             )
             wynik = pipeline.wznow(
-                store, wybrany, PulsKonsoli(), zgoda=zgoda, user_agent=tozsamosc, zegar=zegar
+                store,
+                wybrany,
+                PulsKonsoli(),
+                zgoda=zgoda,
+                user_agent=tozsamosc,
+                decyzja=_decyzja_flag(zgoda),
+                zegar=zegar,
             )
-            _raport_przebiegu(wynik, sciezka)
-            _eksport_i_raport(
+            obsluga.raport_przebiegu(view, wynik, sciezka)
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -362,7 +418,8 @@ def eksportuj(
         sciezka = baza or default_db_path()
         zegar = SystemClock()
         with _otworz_baze(sciezka, zegar) as store:
-            _eksport_i_raport(
+            obsluga.eksport_i_raport(
+                view,
                 store,
                 run_ids=run_ids,
                 kryteria=None if run_ids else kryteria,
@@ -417,6 +474,42 @@ def przelicz(wszystko: OpcjaWszystko = False, baza: OpcjaBaza = None) -> None:
         )
 
 
+OpcjaCelRaportu = Annotated[Path, typer.Option("--cel", help=texts.POMOC_CEL_RAPORTU)]
+OpcjaZloty = Annotated[Path | None, typer.Option("--zloty", help=texts.POMOC_ZLOTY)]
+
+
+@app.command(help=texts.POMOC_POKRYCIE)
+def pokrycie(
+    cel: OpcjaCelRaportu = Path("docs") / "raporty",
+    zloty: OpcjaZloty = None,
+    baza: OpcjaBaza = None,
+) -> None:
+    zegar = SystemClock()
+    with _obsluga_bledow():
+        sciezka = baza or default_db_path()
+        with _otworz_baze(sciezka, zegar) as store:
+            wynik = raport_pokrycia.wykonaj(
+                store,
+                cel=cel,
+                zloty=zloty,
+                data=utc_iso(zegar.wall())[:10],
+                parse_version=PARSE_VERSION,
+            )
+        r = wynik.raport
+        z = r.zloty
+        view.block(
+            texts.blok_pokrycia(
+                r.dokumentow,
+                sum(x.komplet for x in r.roczniki.values()),
+                sum(x.nierozpoznanych for x in r.roczniki.values()),
+                sum(x.cytowan for x in r.roczniki.values()),
+                None if z is None else (z.plikow, z.sprawdzonych, z.zgodnych),
+                (str(wynik.markdown), str(wynik.maszynowy)),
+            )
+        )
+        raport_pokrycia.wymagaj_zgodnosci(wynik)
+
+
 @app.command(help=texts.POMOC_SZUKAJ)
 def szukaj(
     fraza: OpcjaFraza = None,
@@ -444,38 +537,7 @@ def szukaj(
         limit = _limit(limit)
         sciezka = baza or default_db_path()
         with _otworz_baze(sciezka, SystemClock()) as store:
-            wynik = pipeline.szukaj(store, kryteria, limit=limit)
-        for ostrzezenie in kryteria.ostrzezenia():
-            view.warning(texts.uwaga(ostrzezenie))
-        if wynik.trafien == 0:
-            view.block(
-                texts.zero_trafien(
-                    kryteria,
-                    w_korpusie=wynik.w_korpusie,
-                    zaindeksowanych=wynik.zaindeksowanych,
-                    bez_daty=wynik.bez_daty_poza_filtrem,
-                )
-            )
-            return
-        wiersze = tuple(
-            (
-                t.sygnatura or t.source_ref,
-                t.data_wydania or "",
-                t.rozstrzygniecie or "",
-                t.fragment,
-            )
-            for t in wynik.trafienia
-        )
-        view.block(
-            texts.blok_wyszukiwania(
-                wiersze,
-                fraza=kryteria.fraza,
-                w_korpusie=wynik.w_korpusie,
-                zaindeksowanych=wynik.zaindeksowanych,
-                trafien=wynik.trafien,
-                bez_daty_poza_filtrem=wynik.bez_daty_poza_filtrem,
-            )
-        )
+            obsluga.pokaz_wyszukanie(view, store, kryteria, limit=limit)
 
 
 if __name__ == "__main__":
