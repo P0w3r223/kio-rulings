@@ -44,12 +44,20 @@ przejściowy. Otwarte zostają O-1, O-2, O-5 i O-7; żadna z nich nie blokuje pr
 (O-1…O-7) z powodem odłożenia i z tym, co każdą odblokuje. Pozycja stamtąd nie jest do zrobienia
 przy okazji.
 
+**Instrukcja dla modelu obsługującego narzędzie: `docs/dla-modelu.md`.** Odbiorcą jest agent,
+nie programista i nie operator. Trzyma polecenia, filtry, pułapki i limity; **zmiana flagi albo
+nazwy polecenia jest zmianą tego pliku** — instrukcja, która rozjedzie się z narzędziem, jest
+gorsza niż jej brak, bo model zaufa jej bez sprawdzenia.
+
 **Asystenta językowego nie będzie — decyzja właściciela z 2026-09-20, nie odłożenie.** O-6 jest
 zamknięte odmownie, więc **nie proponuj go ponownie i nie wprowadzaj SDK modelu do tego drzewa**;
 konsekwencją jest brak drugiego właściciela klienta HTTP, drugiego wyjścia z procesu i łańcucha
 poświadczeń, a przez to zdanie „narzędzie nie wysyła żądań poza kanał, z którego pobiera" bez
 wyjątku i bez flagi. Bramka AI Act przed fazą 4 stoi mimo to, bo serwer MCP (`ARCHITEKTURA` §3.8 —
 taki jest kształt fazy 4, nie asystent w procesie) oddaje tekst modelowi po drugiej stronie.
+Pozycjonowanie jest przy tym **pozytywne, nie „brakujące"**: `ceidg-tool` ma asystenta w pudełku,
+`kio-tool` jest pudełkiem, które asystent prowadzi (`decisions.md`, „Narzędzie prowadzone przez
+model").
 
 **Kreator mówi operatorowi, co robić** (zgłoszenie z 2026-09-20): każde pytanie tekstowe ma
 podpowiedź (`Pytanie.podpowiedz` — strażnikiem jest test, który nie przepuszcza pytania bez niej),

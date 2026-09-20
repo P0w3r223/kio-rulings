@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20
-Status: **wykonany** — `prezentacja-kio-ekran.html` złożona 2026-09-20 (17 slajdów)
+Status: **wykonany** — `prezentacja-kio-ekran.html`, 12 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a)
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -39,7 +39,36 @@ procesu; korpus operatora nie pojawia się na ekranie rzutnika w żadnej postaci
 
 ---
 
-## 2. Układ slajdów (17, jak we wzorcu — patrz sprostowanie pod tabelą)
+## 2a. Przebudowa po przeglądzie właściciela (2026-09-20)
+
+Pierwsza wersja miała 17 slajdów w układzie wzorca i **została odrzucona przez właściciela
+w całości co do treści**, przy zachowanej formie. Powód jest jedną informacją, której w tym
+planie brakowało: **sala już widziała prezentację `ceidg-tool`**. W tym stanie wierne odtworzenie
+tamtego układu daje nie „spójną serię", tylko powtórkę — slajd o zabezpieczeniach, o koszcie
+przed zgodą, o rządowej wyszukiwarce i o danych osobowych mówiły sali to, co usłyszała
+14 września.
+
+Nowy układ ma **12 slajdów** i inny kręgosłup: nie „co to narzędzie potrafi", tylko **czym się
+różni od tego, które już znacie**.
+
+| Co zrobiono | Z czym |
+|---|---|
+| **Zwinięte do jednego slajdu** (s10) | Zabezpieczenia, zgoda po wycenie, neutralizacja cudzego tekstu, tryb pokazowy — trzy wiersze „bez zmian" i dwa z wykrzyknikiem, bo tylko te dwie rzeczy są inne |
+| **Zwinięte do jednego slajdu** (s7) | Jakość odczytu: sekcje, cytowania i przepisy, wcześniej trzy osobne slajdy |
+| **Usunięte** | Porównanie z wyszukiwarką UZP i osobny slajd o danych osobowych — oba są odpowiednikami slajdów, które sala zna |
+| **Nowe — kręgosłup** (s2) | Tabela `ceidg-tool` kontra `kio-tool`, wiersz po wierszu, z dwoma wierszami tezy: asystent **nie ma** / obsługa przez model **docelowa** |
+| **Nowe** (s3) | Dlaczego brak asystenta jest zaletą dla agenta, a nie oszczędnością |
+| **Nowe** (s4) | Jak model używa narzędzia; odsyła do `docs/dla-modelu.md` |
+| **Nowe** (s5) | Co da się wyszukać i pułapka `--fraza` w `pobierz` |
+| **Nowe** (s6) | Limity kanału i podniesienie ich kluczem: 1 500 → 5 000 na dobę |
+| **Zachowane bez zmian** | s8 (złoty zbiór i dwie usterki) — jedyny slajd, którego odpowiednika w tamtej prezentacji nie było |
+
+**Zasada na przyszłość.** Prezentacja dla tej sali stoi **na** poprzedniej, nie obok niej. To, co
+tamta już powiedziała, dostaje wiersz, a nie slajd; miejsce należy się temu, co jest inne.
+
+---
+
+## 2. Układ slajdów — wersja pierwsza, zastąpiona (zapis historyczny)
 
 | # | Twierdzenie slajdu | Czym poparte |
 |---|---|---|

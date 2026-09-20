@@ -1000,6 +1000,31 @@ nie wymaga modelu, i właściciel wybrał ją w całości.
 
 ---
 
+## Narzędzie prowadzone przez model, nie z modelem w środku (2026-09-20)
+
+Domknięcie decyzji o asystencie. Rezygnacja z niego (sekcja wyżej) mówiła, czego **nie** będzie;
+ta sekcja mówi, co jest zamiast — bo brak wpisany bez roli, która go zastępuje, czyta się jak
+oszczędność.
+
+**Pozycjonowanie.** `ceidg-tool` ma asystenta w pudełku, bo jego odbiorcą jest operator, który nie
+zna rejestru i sam pisze zapytanie. `kio-tool` **jest pudełkiem, które prowadzi asystent** —
+odbiorcą jest agent mający zadanie już sformułowane. Dwa różne problemy, dwie różne odpowiedzi;
+to nie jest ta sama decyzja podjęta raz tak, raz inaczej.
+
+**Co z tego wynika dla drzewa.** Model w procesie byłby drugim rozumem w tej samej pętli, z własną
+ceną, własnym kluczem i własnym wyjściem do sieci. Bez niego polecenia są przewidywalne, wynik
+liczbowy, a program niczego nie dopowiada — agent dostaje materiał i granice, a rozumowanie
+zostaje po jego stronie, gdzie i tak podlega kontroli.
+
+**Wytyczne dla modelu żyją w repozytorium: `docs/dla-modelu.md`.** Krótka instrukcja obsługi dla
+agenta, nie dla człowieka i nie dla programisty: czym to jest, czego **nie** robi, zasada zgody
+na sieć, osiem poleceń z zaznaczeniem, które dotykają sieci, osiem filtrów, pięć pułapek
+(z `--fraza` w `pobierz` na czele, bo u Atlasu dopasowuje sygnaturę, a nie treść) oraz limity
+kanału wraz z podniesieniem ich kluczem. Plik jest wersjonowany razem z kodem — instrukcja dla
+modelu trzymana poza drzewem rozjeżdża się z narzędziem przy pierwszej zmianie flagi.
+
+---
+
 ## Co dałyby pomiary kanałów `uzp` i `saos` — wyjaśnienie O-7 (2026-09-20)
 
 O-7 wygląda na worek z dziewięcioma numerami. Nie jest workiem: te dziewięć pomiarów odpowiada na
