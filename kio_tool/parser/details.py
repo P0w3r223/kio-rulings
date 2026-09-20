@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from ..errors import ParseError
 
-PARSE_VERSION = 3
+PARSE_VERSION = 4
 """Wersja odczytu **całego pakietu `parser/`** (ADR-0006 Z-10). `przelicz` przelicza wersje
 dokumentów z `metadata.parse_version` mniejszym niż ta liczba — podnieś ją przy każdej zmianie
 tego, co wyciąga `wyczytaj`, `sections`, `cite` albo `provisions`.
@@ -32,7 +32,10 @@ tego, co wyciąga `wyczytaj`, `sections`, `cite` albo `provisions`.
 Zmiana weszła dzień wcześniej **bez** podniesienia tej liczby — znalezione w przeglądzie kodu
 fazy 3. Skutek: `przelicz` bez `--wszystko` nie miał czego przeliczyć, więc korpus operatora
 zostałby z obiema pisowniami naraz w indeksie cytowań, a powód zmiany (pięć par rozdzielonych
-spraw) nie byłby na nim osiągnięty."""
+spraw) nie byłby na nim osiągnięty.
+4 (2026-09-20): postaci sygnatur z pomiaru 25 — `KIO/KD`, `KIO/W`, `KIO/582/11`, rok czterocyfrowy
+przy KIO, sądy administracyjne z kodem siedziby (`II SA/Op 4/18`) i Zespół Arbitrów UZP
+(`UZP/ZO/0-62/07`). Nierozpoznanych cytowań 78 → 52 na korpusie 443 dokumentów."""
 
 
 @dataclass(frozen=True)

@@ -1,6 +1,6 @@
 {
   "data": "2026-09-20",
-  "parse_version": 3,
+  "parse_version": 4,
   "dokumentow": 443,
   "bez_metadanych": 0,
   "bez_daty": 0,
@@ -14,7 +14,7 @@
       "znakow": 187708,
       "nieprzypisanych": 0,
       "cytowan": 9,
-      "nierozpoznanych": 1
+      "nierozpoznanych": 0
     },
     "2011": {
       "dokumentow": 6,
@@ -24,7 +24,7 @@
       "znakow": 302378,
       "nieprzypisanych": 0,
       "cytowan": 28,
-      "nierozpoznanych": 5
+      "nierozpoznanych": 1
     },
     "2012": {
       "dokumentow": 6,
@@ -44,7 +44,7 @@
       "znakow": 145555,
       "nieprzypisanych": 0,
       "cytowan": 30,
-      "nierozpoznanych": 8
+      "nierozpoznanych": 6
     },
     "2014": {
       "dokumentow": 6,
@@ -53,8 +53,8 @@
       "bez_sekcji": 0,
       "znakow": 408837,
       "nieprzypisanych": 0,
-      "cytowan": 109,
-      "nierozpoznanych": 3
+      "cytowan": 110,
+      "nierozpoznanych": 2
     },
     "2015": {
       "dokumentow": 6,
@@ -64,7 +64,7 @@
       "znakow": 445752,
       "nieprzypisanych": 0,
       "cytowan": 84,
-      "nierozpoznanych": 3
+      "nierozpoznanych": 2
     },
     "2016": {
       "dokumentow": 6,
@@ -83,7 +83,7 @@
       "bez_sekcji": 0,
       "znakow": 321249,
       "nieprzypisanych": 0,
-      "cytowan": 27,
+      "cytowan": 29,
       "nierozpoznanych": 2
     },
     "2018": {
@@ -93,8 +93,8 @@
       "bez_sekcji": 0,
       "znakow": 144679,
       "nieprzypisanych": 0,
-      "cytowan": 31,
-      "nierozpoznanych": 4
+      "cytowan": 33,
+      "nierozpoznanych": 2
     },
     "2019": {
       "dokumentow": 7,
@@ -143,8 +143,8 @@
       "bez_sekcji": 0,
       "znakow": 5684874,
       "nieprzypisanych": 0,
-      "cytowan": 583,
-      "nierozpoznanych": 20
+      "cytowan": 588,
+      "nierozpoznanych": 15
     },
     "2024": {
       "dokumentow": 160,
@@ -153,8 +153,8 @@
       "bez_sekcji": 0,
       "znakow": 4360444,
       "nieprzypisanych": 0,
-      "cytowan": 582,
-      "nierozpoznanych": 24
+      "cytowan": 585,
+      "nierozpoznanych": 15
     },
     "2025": {
       "dokumentow": 8,
@@ -164,7 +164,7 @@
       "znakow": 373532,
       "nieprzypisanych": 0,
       "cytowan": 64,
-      "nierozpoznanych": 2
+      "nierozpoznanych": 1
     },
     "2026": {
       "dokumentow": 6,
@@ -285,14 +285,16 @@
     ]
   ],
   "cytowania": {
-    "kio": 1260,
+    "kio": 1279,
     "tsue": 60,
     "so": 165,
     "sn": 99,
-    "nierozpoznane": 78,
+    "nierozpoznane": 52,
+    "wsa": 12,
+    "uzp_zo": 7,
     "inne": 3,
     "sa": 19,
-    "nsa": 11
+    "nsa": 12
   },
   "akty": {
     "kanal": {

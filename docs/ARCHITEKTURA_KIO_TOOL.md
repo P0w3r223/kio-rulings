@@ -450,7 +450,7 @@ sections     (doc_id, content_sha256, parse_version, ordinal, kind, text)
              --       koszty | pouczenie | zdanie_odrebne | nieprzypisane
 citations    (doc_id, content_sha256, ordinal, char_start, char_end, raw, signature_norm,
               target_kind, resolved_signature NULL)
-             -- target_kind: kio | so | sn | sa | tsue | inne; resolved_signature → cases.signature, jeśli w korpusie
+             -- target_kind: kio | so | sn | sa | nsa | wsa | uzp_zo | tsue | inne (nsa 2026-09-19, wsa i uzp_zo — pomiar 25); resolved_signature → cases.signature, jeśli w korpusie
 fts          -- FTS5 nad sections.text, external content, tylko dla documents.current_sha256
 
 runs         (run_id, started_at, finished_at, command, criteria_json, channel, requests_sent,

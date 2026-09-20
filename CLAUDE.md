@@ -3,7 +3,24 @@
 Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej. Nowe repozytorium,
 wzorce przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 
-## Stan na 2026-09-20 — **fazy 2 i 3 przyjęte** (gałąź `feat/finalizacja-faz-2-3`, PR #1)
+## Stan na 2026-09-20 — fazy 2 i 3 przyjęte, ruszyła lista odłożonych
+
+PR #1 scalony do `master`. Praca idzie dalej z listy „Świadomie odłożone" w `docs/decisions.md`
+(O-1…O-7) — **przeczytaj ją, zanim cokolwiek zaczniesz**; pozycja stamtąd nie jest do zrobienia
+przy okazji.
+
+**O-3 zamknięte w części — pomiar 25 (`decisions.md`).** Wersja odczytu **4**; nierozpoznanych
+cytowań 78 → 52 (4,6 % → 3,0 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
+rok czterocyfrowy przy KIO, sądy administracyjne z kodem siedziby i Zespół Arbitrów UZP. Doszły
+rodzaje `wsa` i `uzp_zo`. Trzy rzeczy, które ten pomiar ustalił na przyszłość: repertorium
+**zostaje** w sygnaturze (`KIO/KD 3/10` ≠ `KIO 3/10`), rok czterocyfrowy jest skracany, a nie
+odrzucany, i **tolerancja składni wymaga przeliczenia całego korpusu** — myślnik w sygnaturze
+TSUE wyglądał na zbędny, a jego zdjęcie dało 3 trafienia poprawne i 12 fałszywych (klasy betonu
+`C30/37`, numery Dz.U. UE serii C). Największa rodzina, „sam numer bez repertorium" (29 trafień),
+**czeka na decyzję właściciela**, bo jej wdrożenie znaczy dopisanie organu, którego w zapisie nie
+ma.
+
+### Stan na 2026-09-20 — przyjęcie faz 2 i 3 (gałąź `feat/finalizacja-faz-2-3`, PR #1)
 
 Właściciel przyjął fazy 2 i 3 i potwierdził złoty zbiór (`docs/decisions.md`, „Przyjęcie faz 2
 i 3"). Przejście operatora na pokazie wykonane, trzy zgłoszone usterki interfejsu naprawione

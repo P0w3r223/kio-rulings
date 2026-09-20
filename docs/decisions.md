@@ -762,6 +762,68 @@ w prozie o nim.
 
 ---
 
+## Pomiar 25 — postaci sygnatur nierozpoznanych w cytowaniach (O-3)
+
+Wykonany 2026-09-20 na korpusie operatora, **0 żądań**: 78 cytowań, przy których zapowiedź
+`sygn. akt` stała, a postaci kanonicznej nie dało się zbudować (pomiar 22 policzył je, nie
+rozebrał). Każda rodzina niżej jest odczytem z tych 78 napisów, żadna nie pochodzi z pamięci.
+
+| Rodzina | Trafień | Udział | Przykłady | Stan |
+|---|---|---|---|---|
+| A — sam numer, bez repertorium | 29 | 37,2 % | `sygn. akt: 3376/23`, `sygn. akt 1004/09` | **nie wdrożone — do decyzji właściciela** |
+| B — KIO z ukośnikiem przed numerem | 3 | 3,8 % | `KIO/582/11`, `KIO/1945/10` | wdrożone |
+| C — Zespół Arbitrów UZP i `KIO/UZP` | 4 | 5,1 % | `UZP/ZO/0-62/07`, `KIO/UZP 782/2009` | wdrożone |
+| D — repertoria kontrolne Izby | 10 | 12,8 % | `KIO/KD 44/11`, `KIO/W 2/24` | wdrożone |
+| E — rok czterocyfrowy przy KIO | 2 | 2,6 % | `KIO 1460/2011` | wdrożone |
+| F — sądy administracyjne z kodem siedziby | 7 | 9,0 % | `II SA/Op 4/18`, `II GSK/WA 3487/15` | wdrożone |
+| G — Trybunał Konstytucyjny bez wydziału | 3 | 3,8 % | `SK 22/08`, `K 13/07` | **nie wdrożone — kolizja z repertorium SN** |
+| H — TSUE bez myślnika | 3 | 3,8 % | `C 106/77`, `C387/14` | **nie wdrożone — pomiar odrzucił** |
+| I — sklejka bez spacji | 6 | 7,7 % | `IICSK 197/15`, `X Ga254/10` | **nie wdrożone — ryzyko fałszywych trafień** |
+| J — nie do odzyskania | 11 | 14,1 % | `IV CR 403` (bez roku), `KIO 7 1 3`, `IPRN` | zostaje nierozpoznane |
+
+**Wynik wdrożenia (wersja odczytu 4):** nierozpoznanych **78 → 52** na 1 708 cytowaniach
+(4,6 % → 3,0 %). Przybyło 38 cytowań rozpoznanych — 18 KIO, 12 WSA, 7 Zespołu Arbitrów, 1 NSA —
+i **każde z nich zostało przejrzane okiem**, po jednym wierszu z kontekstem; żadne nie okazało się
+fałszywe. Raport: `docs/raporty/pokrycie_2026-09-20.md`.
+
+### Rodzina H — pomiar, który odrzucił własną hipotezę
+
+Tolerancja na brak myślnika w sygnaturze TSUE wyglądała na zysk darmowy: trzy prawdziwe sygnatury
+(`C 106/77` Simmenthal ×2, `C 689/13` PFE) zapisano bez myślnika. Przeliczenie całego korpusu
+z myślnikiem opcjonalnym dało **3 trafienia poprawne i 12 fałszywych**:
+
+- **9 × klasa betonu z kosztorysu.** PN-EN 206 zapisuje wytrzymałość dokładnie tak: `C12/15`,
+  `C20/25`, `C30/37`, `C35/45`. Kontekst z korpusu: „Ława pod krawężniki betonowa z oporem
+  z betonu C12/15", „wycenił beton klasy wyższej tj. C35/45".
+- **3 × numer Dziennika Urzędowego UE serii C.** „(2014/C 92/01)", „(Dz.U.UE C z dnia 18 marca
+  2021 r. 2021/C 91/01)".
+
+Odwołania o roboty drogowe są pełne jednego i drugiego, więc myślnik zostaje obowiązkowy, a trzy
+sygnatury zostają nierozpoznane. Zapisane tutaj, bo następna sesja zobaczy te trzy trafienia
+i pomyśli to samo co ta.
+
+### Czego pomiar nie rozstrzyga
+
+**Rodzina A (29 trafień, 37,2 % — największa) czeka na decyzję właściciela.** Napis
+`sygn. akt: 3376/23` wewnątrz uzasadnienia Izby jest niemal na pewno sygnaturą KIO, ale „niemal
+na pewno" nie jest pomiarem. Sprawdzenie na korpusie: **11 z 29 numerów** ma odpowiednik
+`KIO N/RR` gdzie indziej w tym samym korpusie (`3376/23`, `1020/23`, `1131/11`, `1900/11`,
+`2025/14`, `351/23`), pozostałych 18 nie da się potwierdzić niczym poza kontekstem. Wdrożenie
+znaczyłoby dopisanie organu, którego w zapisie nie ma — czyli złamanie zdania z nagłówka
+`docid.py`: „nie zgaduje organu z samego numeru". Wariant pośredni — własny rodzaj
+`kio_bez_repertorium`, widoczny w raporcie i wykluczalny przez czytelnika — jest do rozważenia,
+ale jest decyzją, nie poprawką.
+
+**Rodzina G (3)** wymagałaby wzorca bez wydziału (`K 13/07`), a `SK` stoi już w repertoriach Sądu
+Najwyższego — tam odróżnia je wydział rzymski, którego Trybunał nie ma. Wzorzec na dwie litery
+i liczbę bez żadnej kotwicy jest w tym korpusie ryzykiem tego samego rodzaju co klasa betonu.
+
+**Rodzina I (6)** to ekstrakcja z PDF-a, która zjadła spację (`X Ga254/10`). Rozluźnienie
+separatorów we wzorcu sądu dotyczy **wszystkich** sygnatur sądowych naraz, więc kosztem byłby
+pomiar na całym korpusie, nie na sześciu napisach.
+
+---
+
 ## Przejście operatora — tryb pokazowy (2026-09-20)
 
 Bramka fazy 3 §10 pkt 5 (ADR-0008 §11 pkt 5: wykonuje sam właściciel). Właściciel przeszedł
@@ -813,7 +875,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 |---|---|---|---|
 | O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
-| O-3 | Postaci sygnatur nierozpoznane w pomiarze 22: `KIO/KD`, rok czterocyfrowy przy KIO, sam numer | 4,6 % cytowań; każda postać wymaga własnego pomiaru na korpusie, nie zgadywania wzorca | Przegląd okiem próbki nierozpoznanych — z korpusu, bez żądań |
+| O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **w części zamknięte pomiarem 25 (2026-09-20)**: 78 → 52 nierozpoznanych, sześć rodzin wdrożonych. Zostaje rodzina A (sam numer bez repertorium, 29 trafień) | Decyzja właściciela: czy wolno dopisać organ, którego w zapisie nie ma — patrz „Pomiar 25”, sekcja „Czego pomiar nie rozstrzyga” |
 | O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | Nikt ich nie przejrzał okiem; adnotacja parsera przez samego siebie byłaby dokładnie tym, przed czym ostrzega doktryna 7.4 | Pierwszy przegląd okiem cytowań i przepisów |
 | O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | Decyzja właściciela 2026-09-20: fazy 2 i 3 domykamy bez niego | Bramka **przed** fazą 4: opis przeznaczenia skonfrontowany z załącznikiem III AI Act oraz ADR rozstrzygający, czy treść orzeczenia wolno wysłać do modelu (audyt 9, 12) |

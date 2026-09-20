@@ -305,6 +305,30 @@ z dwóch — podnieś wersję albo wpisz nowy odcisk z powodem, dla którego wyn
 Odcisk zapala się także przy zmianie komentarza i to jest cena przyjęta świadomie: alternatywą
 jest cisza, a wynik da się policzyć tylko na korpusie, który leży poza repozytorium.
 
+### 10.4 Postaci sygnatur z pomiaru 25 (2026-09-20): wersja odczytu 4
+
+Z-9 mówi, że `citations.rodzaj` niesie organ rozpoznany z zapisu. Pomiar 25 rozebrał 78 cytowań,
+których zapisu nie dało się rozpoznać, na dziesięć rodzin i wdrożył sześć: repertoria kontrolne
+Izby (`KIO/KD`, `KIO/W`), ukośnik przed numerem, rok czterocyfrowy, sądy administracyjne z kodem
+siedziby i Zespół Arbitrów UZP. Doszły dwa rodzaje — `wsa` i `uzp_zo` — bo żaden z istniejących
+nie był prawdziwy: kod siedziby nie mieści się w repertorium bezukośnikowym, a Zespół Arbitrów
+orzekał **przed** powstaniem Izby, więc `kio` twierdziłoby nieprawdę o organie.
+
+Trzy rzeczy z tego pomiaru wiążą przyszłe zmiany:
+
+1. **Repertorium zostaje w sygnaturze.** `KIO/KD 3/10` nie jest `KIO 3/10`; kontrola doraźna to
+   inna sprawa niż odwołanie, a sprowadzenie obu do jednej postaci zlałoby dwie sprawy w jedną.
+2. **Rok czterocyfrowy jest skracany, nie odrzucany.** Do 2026-09-20 odpadał jawnie, a test
+   nazywał go „konstrukcją testu, która nie występuje w żadnym odczycie" — pomiar pokazał dwa
+   wystąpienia. Wzorzec bierze cztery cyfry albo żadnej; dopasowanie częściowe dałoby inną,
+   wyglądającą poprawnie sprawę i to jest groźba, której pilnuje test.
+3. **Tolerancja składni wymaga pomiaru na całym korpusie, nie na przykładach.** Myślnik w
+   sygnaturze TSUE wyglądał na zbędny — przeliczenie dało 3 trafienia poprawne i 12 fałszywych
+   (klasy betonu `C30/37` i numery Dz.U. UE serii C). Hipoteza odrzucona przez własny pomiar.
+
+Największa rodzina — sam numer bez repertorium, 29 trafień — **nie jest wdrożona** i wymaga
+decyzji właściciela, bo wdrożenie znaczy dopisanie organu, którego w zapisie nie ma.
+
 ### 10.3 Złoty zbiór potwierdzony przez właściciela (2026-09-20)
 
 Z-11 mówi, że adnotacja ma **przejrzanego człowieka za sobą**. Do 2026-09-20 pole `przeglad.kto`

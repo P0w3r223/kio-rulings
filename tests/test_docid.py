@@ -33,6 +33,7 @@ from kio_tool.docid import (
     document_id,
     normalize_signature,
     normalize_signature_list,
+    znajdz_sygnatury,
 )
 from kio_tool.errors import IdentityError
 
@@ -366,18 +367,21 @@ def test_rok_zostaje_dwucyfrowy(sygnatura: str, rok_dwucyfrowy: str) -> None:
     assert f"/19{rok_dwucyfrowy}" not in kanoniczna
 
 
-def test_sygnatura_z_rokiem_czterocyfrowym_nie_jest_po_cichu_przycinana() -> None:
-    """Zapis z rokiem czterocyfrowym odpada jawnie, zamiast zamienić się w inną sprawę.
+def test_rok_czterocyfrowy_daje_ten_sam_rocznik_a_nie_inna_sprawe() -> None:
+    r"""Rok czterema cyframi **występuje** w korpusie — i nie wolno go przyciąć do dwóch pierwszych.
 
-    Napis `KIO 827/2018` jest **jawnie sztuczny**: sprawa `KIO 827/18` pochodzi z odczytu
-    (ARCHITEKTURA 4.4, komentarz przy `cases.signature`), ale zapis roku czterema cyframi
-    nie występuje w żadnym odczycie — jest konstrukcją testu. Chodzi o to, co się dzieje
-    przy dopasowaniu częściowym: gdyby wzorzec przyciął rok do „20”, powstałaby sygnatura
-    `KIO 827/20`, czyli **inna, wyglądająca poprawnie sprawa**. `None` trafia do
-    `citations` z `signature_norm = NULL` i zostaje policzone w raporcie pokrycia —
-    jawna dziura zamiast cichej podmiany.
+    Do pomiaru 25 (2026-09-20) ten zapis odpadał jawnie, a docstring nazywał go „konstrukcją
+    testu, która nie występuje w żadnym odczycie". Pomiar pokazał dwa wystąpienia
+    (`KIO 1460/2011`) w cytowaniach korpusu, więc zapis jest prawdziwy, a jawna dziura była
+    stratą. Groźba, przed którą ten test stał, zostaje bez zmian i jest sprawdzana niżej:
+    dopasowanie **częściowe** dałoby `KIO 827/20`, czyli inną, wyglądającą poprawnie sprawę.
+    Wzorzec bierze albo pełne cztery cyfry, albo nic — `(?!\d)` po roku tego pilnuje.
     """
-    assert normalize_signature("KIO 827/2018") is None
+    assert normalize_signature("KIO 827/2018") == "KIO 827/18"
+    assert normalize_signature("KIO 1460/2011") == "KIO 1460/11"
+
+    assert normalize_signature("KIO 827/201") is None, "trzy cyfry to nie rok — nie przycinamy"
+    assert normalize_signature("KIO 827/20111") is None, "pięć cyfr też nie"
 
 
 def test_sygnatura_nieistniejacej_sprawy_normalizuje_sie_tak_samo_jak_kazda_inna() -> None:
@@ -627,3 +631,80 @@ def test_typ_sygnatury_pozostaje_napisem_o_postaci_kanonicznej() -> None:
 
     assert isinstance(sygnatura, str)
     assert Signature("KIO 827/18") == "KIO 827/18"
+
+
+# --- postaci z pomiaru 25 (2026-09-20, 0 żądań) ------------------------------------------------
+#
+# Każdy napis niżej wystąpił w cytowaniach korpusu 443 dokumentów. Liczby trafień stoją przy
+# rodzinach w `docs/decisions.md`, „Pomiar 25". Żaden nie jest wymyślony.
+
+
+@pytest.mark.parametrize(
+    ("napis", "kanon"),
+    [
+        ("sygn. akt KIO/KD 3/10", "KIO/KD 3/10"),
+        ("sygn. akt: KIO/KD 44/11.", "KIO/KD 44/11"),
+        ("sygn. akt KIO/W 2/24", "KIO/W 2/24"),
+        ("Sygn. akt KIO/582/11", "KIO 582/11"),
+        ("sygn. akt KIO/1945/10", "KIO 1945/10"),
+        ("sygn. akt KIO/UZP 782/2009", "KIO/UZP 782/09"),
+        ("sygn. akt: KIO 1460/2011.", "KIO 1460/11"),
+    ],
+)
+def test_postaci_kio_z_pomiaru_25_normalizuja_sie_do_jednej_sprawy(napis: str, kanon: str) -> None:
+    """Repertoria kontrolne, ukośnik przed numerem i rok czterocyfrowy — zapisy z korpusu.
+
+    Repertorium **zostaje w sygnaturze**: `KIO/KD 3/10` to inna sprawa niż `KIO 3/10`, bo `KD`
+    jest kontrolą doraźną, a nie odwołaniem. Sprowadzenie obu do `KIO 3/10` zlałoby dwie sprawy
+    w jedną — dokładnie ta mina, przed którą stoi cały ten moduł.
+    """
+    assert normalize_signature(napis) == kanon
+
+
+@pytest.mark.parametrize(
+    ("napis", "rodzaj", "kanon"),
+    [
+        ("sygn. akt II SA/Op 4/18", "wsa", "II SA/Op 4/18"),
+        ("sygn. akt VI SA/Wa 2187/21", "wsa", "VI SA/Wa 2187/21"),
+        ("sygn. akt I SA/Bk 388/19", "wsa", "I SA/Bk 388/19"),
+        ("sygn. akt II GSK/WA 3487/15", "nsa", "II GSK/Wa 3487/15"),
+        ("sygn. akt UZP/ZO/0-62/07", "uzp_zo", "UZP/ZO/0-62/07"),
+        ("sygn. akt UZP/ZO/0-1579/05", "uzp_zo", "UZP/ZO/0-1579/05"),
+    ],
+)
+def test_sady_administracyjne_i_zespol_arbitrow_z_pomiaru_25(
+    napis: str, rodzaj: str, kanon: str
+) -> None:
+    """Kod siedziby wraca w jednej pisowni (`WA` → `Wa`), bo dwie byłyby dwiema sprawami.
+
+    `uzp_zo` nie jest `kio`: Zespół Arbitrów UZP orzekał przed powstaniem Izby, więc wrzucenie
+    go do `kio` twierdziłoby, że orzekał organ, którego wtedy nie było.
+    """
+    trafienia = znajdz_sygnatury(napis)
+
+    assert [(t.rodzaj, t.kanon) for t in trafienia] == [(rodzaj, kanon)]
+
+
+def test_sygnatura_tsue_wymaga_myslnika_bo_klasa_betonu_wyglada_tak_samo() -> None:
+    """Rozstrzygnięcie pomiaru 25: tolerancja na brak myślnika kosztuje więcej, niż daje.
+
+    Przeliczenie korpusu z myślnikiem opcjonalnym dało **3 trafienia poprawne i 12 fałszywych**:
+    dziewięć to klasy betonu z kosztorysów (PN-EN 206 zapisuje je `C30/37`, `C35/45`), trzy to
+    numery Dziennika Urzędowego UE serii C (`2014/C 92/01`). Odwołania o roboty drogowe są pełne
+    jednego i drugiego, więc trzy sygnatury zapisane bez myślnika zostają nierozpoznane — jawna
+    dziura zamiast dwunastu fałszywych krawędzi w indeksie cytowań.
+    """
+    assert [t.kanon for t in znajdz_sygnatury("wyrok w sprawie C-652/22")] == ["C-652/22"]
+
+    for beton in ("beton klasy C30/37", "z betonu C 12/15", "mieszanki niezwiązanej C50/30"):
+        assert znajdz_sygnatury(beton) == [], beton
+    assert znajdz_sygnatury("(2014/C 92/01)") == []
+
+
+def test_repertorium_kontrolne_nie_zlewa_sie_ze_zwyklym_odwolaniem() -> None:
+    """`KIO/KD 3/10` i `KIO 3/10` to dwie różne sprawy i mają dwie różne postaci kanoniczne."""
+    kontrola = normalize_signature("KIO/KD 3/10")
+    odwolanie = normalize_signature("KIO 3/10")
+
+    assert kontrola != odwolanie
+    assert (kontrola, odwolanie) == ("KIO/KD 3/10", "KIO 3/10")

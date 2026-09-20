@@ -26,8 +26,11 @@ ZRODLA_ODCZYTU = ("parser", "docid.py", "odczyt.py")
 bierze postać kanoniczną sygnatury (`docid`) i które przepisują jego wynik na wiersze
 magazynu (`odczyt`)."""
 
-ODCISK = "d6f03010d018db43f4572aa1ad1aead3b270625c6d237855c255c7f7bb37781a"
-"""SHA-256 źródeł odczytu, zmierzony 2026-09-20 przy `PARSE_VERSION = 3`."""
+ODCISK = "5c7c5779c4abec15b5a9dc5fcbb816672549cfa9fae3474028e22691be9b33cb"
+"""SHA-256 źródeł odczytu, zmierzony 2026-09-20 przy `PARSE_VERSION = 4`.
+
+Poprzedni odcisk (`d6f03010…`, `PARSE_VERSION = 3`) zapalił się przy pomiarze 25 dokładnie tak,
+jak miał: zmiana `docid` ruszyła wynik odczytu, więc wersja poszła w górę razem z odciskiem."""
 
 
 def _pliki() -> list[Path]:

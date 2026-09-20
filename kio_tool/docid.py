@@ -66,8 +66,13 @@ czyli minę 1 z nagłówka tego modułu.
 # Koniec roku jest `(?!\d)`, nie `\b`: w uzasadnieniach stoi „KIO 1234/23do postępowania"
 # (2 wystąpienia w korpusie 443 dokumentów, 2026-09-19, 0 żądań) — ekstrakcja z PDF-a zjada
 # spację, a `\b` między cyfrą a literą nie pada, więc sygnatura przepadała w ciszy.
+# Pomiar 25 (2026-09-20, 0 żądań) dołożył do tego wzorca cztery rodziny postaci, wszystkie
+# odczytane z cytowań korpusu, żadna z pamięci: repertoria kontrolne `KIO/KD` (9) i `KIO/W` (1),
+# ukośnik przed numerem `KIO/582/11` (3), rok czterocyfrowy `KIO 1460/2011` (2). Rok jest
+# skracany do dwóch cyfr tak samo jak w sygnaturze sądu — skrócenie nie dokłada informacji.
 _WZOR_KIO = re.compile(
-    r"\b(?P<prefiks>KIO\s*/\s*UZP|KIO\s*/\s*KU|KIO)\s*(?P<numer>\d{1,5})\s*/\s*(?P<rok>\d{2})(?!\d)",
+    r"\b(?P<prefiks>KIO\s*/\s*UZP|KIO\s*/\s*KU|KIO\s*/\s*KD|KIO\s*/\s*W|KIO)"
+    r"\s*/?\s*(?P<numer>\d{1,5})\s*/\s*(?P<rok>\d{2}(?:\d{2})?)(?!\d)",
     re.IGNORECASE,
 )
 
@@ -104,7 +109,7 @@ def normalize_signature(raw: str) -> Signature | None:
         return None
     prefiks = _SPACJE.sub("", dopasowanie.group("prefiks")).upper()
     numer = str(int(dopasowanie.group("numer")))
-    return Signature(f"{prefiks} {numer}/{dopasowanie.group('rok')}")
+    return Signature(f"{prefiks} {numer}/{dopasowanie.group('rok')[-2:]}")
 
 
 def normalize_signature_list(raw: str) -> list[Signature]:
@@ -131,12 +136,18 @@ def normalize_signature_list(raw: str) -> list[Signature]:
 
 # --------------------------------------------------------------- sygnatury innych organów
 
-RodzajSygnatury = Literal["kio", "so", "sa", "sn", "nsa", "tsue", "inne"]
+RodzajSygnatury = Literal["kio", "so", "sa", "sn", "nsa", "wsa", "uzp_zo", "tsue", "inne"]
 """Organ, którego sygnaturę rozpoznano — kolumna `citations.rodzaj` (architektura 4.4, ADR-0006).
 
 `nsa` stoi osobno, choć architektura 4.4 wymienia `kio | so | sn | sa | tsue | inne`: sygnatury
 NSA wystąpiły w korpusie (`GSK`, `OSK`, `FSK` — 10 trafień, 2026-09-19), a wrzucone do `inne`
-zlewałyby się z sygnaturami nierozpoznanymi."""
+zlewałyby się z sygnaturami nierozpoznanymi.
+
+`wsa` i `uzp_zo` doszły z pomiarem 25 (2026-09-20). Wojewódzkie sądy administracyjne piszą
+repertorium z kodem siedziby po ukośniku (`II SA/Op 4/18`, 7 trafień), więc nie mieszczą się
+w zbiorze repertoriów bezukośnikowych; Zespół Arbitrów UZP (`UZP/ZO/0-62/07`, 3 trafienia) jest
+poprzednikiem Izby, a nie Izbą — wrzucony do `kio` twierdziłby, że orzekał organ, który wtedy
+nie istniał."""
 
 # Repertoria — **z pomiaru**, nie z pamięci: każdy wpis wystąpił w uzasadnieniach korpusu
 # 443 dokumentów (2026-09-19, 0 żądań) z liczbą trafień w nawiasie przy grupie. Repertorium
@@ -169,8 +180,34 @@ _WZOR_SADU = re.compile(
 )
 """Sygnatura sądu: wydział rzymski, repertorium, numer, rok — `XXIII Zs 12/22`, `III CZP 56/17`."""
 
+_WZOR_WSA = re.compile(
+    r"\b(?P<wydzial>[IVXL]{1,6})\s+(?P<rep>SA|GSK)\s*/\s*(?P<siedziba>[A-Za-z]{2})\s+"
+    r"(?P<numer>\d{1,6})\s*/\s*(?P<rok>\d{2}(?:\d{2})?)(?!\d)"
+)
+"""Sąd administracyjny z kodem siedziby: `II SA/Op 4/18`, `VI SA/Wa 2187/21` (pomiar 25).
+
+`GSK` z kodem siedziby daje `nsa`, bo to repertorium Naczelnego Sądu Administracyjnego i stoi
+już w `_REPERTORIA_NSA`; `SA` z kodem siedziby daje `wsa`. Kod siedziby wraca **wielką pierwszą
+literą i małą drugą** (`Op`, `Wa`), bo tak zapisuje go sąd, a `WA` i `Wa` byłyby dwiema
+sprawami."""
+
+_WZOR_UZP_ZO = re.compile(
+    r"\bUZP\s*/\s*ZO\s*/\s*0\s*-\s*(?P<numer>\d{1,4})\s*/\s*(?P<rok>\d{2})(?!\d)",
+    re.IGNORECASE,
+)
+"""Zespół Arbitrów UZP — poprzednik Izby: `UZP/ZO/0-62/07` (3 trafienia, pomiar 25)."""
+
 _WZOR_TSUE = re.compile(r"\b(?P<sad>[CT])\s*[-‑–]\s*(?P<numer>\d{1,4})\s*/\s*(?P<rok>\d{2})(?!\d)")
-"""Sprawa TSUE: `C-652/22` (59 trafień w korpusie, 2026-09-19). `T-` to Sąd Unii Europejskiej."""
+"""Sprawa TSUE: `C-652/22` (59 trafień w korpusie, 2026-09-19). `T-` to Sąd Unii Europejskiej.
+
+**Myślnik jest obowiązkowy i to jest rozstrzygnięcie pomiaru 25 (2026-09-20), nie przeoczenie.**
+W korpusie stoją trzy sygnatury TSUE zapisane bez myślnika (`C 106/77` Simmenthal ×2, `C 689/13`
+PFE), więc tolerancja wyglądała na darmowy zysk. Przeliczenie całego korpusu z myślnikiem
+opcjonalnym dało **3 trafienia poprawne i 12 fałszywych**: dziewięć to klasy betonu z kosztorysów
+(`C12/15`, `C20/25`, `C30/37`, `C35/45`, `C50/30` — PN-EN 206 zapisuje je dokładnie tak), a trzy
+to numery Dziennika Urzędowego UE serii C (`2014/C 92/01`, `2021/C 91/01`). Odwołania o roboty
+drogowe są pełne jednego i drugiego. Trzy odzyskane cytowania nie są warte dwunastu fałszywych
+krawędzi w indeksie, więc te trzy zostają nierozpoznane — jawna dziura zamiast cichej podmiany."""
 
 
 @dataclass(frozen=True)
@@ -204,6 +241,17 @@ def znajdz_sygnatury(tekst: str) -> list[TrafienieSygnatury]:
         # Skrócenie nie dokłada informacji — w odróżnieniu od rozwinięcia, którego moduł nie robi.
         sad = f"{m.group('wydzial')} {repertorium} {int(m.group('numer'))}/{m.group('rok')[-2:]}"
         trafienia.append(TrafienieSygnatury(m.start(), m.end(), rodzaj, sad))
+    for m in _WZOR_WSA.finditer(tekst):
+        siedziba = m.group("siedziba").capitalize()
+        rodzaj_sadu: RodzajSygnatury = "nsa" if m.group("rep").upper() == "GSK" else "wsa"
+        sad_adm = (
+            f"{m.group('wydzial')} {m.group('rep').upper()}/{siedziba} "
+            f"{int(m.group('numer'))}/{m.group('rok')[-2:]}"
+        )
+        trafienia.append(TrafienieSygnatury(m.start(), m.end(), rodzaj_sadu, sad_adm))
+    for m in _WZOR_UZP_ZO.finditer(tekst):
+        zespol = f"UZP/ZO/0-{int(m.group('numer'))}/{m.group('rok')}"
+        trafienia.append(TrafienieSygnatury(m.start(), m.end(), "uzp_zo", zespol))
     for m in _WZOR_TSUE.finditer(tekst):
         sprawa = f"{m.group('sad')}-{int(m.group('numer'))}/{m.group('rok')}"
         trafienia.append(TrafienieSygnatury(m.start(), m.end(), "tsue", sprawa))
