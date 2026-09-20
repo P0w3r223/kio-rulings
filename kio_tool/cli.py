@@ -479,12 +479,15 @@ def runy(
 
 
 @app.command(help=texts.POMOC_PRZELICZ)
-def przelicz(wszystko: OpcjaWszystko = False, baza: OpcjaBaza = None) -> None:
-    with _obsluga_bledow():
+def przelicz(
+    wszystko: OpcjaWszystko = False, baza: OpcjaBaza = None, maszynowo: OpcjaJson = False
+) -> None:
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         sciezka = baza or default_db_path()
-        with _otworz_baze(sciezka, SystemClock()) as store:
+        with _otworz_baze(sciezka, SystemClock(), wy) as store:
             wynik = pipeline.przelicz(store, PulsKonsoli(), wszystko=wszystko)
-        view.block(
+        wy.block(
             texts.blok_przeliczenia(
                 wynik.przeliczonych, wynik.bledow, wynik.w_korpusie, wynik.zaindeksowanych
             )
@@ -500,11 +503,13 @@ def pokrycie(
     cel: OpcjaCelRaportu = Path("docs") / "raporty",
     zloty: OpcjaZloty = None,
     baza: OpcjaBaza = None,
+    maszynowo: OpcjaJson = False,
 ) -> None:
     zegar = SystemClock()
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         sciezka = baza or default_db_path()
-        with _otworz_baze(sciezka, zegar) as store:
+        with _otworz_baze(sciezka, zegar, wy) as store:
             wynik = raport_pokrycia.wykonaj(
                 store,
                 cel=cel,
@@ -514,7 +519,7 @@ def pokrycie(
             )
         r = wynik.raport
         z = r.zloty
-        view.block(
+        wy.block(
             texts.blok_pokrycia(
                 r.dokumentow,
                 sum(x.komplet for x in r.roczniki.values()),

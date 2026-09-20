@@ -409,6 +409,12 @@ def blok_przeliczenia(
             ("zaindeksowanych", str(zaindeksowanych)),
         ),
         notes=tuple(uwagi),
+        liczby=(
+            ("przeliczonych", przeliczonych),
+            ("bledow", bledow),
+            ("w_korpusie", w_korpusie),
+            ("zaindeksowanych", zaindeksowanych),
+        ),
     )
 
 

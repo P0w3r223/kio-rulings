@@ -762,6 +762,69 @@ w prozie o nim.
 
 ---
 
+## Pomiar 26 — spis rocznikowy zbioru kanału (2026-09-20, 20 żądań)
+
+**Zgoda właściciela dana w tej sesji.** Po jednym żądaniu na rocznik 2007–2026, wyłącznie po
+licznik `total` przy `per_page=1`: zero treści orzeczeń, zero zapisów do korpusu, wszystkie 200.
+Przez `build_http_client` i przez limiter z odstępem z kontraktu, więc obowiązywały te same
+hamulce co w przebiegu masowym.
+
+Powód: do 2026-09-20 znaliśmy **rozmiar** zbioru (`total` 29 580, pomiar 3a) i nie znaliśmy jego
+**rozkładu**. Z próbki nie dało się go wyliczyć — 17 z 19 przebiegów miało ograniczenie do sześciu
+dokumentów, więc mówiły o narzędziu, a nie o zbiorze.
+
+| Rocznik | Dokumentów |
+|---|---|
+| 2007 | 0 |
+| 2008 | 0 |
+| 2009 | 0 |
+| 2010 | 180 |
+| 2011 | 537 |
+| 2012 | 662 |
+| 2013 | 547 |
+| 2014 | 481 |
+| 2015 | 1089 |
+| 2016 | 884 |
+| 2017 | 1006 |
+| 2018 | 271 |
+| 2019 | 1530 |
+| 2020 | 2273 |
+| 2021 | 1531 |
+| 2022 | 2717 |
+| 2023 | 3264 |
+| 2024 | 4267 |
+| 2025 | 4850 |
+| 2026 | 3412 |
+
+**Suma z roczników: 29501.**
+
+### Cztery rzeczy, które ten spis rozstrzyga
+
+1. **Roczniki 2007, 2008 i 2009 mają zero — zmierzone, nie wywnioskowane.** Dotąd brak najstarszych
+   roczników opierał się na `sort=oldest` z pomiaru 3a. Teraz stoją za tym trzy żądania i trzy
+   zera. Izba orzeka od grudnia 2007, więc te trzy roczniki są poza kanałem **w całości**.
+2. **Zbiór jest młody.** Lata 2021–2025 to 16629 dokumentów, czyli **56 %
+   całości**; lata 2010–2014 to 2407, czyli 8.2 %. Rocznik 2010 ma
+   180 dokumentów i zaczyna się w połowie roku, rocznik 2026 — 3 412 i jest w toku.
+3. **Rocznik 2018 jest podejrzany: 271 przy 1 006 w 2017 i 1 530 w 2019.** Spadek o trzy czwarte
+   między sąsiednimi latami nie wygląda na własność orzecznictwa, tylko na **lukę w zbiorze
+   pośrednika**. Tego ten pomiar nie rozstrzyga — rozstrzygnąłby dopiero mianownik po stronie
+   urzędu (pomiar 4b/16). Zapisane jako podejrzenie, nie jako ustalenie.
+4. **Suma roczników jest o 79 mniejsza niż `total`** (29501 wobec 29 580). Dwa kandydaci na
+   przyczynę, żaden sprawdzony: dwie doby dopływu między odczytami (18 i 20 września) oraz
+   dokumenty z błędną albo pustą datą wydania, które wypadają poza **każdy** filtr rocznikowy —
+   a pomiar 3a zmierzył, że `ruling_date` bywa błędne w 9 rekordach na 100. Różnica to 0,27 %
+   i nie zmienia żadnego wniosku; zapisana, żeby nie udawać, że liczby się domykają co do sztuki.
+
+### Zgodność z tym, co już wiedzieliśmy
+
+Styczeń 2024 pobraliśmy w całości i bez ograniczenia: **295 orzeczeń**. Rocznik 2024 ma
+4267, czyli średnio 356 na miesiąc — styczeń poniżej średniej,
+co jest spójne. Pięć dni lutego 2024 dało 46 dokumentów, czyli 9,2 na dobę; rocznik 2024
+to 11.7 na dobę. Te dwa niezależne odczyty zgadzają się z rocznikiem.
+
+---
+
 ## Pomiar 25 — postaci sygnatur nierozpoznanych w cytowaniach (O-3)
 
 Wykonany 2026-09-20 na korpusie operatora, **0 żądań**: 78 cytowań, przy których zapowiedź

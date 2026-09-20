@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20
-Status: **wykonany** — `prezentacja-kio-ekran.html`, 14 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), slajdy o skali rejestru i o zawartości bazy dołożone tego samego dnia
+Status: **wykonany** — `prezentacja-kio-ekran.html`, 17 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), a potem rozszerzona o czym jest KIO, rozkład roczników i wniosek o gotowości pod agenta
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -61,6 +61,9 @@ różni od tego, które już znacie**.
 | **Nowe** (s4) | Jak model używa narzędzia; odsyła do `docs/dla-modelu.md` |
 | **Nowe** (s5) | Co da się wyszukać i pułapka `--fraza` w `pobierz` |
 | **Nowe** (s6) | Limity kanału i podniesienie ich kluczem: 1 500 → 5 000 na dobę |
+| **Nowe** (s1a) | Czym jest KIO: odwołania, dwie strony, wyrok albo postanowienie, skarga do sądu — i jak kończą się sprawy |
+| **Nowe** (s5b) | Rozkład zbioru po rocznikach z pomiaru 26: zera w 2007–2009, luka w 2018, 56 % w ostatnich pięciu latach |
+| **Nowe** (s10a) | Wniosek: narzędzie jest gotowe pod agenta — sześć rzeczy, które to tworzą, i jedna, która zostaje |
 | **Nowe** (s5a) | Skala całego zbioru: 29 580 orzeczeń u pośrednika, nasze 443 to 1,5 %, koszt pobrania całości i to, czego o samym urzędzie nie wiemy |
 | **Nowe** (s7a) | Co dokładnie jest w bazie: dziewięć tabel w trzech warstwach i podział korpusu; materiał w `docs/anatomia-bazy.md` |
 | **Zachowane bez zmian** | s8 (złoty zbiór i dwie usterki) — jedyny slajd, którego odpowiednika w tamtej prezentacji nie było |

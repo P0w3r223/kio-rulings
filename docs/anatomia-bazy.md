@@ -22,6 +22,31 @@ SHA-256 zapisanym w kontrakcie kanału (`source/atlas/contract.yaml`).
 | W naszej bazie | **443**, czyli **1,5 %** |
 | Stron listy po 100 rekordów | 296 |
 
+### Rozkład po rocznikach (pomiar 26, 2026-09-20, 20 żądań)
+
+| Rocznik | 2007 | 2008 | 2009 | 2010 | 2011 | 2012 | 2013 |
+|---|---|---|---|---|---|---|---|
+| Dokumentów | 0 | 0 | 0 | 180 | 537 | 662 | 547 |
+
+| Rocznik | 2014 | 2015 | 2016 | 2017 | **2018** | 2019 | 2020 |
+|---|---|---|---|---|---|---|---|
+| Dokumentów | 481 | 1 089 | 884 | 1 006 | **271** | 1 530 | 2 273 |
+
+| Rocznik | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|
+| Dokumentów | 1 531 | 2 717 | 3 264 | 4 267 | 4 850 | 3 412 |
+
+Trzy rzeczy z tego wynikają. **2007–2009 mają zero** — brak najstarszych roczników jest odtąd
+zmierzony, a nie wywnioskowany. **Zbiór jest młody**: lata 2021–2025 to 16 629 dokumentów, czyli
+56 % całości, a rocznik 2025 ma dwadzieścia siedem razy więcej niż 2010. **Rocznik 2018 jest
+podejrzany** — 271 przy 1 006 w 2017 i 1 530 w 2019 wygląda na lukę u pośrednika, nie na
+właściwość orzecznictwa; zapisane jako podejrzenie, nie ustalenie.
+
+Suma roczników to 29 501 wobec licznika całości 29 580 — różnica 79, czyli 0,27 %. Kandydaci:
+dwie doby dopływu między odczytami i dokumenty z błędną datą wydania, które wypadają poza każdy
+filtr rocznikowy (pomiar 3a: błędna data w 9 rekordach na 100). Szczegóły w `decisions.md`,
+„Pomiar 26".
+
 ### Co kosztowałoby pobranie całości
 
 Współczynnik jest zmierzony, nie założony: nasze 443 dokumenty kosztowały 464 żądania, czyli
