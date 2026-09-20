@@ -9,6 +9,66 @@ repozytorium. Kopiuje się go przez skopiowanie tego pliku i niczego więcej.
 
 ---
 
+## 0. Ile tego jest w całym zbiorze — i ile z tego mamy
+
+Zanim o naszej bazie: **cały zbiór orzeczeń KIO u pośrednika liczy 29 580 dokumentów**. To nie
+jest szacunek ani liczba z cudzego streszczenia — kanał podaje ją polem `total` w odpowiedzi
+listy, a odczyt z 2026-09-18 leży w `tests/examples/atlas/lista_20260918T103525Z.json` ze skrótem
+SHA-256 zapisanym w kontrakcie kanału (`source/atlas/contract.yaml`).
+
+| | |
+|---|---|
+| Cały zbiór kanału | **29 580** orzeczeń, roczniki 2010–2026 |
+| W naszej bazie | **443**, czyli **1,5 %** |
+| Stron listy po 100 rekordów | 296 |
+
+### Co kosztowałoby pobranie całości
+
+Współczynnik jest zmierzony, nie założony: nasze 443 dokumenty kosztowały 464 żądania, czyli
+**1,047 żądania na dokument** (dokument plus jego udział w stronach listy).
+
+| | |
+|---|---|
+| Żądań na cały zbiór | ok. **30 982** |
+| Czysty czas przy odstępie 1 s | **8,6 godziny** |
+| Przy naszym sufitcie 1 400/dobę | **22 doby** |
+| Przy 5 000/dobę, czyli **z kluczem API** | **6,2 doby** |
+
+Wiążący jest **limit dobowy, nie odstęp między żądaniami** — i to jest cały praktyczny powód,
+dla którego konto u dostawcy ma znaczenie: skraca pobranie całości z trzech tygodni do sześciu
+dni. Pobranie można przerwać i wznowić, więc nie musi to być sześć dób ciągiem.
+
+### Ile to zajmie na dysku (szacunek z próbki, nie pomiar)
+
+Skala to 66,8×. Przy naszej średniej 30 475 znaków na orzeczenie:
+
+| | |
+|---|---|
+| Znaków treści | ok. **0,9 mld** |
+| Surowej treści | ok. **1,2 GB** |
+| Pliku bazy z indeksem | ok. **4,6 GB** |
+
+Te trzy liczby są **wyliczone z próbki**, a nie zmierzone, i tak mają być podawane. Próbka jest
+stratyfikowana po rocznikach plus dwa pełne kwartały, więc rząd wielkości jest pewny, a ±20 %
+nie jest.
+
+### Czego o rejestrze **nie** wiemy
+
+- **Ile orzeczeń publikuje sam Urząd Zamówień Publicznych.** 29 580 to zbiór **pośrednika**, a nie
+  źródła. Różnicy między nimi nikt nie zmierzył — zrobiłby to pomiar 4b/16 (dwa żądania do
+  wyszukiwarki UZP), który leży na liście otwartych.
+- Jedyna liczba po stronie źródła jest **z drugiej ręki**: ~33 366 identyfikatorów w kwietniu
+  2026 (Legal Data Hunter). Nie jest porównywalna wprost, bo w tej numeracji **KIO i sądy okręgowe
+  dzielą jedną przestrzeń**, więc część z tych 33 tysięcy to nie orzeczenia Izby.
+- **Roczniki 2007-12 – 2009 są poza kanałem w całości.** Izba orzeka od grudnia 2007, zbiór
+  pośrednika zaczyna się w 2010.
+
+Stąd bierze się zdanie, które powtarzamy: wiemy, **ile trzyma pośrednik**, i nie wiemy, **ile
+publikuje urząd**. Pierwsze jest mianownikiem dla postępu pobierania; drugie byłoby mianownikiem
+dla kompletności — i tego drugiego nie mamy.
+
+---
+
 ## 1. Dziewięć tabel w trzech warstwach
 
 Podział bazy nie jest podziałem po temacie, tylko po **trwałości**: co przyszło z sieci i nie ma
@@ -52,7 +112,7 @@ pamięta, gdzie stanął, a `run_documents` — co już wzięto.
 
 ---
 
-## 2. Co jest w korpusie: 443 orzeczenia
+## 2. Co jest w korpusie: 443 orzeczenia z 29 580
 
 | Wymiar | Podział |
 |---|---|
