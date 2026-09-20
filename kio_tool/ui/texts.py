@@ -631,6 +631,19 @@ PYTANIE_EKSPORT = Pytanie(
 )
 
 
+NIE_ROZUMIEM_TAK_NIE = "Nie rozumiem odpowiedzi — wpisz „tak” albo „nie”."
+
+
+def linia_tak_nie(pytanie: Pytanie) -> str:
+    """Pytanie tak/nie razem z klamrą akceptowanych odpowiedzi; WIELKA litera to sam Enter.
+
+    Klamra jest tutaj, a nie w pytającym, bo to jest zdanie do operatora — `ui/texts.py`
+    pisze zdania, `ui/prompts.py` je zadaje. Bez niej operator nie ma skąd wiedzieć, że Enter
+    coś znaczy, ani co wolno wpisać (zgłoszenie operatora, 2026-09-20)."""
+    klamra = "T/n" if pytanie.domyslna == "tak" else "t/N"
+    return f"{pytanie.tresc} [{klamra}]"
+
+
 def pytanie_zgody(*, masowy: bool) -> Pytanie:
     """Pytanie po tabeli kosztów. Przy przebiegu masowym Enter znaczy „nie” (ADR-0008 §10)."""
     return Pytanie(

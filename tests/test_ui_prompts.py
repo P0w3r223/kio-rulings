@@ -10,12 +10,15 @@ from __future__ import annotations
 
 import pytest
 
+from kio_tool.ui import texts
 from kio_tool.ui.prompts import (
     NIE,
     TAK,
     KonsolaPrompter,
     SkryptowyPrompter,
     WyczerpaneOdpowiedziError,
+    _styl_wyboru,
+    opcje_do_wyboru,
 )
 from kio_tool.ui.texts import Opcja, Pytanie
 
@@ -38,10 +41,15 @@ def _konsola(*odpowiedzi: str) -> tuple[KonsolaPrompter, list[str]]:
     return KonsolaPrompter(terminal=False, wejscie=wejscie), wypisane
 
 
-def test_bez_terminala_wybor_po_numerze() -> None:
+def test_bez_terminala_wybor_po_numerze_z_domyslna_na_czele() -> None:
+    """Numer 1 to odpowiedź domyślna — ta sama kolejność co na liście ze strzałkami.
+
+    Lista awaryjna, która numeruje opcje inaczej niż ta narysowana przez `questionary`,
+    uczy operatora złego odruchu przy dwóch wywołaniach tego samego pytania."""
     prompter, wypisane = _konsola("1")
-    assert prompter.zapytaj(MENU) == "pobierz"
-    assert "1. Pobierz" in wypisane[0] and "2. Wyjdź" in wypisane[0]
+
+    assert prompter.zapytaj(MENU) == "wyjdz", "domyślna `wyjdz` stoi na pozycji pierwszej"
+    assert "1. Wyjdź" in wypisane[0] and "2. Pobierz" in wypisane[0]
 
 
 def test_bez_terminala_zla_odpowiedz_daje_domyslna_a_nie_pierwsza() -> None:
@@ -81,3 +89,69 @@ def test_skrypt_wyczerpany_albo_spoza_opcji_to_blad_glosny() -> None:
         SkryptowyPrompter([]).zapytaj(MENU)
     with pytest.raises(WyczerpaneOdpowiedziError, match="spoza opcji"):
         SkryptowyPrompter(["nieznana"]).zapytaj(MENU)
+
+
+# --- poprawki po zgłoszeniu operatora (2026-09-20) --------------------------------------------
+
+
+def test_domyslna_stoi_na_czele_listy_wyboru() -> None:
+    """Kursor `questionary` startuje na pozycji pierwszej, bo nie podajemy `default=`.
+
+    `default=` trafiało do `selected_options`, a klasa `selected` wygrywa przy rysowaniu
+    z `pointed_at`: wiersz domyślny zostawał oznaczony na stałe, więc zaznaczenie chodziło
+    strzałkami, a podświetlenie stało w miejscu. Żeby kursor zaczynał na domyślnej, to ona
+    musi być pierwsza — i tym jest ta funkcja.
+    """
+    assert [o.klucz for o in opcje_do_wyboru(MENU)] == ["wyjdz", "pobierz"]
+
+    bez_domyslnej = Pytanie(tresc="?", opcje=MENU.opcje)
+    assert opcje_do_wyboru(bez_domyslnej) == MENU.opcje, "brak domyślnej nie zmienia kolejności"
+
+
+def test_lista_wyboru_dostaje_jawny_styl_podswietlenia() -> None:
+    """`reverse` zamiast koloru — domyślny motyw nie rysował podświetlenia na tej konsoli."""
+    klasy = dict(_styl_wyboru().style_rules)
+
+    assert klasy["pointer"] == "reverse bold"
+    assert klasy["highlighted"] == "reverse bold"
+    assert "selected" not in klasy, (
+        "klasa `selected` przywróciłaby defekt dwóch zaznaczeń, gdyby `default=` wróciło"
+    )
+
+
+def test_pytanie_tak_nie_niesie_klamre_z_domyslna_wielka_litera() -> None:
+    prompter, wypisane = _konsola("")
+
+    assert prompter.zapytaj(ZGODA) == NIE
+    assert "[t/N]" in wypisane[0], "operator ma widzieć, co wolno wpisać i co znaczy Enter"
+
+    prompter, wypisane = _konsola("")
+    prompter.zapytaj(Pytanie(tresc="Pobrać?", rodzaj="tak_nie", domyslna=TAK))
+    assert "[T/n]" in wypisane[0]
+
+
+def test_odpowiedz_nierozpoznana_pyta_jeszcze_raz_zanim_padnie_domyslna() -> None:
+    """„jasne" to zgoda, której nie wolno po cichu zamienić w odmowę — pytamy raz.
+
+    Przy `questionary.confirm` nie było tej szansy: wiąże na sztywno `y` i `n`, a polskie
+    „tak" pomijał po cichu i odpowiadał wartością domyślną (zgłoszenie operatora).
+    """
+    prompter, wypisane = _konsola("jasne", "tak")
+    assert prompter.zapytaj(ZGODA) == TAK
+    assert texts.NIE_ROZUMIEM_TAK_NIE in wypisane[1]
+
+    prompter, _ = _konsola("jasne", "bzdura")
+    assert prompter.zapytaj(ZGODA) == NIE, "po dopytaniu obowiązuje kierunek bezpieczny"
+
+
+def test_nie_rozpoznawane_po_polsku_i_angielsku() -> None:
+    for odpowiedz in ("n", "Nie", "no", "NO"):
+        prompter, _ = _konsola(odpowiedz)
+        assert prompter.zapytaj(Pytanie(tresc="?", rodzaj="tak_nie", domyslna=TAK)) == NIE
+
+
+def test_odmowa_nie_jest_czytana_po_pierwszej_literze() -> None:
+    """„to nie" zaczyna się od „t" — przedrostek zamieniłby odmowę w zgodę."""
+    prompter, _ = _konsola("to nie", "nie")
+
+    assert prompter.zapytaj(ZGODA) == NIE
