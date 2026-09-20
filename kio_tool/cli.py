@@ -41,12 +41,23 @@ from .parser.details import PARSE_VERSION
 from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
 from .ui import texts, wizard
+from .ui.maszynowo import JsonView
 from .ui.prompts import KonsolaPrompter, Prompter
 from .ui.render import ConsoleView
 from .wycena import Wycena
 
 app = typer.Typer(help=texts.POMOC_PROGRAMU, add_completion=False)
 view = ConsoleView()
+
+
+def _widok(maszynowo: bool) -> obsluga.WidokZBledem:
+    """Widok dla polecenia: `--json` zamienia odbiorcę, nie treść.
+
+    Blok jest ten sam; różni się wyłącznie to, kto go czyta. Dzięki temu `--json` nie może
+    pokazać innych liczb niż ekran — nie ma osobnej ścieżki, która mogłaby się rozjechać.
+    """
+    return JsonView() if maszynowo else view
+
 
 OpcjaOd = Annotated[str | None, typer.Option("--od", help=texts.POMOC_OD)]
 OpcjaDo = Annotated[str | None, typer.Option("--do", help=texts.POMOC_DO)]
@@ -64,6 +75,7 @@ OpcjaMaks = Annotated[int | None, typer.Option("--maks", help=texts.POMOC_MAKS)]
 OpcjaFormat = Annotated[str, typer.Option("--format", help=texts.POMOC_FORMAT)]
 OpcjaOut = Annotated[Path | None, typer.Option("--out", help=texts.POMOC_OUT)]
 OpcjaCel = Annotated[str | None, typer.Option("--cel", help=texts.POMOC_CEL)]
+OpcjaJson = Annotated[bool, typer.Option("--json", help=texts.POMOC_JSON)]
 OpcjaBaza = Annotated[Path | None, typer.Option("--baza", help=texts.POMOC_BAZA)]
 OpcjaKanal = Annotated[str, typer.Option("--kanal", help=texts.POMOC_KANAL)]
 OpcjaZgoda = Annotated[bool, typer.Option("--zgoda", help=texts.POMOC_ZGODA)]
@@ -94,31 +106,34 @@ def _program(ctx: typer.Context) -> None:
 
 
 @contextmanager
-def _obsluga_bledow() -> Iterator[None]:
+def _obsluga_bledow(widok: obsluga.WidokZBledem | None = None) -> Iterator[None]:
     """`KioError` → zdanie i kod wyjścia; `Ctrl+C` → zdanie o wznowieniu i 130.
 
     `KioError` mówi w docstringu, że komunikat jest dla użytkownika, i niesie `exit_code`.
     Ślad stosu zamiast zdania łamałby oba te zdania naraz.
     """
+    gdzie = widok if widok is not None else view
     try:
         yield
     except KioError as blad:
-        view.error(texts.blad(str(blad)))
+        gdzie.error(texts.blad(str(blad)))
         raise typer.Exit(code=blad.exit_code) from blad
     except (KeyboardInterrupt, EOFError):
         # `EOFError` obok Ctrl+C: kreator poza terminalem spada na `input()`, a koniec wejścia
         # przechwytywał click i kończył angielskim „Aborted.” z kodem 1 (przegląd kodu fazy 3,
         # 2026-09-20). Zamknięte wejście jest przerwaniem operatora, tylko innym klawiszem.
-        view.error(texts.PRZERWANE)
+        gdzie.error(texts.PRZERWANE)
         raise typer.Exit(code=KOD_WYJSCIA_PRZERWANIE) from None
 
 
 @contextmanager
-def _otworz_baze(sciezka: Path, zegar: SystemClock) -> Iterator[Store]:
+def _otworz_baze(
+    sciezka: Path, zegar: SystemClock, widok: obsluga.Widok | None = None
+) -> Iterator[Store]:
     """`Store.open` plus jedno zdanie, gdy ścieżka dopiero co dostała pustą bazę."""
     with Store.open(sciezka, clock=zegar) as store:
         if store.nowa:
-            view.message(texts.nowa_baza(str(sciezka)))
+            (widok if widok is not None else view).message(texts.nowa_baza(str(sciezka)))
         yield store
 
 
@@ -435,16 +450,18 @@ def runy(
     limit: OpcjaLimit = LIMIT_RUNOW,
     status: OpcjaStatus = None,
     baza: OpcjaBaza = None,
+    maszynowo: OpcjaJson = False,
 ) -> None:
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         statusy = _statusy(status)
         limit = _limit(limit)
         sciezka = baza or default_db_path()
-        with _otworz_baze(sciezka, SystemClock()) as store:
+        with _otworz_baze(sciezka, SystemClock(), wy) as store:
             przebiegi = store.list_runs(limit, statuses=statusy)
             lacznie = store.count_runs()
         if lacznie == 0:
-            view.message(texts.BRAK_PRZEBIEGOW)
+            wy.message(texts.BRAK_PRZEBIEGOW)
             return
         wiersze = tuple(
             (
@@ -458,7 +475,7 @@ def runy(
             )
             for p in przebiegi
         )
-        view.block(texts.blok_runow(wiersze, lacznie))
+        wy.block(texts.blok_runow(wiersze, lacznie))
 
 
 @app.command(help=texts.POMOC_PRZELICZ)
@@ -522,8 +539,10 @@ def szukaj(
     strona: OpcjaStrona = None,
     limit: OpcjaLimit = LIMIT_TRAFIEN,
     baza: OpcjaBaza = None,
+    maszynowo: OpcjaJson = False,
 ) -> None:
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         kryteria = _kryteria(
             od=od,
             do=do,
@@ -536,8 +555,8 @@ def szukaj(
         )
         limit = _limit(limit)
         sciezka = baza or default_db_path()
-        with _otworz_baze(sciezka, SystemClock()) as store:
-            obsluga.pokaz_wyszukanie(view, store, kryteria, limit=limit)
+        with _otworz_baze(sciezka, SystemClock(), wy) as store:
+            obsluga.pokaz_wyszukanie(wy, store, kryteria, limit=limit)
 
 
 if __name__ == "__main__":

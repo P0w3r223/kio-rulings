@@ -36,6 +36,16 @@ class Widok(Protocol):
     def warning(self, text: str) -> None: ...
 
 
+class WidokZBledem(Widok, Protocol):
+    """Widok, który umie też powiedzieć, czemu wyniku nie ma — potrzebny obsłudze błędów w CLI.
+
+    Osobny protokół, bo `error` idzie na `stderr` i nie należy do ścieżki wyniku: `obsluga`
+    nigdy go nie woła, a `cli._obsluga_bledow` woła wyłącznie jego.
+    """
+
+    def error(self, text: str) -> None: ...
+
+
 def eksport_i_raport(
     view: Widok,
     store: Store,

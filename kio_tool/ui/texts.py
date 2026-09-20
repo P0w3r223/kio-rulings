@@ -6,67 +6,26 @@ przyjmują liczby, napisy i `Criteria` (moduł czysty), nie obiekty z `pipeline`
 kierunek zależności idzie od warstwy użytkownika do potoku, nigdy odwrotnie (reguła 8), a moduł
 czysty nie ma po co znać struktur, z których czyta trzy pola.
 
-`Block` jest modelem widoku (wzorzec z `ceidg-tool`): tytuł, nagłówki, wiersze, uwagi. Rysuje
-go `ui/render.py`; `as_text()` jest postacią do asercji w testach i do logu.
+Pojemniki widoku (`Block`, `Pytanie`, `Opcja`, `StanKorpusu`) mieszkają od 2026-09-20
+w `ui/modele.py` i są stąd re-eksportowane: ten moduł pisze zdania, tamten trzyma kształty,
+w które się układają. Rysuje je `ui/render.py`, a `ui/maszynowo.py` wydaje maszynowo.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Literal
 
 from ..criteria import ETYKIETY, Criteria
 from ..wycena import Wycena
+from .modele import Block, Opcja, Pytanie, RodzajPytania, StanKorpusu
 
-
-@dataclass(frozen=True)
-class Block:
-    """Jeden ekran albo jedna tabela. `headers` puste = blok klucz-wartość."""
-
-    title: str
-    headers: tuple[str, ...] = ()
-    rows: tuple[tuple[str, ...], ...] = ()
-    notes: tuple[str, ...] = ()
-
-    def as_text(self) -> str:
-        """Postać tekstowa — do logu, do trybu cichego i do asercji w testach."""
-        lines = [self.title] if self.title else []
-        if self.headers:
-            lines.append(" | ".join(self.headers))
-        lines.extend(" | ".join(row) for row in self.rows)
-        lines.extend(self.notes)
-        return "\n".join(lines)
-
-
-RodzajPytania = Literal["wybor", "tekst", "tak_nie"]
-
-
-@dataclass(frozen=True)
-class Opcja:
-    """Jedna odpowiedź do wyboru: `klucz` wraca do programu, `etykieta` idzie na ekran."""
-
-    klucz: str
-    etykieta: str
-
-
-@dataclass(frozen=True)
-class Pytanie:
-    """Pytanie jako dane (ADR-0008 Z-7): treść pisze ten moduł, zadaje je `ui/prompts.py`.
-
-    `domyslna` jest odpowiedzią na sam Enter — i dlatego przy pytaniu o zgodę na przebieg
-    masowy wynosi „nie": Enter nie ma prawa pobrać czterech tysięcy orzeczeń (ADR-0008 §10).
-    """
-
-    tresc: str
-    rodzaj: RodzajPytania = "wybor"
-    opcje: tuple[Opcja, ...] = ()
-    domyslna: str | None = None
-    podpowiedz: str = ""
-    """Co wolno wpisać, w nawiasie za pytaniem — format daty, przykład, znaczenie pustej
-    odpowiedzi. Operator, który nie zna narzędzia, nie ma tego skąd wiedzieć, a pytanie bez
-    podpowiedzi wygląda tak samo jak pytanie, na które jest jedna poprawna odpowiedź
-    (wzorzec z `ceidg-tool`, zgłoszenie operatora 2026-09-20)."""
+__all__ = [  # re-eksport: jedno publiczne wejście do warstwy widoku zostaje w `texts`
+    "Block",
+    "Opcja",
+    "Pytanie",
+    "RodzajPytania",
+    "StanKorpusu",
+]
 
 
 # ------------------------------------------------------------------------ pomoc poleceń
@@ -166,6 +125,11 @@ EKSPORT_RUN_I_KRYTERIA = (
     "przebiegu obejmuje to, co przebieg objął, a kryteria zostałyby po cichu pominięte."
 )
 NAGLOWKI_RUNOW = ("przebieg", "status", "kanał", "zakres", "start", "dokumentów", "żądań")
+POMOC_JSON = (
+    "wynik jako JSON Lines na standardowe wyjście, jeden dokument na wiersz — dla programu, "
+    "nie dla oka; tabela dla człowieka bez terminala łamie wartości na 80 znakach"
+)
+
 NAGLOWKI_TRAFIEN = ("sygnatura", "data wydania", "rozstrzygnięcie", "fragment")
 
 
@@ -328,6 +292,7 @@ def blok_runow(wiersze: Sequence[tuple[str, ...]], lacznie: int) -> Block:
         title=f"Przebiegi: pokazano {len(wiersze)} z {lacznie}",
         headers=NAGLOWKI_RUNOW,
         rows=tuple(wiersze),
+        liczby=(("pokazano", len(wiersze)), ("lacznie", lacznie)),
     )
 
 
@@ -474,6 +439,13 @@ def blok_wyszukiwania(
         headers=NAGLOWKI_TRAFIEN,
         rows=tuple(wiersze),
         notes=tuple(uwagi),
+        liczby=(
+            ("w_korpusie", w_korpusie),
+            ("zaindeksowanych", zaindeksowanych),
+            ("trafien", trafien),
+            ("pokazano", len(wiersze)),
+            ("bez_daty_poza_filtrem", bez_daty_poza_filtrem),
+        ),
     )
 
 
@@ -508,9 +480,18 @@ def zero_trafien(
         f"W korpusie: {w_korpusie} dokumentów, zaindeksowanych: {zaindeksowanych}.",
         f"Kryteria: {kryteria.describe()}",
     ]
+    # Mianownik przy zerze jest potrzebny **bardziej** niż przy trafieniach: to jedyne miejsce,
+    # w którym konsument odróżnia „nie ma takich orzeczeń" od „nie ma ich w tym, co pobrano".
+    liczby = (
+        ("w_korpusie", w_korpusie),
+        ("zaindeksowanych", zaindeksowanych),
+        ("trafien", 0),
+        ("pokazano", 0),
+        ("bez_daty_poza_filtrem", bez_daty),
+    )
     if w_korpusie == 0:
         uwagi.append(KORPUS_PUSTY)
-        return Block(title="Zero trafień", notes=tuple(uwagi))
+        return Block(title="Zero trafień", notes=tuple(uwagi), liczby=liczby)
     if zaindeksowanych < w_korpusie:
         uwagi.append(
             f"Tylko {zaindeksowanych} z {w_korpusie} dokumentów ma metadane i indeks — filtry po "
@@ -522,7 +503,7 @@ def zero_trafien(
         uwagi.append(f"Spróbuj bez pola „{ETYKIETY[pole]}”: {kandydat.describe()}")
     if not kryteria.poszerzenia():
         uwagi.append("To jedyny filtr — poszerz go albo sprawdź pisownię.")
-    return Block(title="Zero trafień", notes=tuple(uwagi))
+    return Block(title="Zero trafień", notes=tuple(uwagi), liczby=liczby)
 
 
 def zero_kandydatow(kryteria: Criteria) -> Block:
@@ -568,21 +549,6 @@ FRAZA_TO_SYGNATURA = (
     "Wyszukiwarka Atlasu dopasowuje sygnaturę, nie treść (zmierzone 2026-09-18). Żeby szukać "
     "w treści, pobierz zakres dat, a potem użyj „Szukaj w korpusie”."
 )
-
-
-@dataclass(frozen=True)
-class StanKorpusu:
-    """Liczby, które kreator pokazuje **zanim** operator cokolwiek wybierze.
-
-    Pierwszy ekran bez stanu mówi, czym narzędzie jest; ekran ze stanem mówi, co operator ma
-    w ręku — a to jest ta informacja, której brakowało, żeby wybrać pozycję menu świadomie.
-    Zero żądań: wszystkie trzy liczby są odczytem z lokalnej bazy.
-    """
-
-    dokumentow: int
-    zaindeksowanych: int
-    przerwanych: int
-    sciezka: str
 
 
 JAK_TO_DZIALA: tuple[str, ...] = (
