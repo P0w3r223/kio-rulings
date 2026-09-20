@@ -102,8 +102,31 @@ maszynowe są z założenia:
 - `kio-tool eksportuj --format jsonl` — jeden dokument na wiersz, pełne pola, plik na dysku;
 - `kio-tool pokrycie` — obok raportu `.md` zapisuje **`.json`** z tymi samymi liczbami.
 
-Dopóki `szukaj` nie ma wyjścia strukturalnego (pozycja otwarta, patrz sekcja 9), traktuj jego
-tabelę jako **podgląd dla człowieka**, a materiał do dalszej pracy bierz z eksportu.
+### Najprościej: JSON Lines
+
+`szukaj` i `runy` przyjmują **`--json`** i wtedy mówią **JSON Lines** — jeden dokument na wiersz,
+każdy z polem `rodzaj` (`blok`, `komunikat`, `ostrzezenie`, `blad`). Wartości nie są łamane,
+bo nic ich nie rysuje.
+
+```
+kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
+```
+
+```json
+{"rodzaj": "blok", "tytul": "Trafienia dla „rażąco niska cena”",
+ "kolumny": ["sygnatura", "data_wydania", "rozstrzygniecie", "fragment"],
+ "wiersze": [{"sygnatura": "KIO 3810/23", "...": "..."}],
+ "liczby": {"w_korpusie": 443, "zaindeksowanych": 443, "trafien": 39,
+             "pokazano": 20, "bez_daty_poza_filtrem": 0},
+ "uwagi": ["W korpusie: 443 dokumentów, ..."]}
+```
+
+**Czytaj `liczby`, nie `uwagi`.** `uwagi` to zdania dla człowieka i wolno im się zmienić;
+`liczby` są kontraktem. Pole `liczby` stoi także przy **zerze trafień** — i tam jest potrzebne
+najbardziej, bo odróżnia „nie ma takich orzeczeń" od „nie ma ich w tym, co pobrano".
+
+Pozostałe polecenia wyjścia maszynowego jeszcze nie mają (sekcja 9); tam tabela jest podglądem
+dla człowieka, a materiał do dalszej pracy bierz z eksportu.
 
 ## 5. Co da się wyszukać
 
@@ -119,6 +142,7 @@ Te same filtry działają w `szukaj`, `eksportuj` i `pobierz`:
 | `--przewodniczacy` | Podnapis nazwiska przewodniczącego składu | dane osobowe; używaj tylko gdy operator o to prosi |
 | `--strona` | Podnapis nazwy odwołującego albo zamawiającego | |
 | `--limit` | Ile wierszy pokazać (domyślnie 20) | nie zmienia liczby trafień, tylko widok |
+| `--json` | Wynik jako JSON Lines zamiast tabeli | `szukaj` i `runy`; patrz sekcja 4b |
 
 Wynik `szukaj` to tabela `sygnatura · data wydania · rozstrzygnięcie · fragment`, a **nad nią**
 liczby: ile jest w korpusie, ile zaindeksowanych, ile trafień i ile pokazano. Czytaj te liczby
@@ -182,8 +206,9 @@ projektu to 464 żądania.
 
 Zapisane tutaj, żebyś nie szukał czegoś, czego nie ma, i nie zakładał, że źle wołasz polecenie.
 
-- **Brak `--json` w poleceniach odczytu.** `szukaj`, `runy` i `przelicz` mówią wyłącznie tabelą
-  dla człowieka. Jedyne wyjścia strukturalne to `eksportuj --format jsonl` i `.json` z `pokrycie`.
+- **`--json` ma `szukaj` i `runy`** (od 2026-09-20). Nie mają go jeszcze `przelicz`, `pokrycie`
+  (ale zapisuje `.json` obok raportu), `eksportuj` (zapisuje plik, więc go nie potrzebuje)
+  ani `pobierz`/`wznow` — te ostatnie mówią do człowieka w trakcie długiego przebiegu.
 - **Brak serwera, przez który sięgałbyś do korpusu narzędziami zamiast powłoką.** Taki jest
   kształt etapu czwartego (`docs/ARCHITEKTURA_KIO_TOOL.md` §3.8), który stoi za bramką zgodności.
 - **Kolumna `fragment` w wyniku `szukaj` jest przycięta pod ekran** i nie ma flagi, która by ją

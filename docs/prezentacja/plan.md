@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20
-Status: **wykonany** — `prezentacja-kio-ekran.html`, 12 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a)
+Status: **wykonany** — `prezentacja-kio-ekran.html`, 13 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), slajd o zawartości bazy dołożony tego samego dnia
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -61,6 +61,7 @@ różni od tego, które już znacie**.
 | **Nowe** (s4) | Jak model używa narzędzia; odsyła do `docs/dla-modelu.md` |
 | **Nowe** (s5) | Co da się wyszukać i pułapka `--fraza` w `pobierz` |
 | **Nowe** (s6) | Limity kanału i podniesienie ich kluczem: 1 500 → 5 000 na dobę |
+| **Nowe** (s7a) | Co dokładnie jest w bazie: dziewięć tabel w trzech warstwach i podział korpusu; materiał w `docs/anatomia-bazy.md` |
 | **Zachowane bez zmian** | s8 (złoty zbiór i dwie usterki) — jedyny slajd, którego odpowiednika w tamtej prezentacji nie było |
 
 **Zasada na przyszłość.** Prezentacja dla tej sali stoi **na** poprzedniej, nie obok niej. To, co
