@@ -1,9 +1,25 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20
-Status: szkic (przygotowanie; slajdów jeszcze nie ma)
+Status: przyjęty — cztery decyzje właściciela z 2026-09-20 w sekcji 0; slajdów jeszcze nie ma
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
+
+---
+
+## 0. Cztery decyzje, które zamykają kształt (2026-09-20)
+
+| Pytanie | Rozstrzygnięcie | Co z tego wynika dla slajdów |
+|---|---|---|
+| Odbiorca | **Zarząd, ten sam rejestr co w `ceidg`** | Zero żargonu; każda liczba z pochodzeniem; slajd o zabezpieczeniach i slajd „czego to nie zrobi" są obowiązkowe, bo o to pytają pierwsi |
+| Liczba wersji | **Sama ekranowa 16:9** | Jeden samowystarczalny plik HTML; rolę dokumentu do czytania pełni ten plik, więc slajd 1 nie odsyła do drugiej wersji |
+| Ekrany narzędzia | **Makiety HTML z danymi z trybu pokazowego** | Kreator i wynik wyszukiwania rysowane w HTML wewnątrz prezentacji; zero obrazów rastrowych, zero ryzyka, że w zrzucie zostanie nazwisko; stopka mówi wprost, że dane w makiecie są syntetyczne |
+| Pozycjonowanie | **Samo `kio-tool`** | Prezentacja stoi sama i niczego nie zakłada o znajomości `ceidg-tool`; wspólny rodowód widać w formie, nie w treści |
+
+Dwie decyzje z tej samej rozmowy zmieniają treść slajdów 12 i 15: właściciel **potwierdził
+przegląd cytowań i przepisów** (O-4 zamknięte w całości), a rozbicie `store.py` i `pipeline.py`
+**zostaje świadomym, zmierzonym długiem** (O-5) — i tak ma być powiedziane, bo dług nazwany
+z liczbą jest mocniejszym przekazem niż cisza.
 
 ---
 
@@ -38,8 +54,8 @@ procesu; korpus operatora nie pojawia się na ekranie rzutnika w żadnej postaci
 | 9 | Cytowania: 1 708 w korpusie, 98,7 % rozpoznanych, każde z pozycją w tekście | pomiar 25, raport pokrycia |
 | 10 | Przepisy: 16 834, a 31,1 % **nieustalonych** — narzędzie mówi, czego nie wie | tabela `provisions`, 2026-09-20 |
 | 11 | Sześć zabezpieczeń; o te dwa zapytacie pierwsi (dane zostają lokalnie; zero żądań poza kanałem) | reguły granic 10–14, `test_boundaries.py` |
-| 12 | Złoty zbiór: 17 dokumentów przejrzanych okiem; automat nie widzi wszystkiego | O-4, dwie usterki znalezione okiem |
-| 13 | Czego to nie zrobi. Lepiej wiedzieć teraz | O-1…O-7, brak oceny prawnej, brak asystenta |
+| 12 | Złoty zbiór: 17 dokumentów przejrzanych okiem **i potwierdzonych przez właściciela**; automat nie widzi wszystkiego | O-4, dwie usterki znalezione okiem, potwierdzenie 2026-09-20 |
+| 13 | Czego to nie zrobi. Lepiej wiedzieć teraz | O-1, O-2, O-5, O-7; brak oceny prawnej; asystenta nie będzie (decyzja, nie brak) |
 | 14 | Jawność orzeczeń nie zwalnia z obowiązków wobec danych osobowych | pomiar 10, CC BY 4.0 Atlasu |
 | 15 | Stan przekazania: fazy 0–3 przyjęte, faza 4 za bramką warunkową | `decisions.md`, ADR-0008 §13 |
 | 16 | Siedem zdań do zapamiętania | — |
@@ -68,7 +84,8 @@ Stan na 2026-09-20, wersja odczytu 6.
 | Rozkład aktów | Pzp 2019 — 7 849 · **nieustalone — 5 233 (31,1 %)** · Pzp 2004 — 2 529 · kc 591 · inne 554 · rozporządzenie 52 · kpc 26 | `provisions.akt` |
 | Żądań sieciowych wykonanych **przez cały projekt** | 464 | `requests_log`, wszystkie przebiegi |
 | Przebiegów | 19 | `runs` |
-| Złoty zbiór | 17 dokumentów, 68 granic sekcji, 91 cytowań, 226 postaci przepisów | `tests/gold/*.json` |
+| Złoty zbiór | 17 dokumentów, 68 granic sekcji, 91 cytowań, 226 postaci przepisów — **potwierdzone przez właściciela 2026-09-20** | `tests/gold/*.json`, pole `przeglad` |
+| Dług zadeklarowany | `store.py` 1 466 linii i `pipeline.py` 971 przy sufitze 800 — wpis z pomiarem, bez prawa wzrostu | `tests/test_boundaries.py` |
 | Testów | 1 340, wszystkie zielone | `pytest`, 2026-09-20 |
 | Anonimizacja u pośrednika | przewodniczący nieanonimizowany w 404 dok., protokolant w 286 | pomiar 10, 2026-09-19 |
 | Licencja kanału | Atlas: CC BY 4.0, odczytana u źródła | pomiar 23, 2026-09-18 |

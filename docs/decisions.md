@@ -868,6 +868,13 @@ wykonania wcześniejszego wyroku w tym samym postępowaniu.
 pola `provisions.akt`, więc raport pokrycia liczył je bez mrugnięcia. To jest dokładnie ten rodzaj
 usterki, dla którego ADR-0006 Z-11 wymaga człowieka przy adnotacji.
 
+**Potwierdzenie właściciela (2026-09-20).** Właściciel potwierdził przegląd cytowań i przepisów
+w tej samej sesji, w której powstał. Pole `przeglad.kto` w `tests/gold/*.json` mówi odtąd jednym
+zdaniem: przejrzane okiem — granice sekcji 2026-09-19, cytowania i przepisy 2026-09-20 — i całość
+potwierdzona przez właściciela 2026-09-20. Zmieniło się **wyłącznie to pole**; liczby i granice
+w adnotacji są bit w bit te same, bo potwierdzenie dotyczy tego, co przejrzano, a nie tego, co
+parser odczytał.
+
 **Czego ten przegląd nie zamyka.** Postać `art. 3531` (czyli `art. 353¹` po ekstrakcji z PDF-a)
 zostaje taka, jaka jest — to wierny zapis tego, co przyszło z kanału, a nie usterka parsera;
 poprawianie go wymagałoby wiedzy o indeksie górnym, której w tekście nie ma. Pole `przeglad.kto`
@@ -929,7 +936,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 | O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
 | O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
-| O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów; adnotacja niesie odtąd wszystkie trzy rzeczy, a przegląd znalazł dwie usterki parsera, których automat nie mógł zapalić | Zostaje potwierdzenie przez właściciela — pole `przeglad.kto` mówi wprost, czego jeszcze nie potwierdził |
+| O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte w całości 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów, dwie usterki parsera znalezione i naprawione, **przegląd potwierdzony przez właściciela** tego samego dnia | — |
 | O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | **zamknięte odmownie 2026-09-20**: właściciel zrezygnował — pozycja schodzi z listy jako „nie", nie jako „później" (sekcja „Asystent językowy — rezygnacja, nie odłożenie") | — (wraca wyłącznie z nowym ADR-em; bramka AI Act przed fazą 4 stoi niezależnie, bo serwer MCP też oddaje tekst modelowi) |
 | O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma; **co każdy z nich dałby projektowi — sekcja „Co dałyby pomiary kanałów `uzp` i `saos`" (2026-09-20)** | Decyzja o drugim kanale albo wejście w fazę 4 |

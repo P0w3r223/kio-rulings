@@ -323,6 +323,10 @@ zawęziła ją w §10.1, tylko zastosowana do nowego stanu wiedzy.
 Rozbieżność mówi odtąd, **która** z trzech rzeczy się ruszyła, osobnym zdaniem. Jedno zdanie
 „coś się nie zgadza" kazałoby czytać plik ręką przy każdej zmianie parsera.
 
+Właściciel potwierdził ten przegląd 2026-09-20, więc `przeglad.kto` niesie odtąd jedno zdanie
+zamiast dwóch faktów o różnym statusie — adnotacja jest potwierdzona w całości, na równi
+z granicami sekcji z §10.3.
+
 Przegląd znalazł dwie usterki oznaczania ustawy (`decisions.md`, „Przegląd okiem cytowań
 i przepisów"), obie niewidoczne dla automatu, bo dawały wartości **poprawne co do typu**:
 `rozporzadzenie` zamiast Pzp i `inne` zamiast `pzp2004`. To jest wprost powód, dla którego Z-11

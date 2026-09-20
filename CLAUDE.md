@@ -14,7 +14,8 @@ i każda odpowiada temu, co objął przegląd okiem: sekcje i cytowania **per wy
 **per postać z liczbą**. Przegląd znalazł dwie usterki oznaczania ustawy, których automat nie
 mógł zapalić, bo dawały wartości poprawne co do typu (`rozporzadzenie` zamiast Pzp, `inne`
 zamiast `pzp2004`) — wersja odczytu **6**, 260 przepisów przeniesionych na właściwą ustawę.
-Potwierdzenia właściciela dla tej części jeszcze nie ma i pole `przeglad.kto` mówi to wprost.
+**Właściciel potwierdził ten przegląd 2026-09-20**, więc `przeglad.kto` niesie jedno zdanie
+i cała adnotacja jest potwierdzona, nie tylko granice sekcji.
 
 **O-3 zamknięte — pomiar 25 (`decisions.md`).** Wersja odczytu **5**; nierozpoznanych
 cytowań 78 → 23 (4,6 % → 1,3 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
