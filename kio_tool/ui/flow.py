@@ -54,7 +54,7 @@ class Akcje(Protocol):
     def wznawialne(self) -> Sequence[tuple[str, str]]: ...
     def pobierz(self, kryteria: Criteria, decyzja: DecyzjaKreatora) -> WynikPobrania: ...
     def wznow(self, run_id: str, decyzja: DecyzjaKreatora) -> WynikPobrania: ...
-    def szukaj(self, kryteria: Criteria) -> None: ...
+    def szukaj(self, kryteria: Criteria) -> int: ...
     def eksportuj(
         self, *, run_ids: tuple[str, ...], kryteria: Criteria | None, format: str
     ) -> None: ...
@@ -221,8 +221,11 @@ def krok_szukaj(prompter: Prompter, akcje: Akcje, ekran: Ekran) -> None:
     if kryteria is None:
         return
     ustalone = kryteria
-    bezpiecznie(ekran, lambda: akcje.szukaj(ustalone))
-    zaproponuj_eksport(prompter, akcje, ekran, kryteria=ustalone)
+    # Eksport proponowany tylko po trafieniach: przy zerze ekran pokazał już blok `zero_trafien`
+    # z liczbami, a po błędzie akcji `bezpiecznie` zwraca `None` — pytanie o zapis pustego pliku
+    # było w obu wypadkach pytaniem o nic (przegląd kodu fazy 3, 2026-09-20).
+    if bezpiecznie(ekran, lambda: akcje.szukaj(ustalone)):
+        zaproponuj_eksport(prompter, akcje, ekran, kryteria=ustalone)
 
 
 def krok_eksportuj(prompter: Prompter, akcje: Akcje, ekran: Ekran) -> None:

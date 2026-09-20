@@ -63,6 +63,12 @@ ATRYBUCJA_POKAZU = (
     "TRYB POKAZOWY — rekord fikcyjny, wygenerowany przez kio-tool; nie jest orzeczeniem Krajowej "
     "Izby Odwoławczej ani materiałem Atlasu Przetargów i nie wolno go cytować."
 )
+ORGAN_POKAZU = "brak — rekordy pokazowe nie pochodzą od żadnego organu"
+"""Wartość wiersza `organ` w arkuszu `Metadane` eksportu pokazowego (przegląd kodu fazy 3,
+2026-09-20). Wiersz `tryb` mówił „POKAZOWY”, a dwa wiersze niżej ten sam arkusz twierdził
+`organ = Krajowa Izba Odwoławcza` i powtarzał atrybucję licencyjną Atlasu — czyli dokładnie to,
+czemu `ATRYBUCJA_POKAZU` zapobiega w rekordzie. Znacznik 2 był prawdziwy, a arkusz obok niego
+fałszywy."""
 """Zdanie zastępujące blok cytowania rekordu pokazowego (ADR-0008 Z-3, znacznik 5).
 
 Blok cytowania z organem i źródłem jest tu jednostką eksportu: pojedynczy `.md` albo wiersz JSONL

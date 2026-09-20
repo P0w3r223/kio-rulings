@@ -33,7 +33,7 @@ from kio_tool.demo.korpus import (
 )
 from kio_tool.docid import SourceName, normalize_signature
 from kio_tool.errors import StoreError
-from kio_tool.exporter import ATRYBUCJA_POKAZU, PRZEDROSTEK_POKAZU
+from kio_tool.exporter import ATRYBUCJA_POKAZU, ORGAN_POKAZU, PRZEDROSTEK_POKAZU
 from kio_tool.httpclient import build_http_client
 from kio_tool.source.contract import load_contract
 from kio_tool.store import Store
@@ -248,6 +248,14 @@ def test_znaczniki_pokazu_w_kazdym_formacie_i_w_zadnym_produkcyjnym(
                 wb = load_workbook(plik, read_only=True)
                 meta = {r[0]: r[1] for r in wb["Metadane"].iter_rows(values_only=True)}
                 assert meta["tryb"].startswith("POKAZOWY") == pokazowa
+                # Arkusz `Metadane` twierdził `organ = Krajowa Izba Odwoławcza` i powtarzał
+                # atrybucję licencyjną Atlasu także w pokazie — wiersz `tryb` mówił prawdę,
+                # a dwa wiersze niżej ten sam arkusz przypisywał fikcję realnemu organowi
+                # i realnemu dostawcy (przegląd kodu fazy 3, 2026-09-20).
+                assert (meta["organ"] == ORGAN_POKAZU) == pokazowa
+                atrybucje = [v for k, v in meta.items() if str(k).startswith("atrybucja_")]
+                assert atrybucje, "eksport bez atrybucji nie jest eksportem"
+                assert all((v == ATRYBUCJA_POKAZU) == pokazowa for v in atrybucje)
                 continue
             tresc = plik.read_text(encoding="utf-8")
             if plik.name == "INDEX.md":
@@ -255,3 +263,16 @@ def test_znaczniki_pokazu_w_kazdym_formacie_i_w_zadnym_produkcyjnym(
                 assert ("tryb: POKAZOWY" in tresc) == pokazowa
                 continue
             assert (ATRYBUCJA_POKAZU in tresc) == pokazowa, plik.name
+
+
+def test_zadna_sygnatura_nie_powtarza_sie_w_korpusie_pokazowym() -> None:
+    """Numer sprawy połączonej należy w rejestrze do tej jednej sprawy.
+
+    Generator doklejał `numer + 1` bez patrzenia na pulę numerów, więc druga sygnatura bywała
+    sygnaturą **główną** innego dokumentu: zmierzone 7 z 384 (przegląd kodu fazy 3, 2026-09-20).
+    `szukaj` po takiej sygnaturze zwracał dwa dokumenty, z których jeden nie miał prawa istnieć —
+    pokaz uczył właściwości, której źródło nie ma (mina 4).
+    """
+    wszystkie = [s for d in KORPUS for s in d.sygnatury]
+
+    assert len(wszystkie) == len(set(wszystkie))

@@ -144,3 +144,18 @@ def test_podsumowanie_wypisuje_ponowienia_z_bazy_tylko_gdy_byly() -> None:
     assert "Ponowień w całym przebiegu (z bazy): 2" in z
     assert z.splitlines()[-1] == "Baza: b", "baza zostaje ostatnim wierszem"
     assert "Ponowień" not in bez
+
+
+def test_czas_ludzki_odmienia_doby_takze_powyzej_dwudziestu_jeden() -> None:
+    """Wycena rocznika idzie w dziesiątki dób, a reguła „od pięciu — dób" kończy się na 21.
+
+    Do przeglądu kodu fazy 3 (2026-09-20) 22 doby wychodziły jako „22 dób"; to zdanie
+    operator widzi w tabeli kosztów, więc kosmetyka jest tu widoczna, nie ukryta.
+    """
+    doba = 24 * 3600
+    assert texts.czas_ludzki(doba) == "1 doba 0 h"
+    assert texts.czas_ludzki(3 * doba) == "3 doby 0 h"
+    assert texts.czas_ludzki(5 * doba) == "5 dób 0 h"
+    assert texts.czas_ludzki(12 * doba) == "12 dób 0 h"
+    assert texts.czas_ludzki(22 * doba) == "22 doby 0 h"
+    assert texts.czas_ludzki(25 * doba) == "25 dób 0 h"

@@ -253,3 +253,54 @@ Szkic przygotował architekt; właściciel przyjął go 2026-09-19 i rozstrzygn�
 4. Odmowa po wycenie zostawia przebieg **`przerwany`** — rekomendacja szkicu, bez migracji statusu.
 5. **Przejście operatora (§10 pkt 5) wykonuje sam właściciel**, gdy pokaz będzie gotowy; uwagi
    zapisuje się w `decisions.md` jako „Przejście operatora — tryb pokazowy".
+
+---
+
+## 12. Poprawki po przeglądzie kodu fazy 3 (2026-09-20)
+
+Przegląd wykonany po zamknięciu prac, na zakresie `e8e595b~1..HEAD`. Cztery rzeczy zmieniają
+brzmienie tego ADR-a; reszta znalezisk to usterki bez wpływu na decyzje i stoi w `decisions.md`.
+
+### 12.1 Zgoda niesie sufit, a nie wyłącznik (HIGH)
+
+Z-6 mówiło „werdykt operatora rozstrzyga, czy przebieg masowy jest dozwolony w tej sesji", a kod
+czytał to jako wyłączenie progu `PROG_ZGODY` na resztę wywołania. Skutek jest mierzalny: przy
+kanale zgłaszającym `total = 5` tabela kosztów pokazuje „5 żądań, 4 s", pytanie ma wtedy domyślne
+„tak" (bo przebieg nie jest masowy), a Enter otwierał przebieg bez żadnego sufitu — **zmierzone
+103 żądania przy progu 50**, z rozjazdem widocznym dopiero w podsumowaniu, czyli po wydatku.
+Do wyzwolenia nie trzeba złośliwego serwisu: dokładność `total` Atlasu nie jest zmierzona
+(pomiar 24), a ponowienia liczą się do zgody (ADR-0007 Z-9), więc wycena ich nie obejmuje.
+
+**Nowe brzmienie Z-6:** zgoda dotyczy **liczby, którą operator zobaczył**. Werdykt `zgoda`
+ustawia sufit `(wycena.zadan + wycena.zadan_juz) × proby`, gdzie `proby` pochodzi z bloku
+`ponowienia` kontraktu — zapas jest po to, żeby sufit zatrzymywał rozjazd wyceny, a nie awarię
+cudzego serwisu. Przekroczenie kończy przebieg jako `przerwany`, ze zdaniem wymieniającym obie
+liczby; wznowienie liczy koszt od nowa i pyta jeszcze raz. Gdy kanał nie podał liczby, sufitu nie
+ma — tabela mówi wtedy wprost „kanał nie podał liczby", pytanie jest pytaniem o przebieg masowy
+z domyślnym „nie", więc zgoda pada świadomie na przebieg o nieznanym rozmiarze.
+
+Sufit obowiązuje **tak samo na ścieżce flag**: `--zgoda` nie jest zgodą na dowolną liczbę żądań,
+tylko na tę, którą policzyła wycena. Obserwator: `tests/test_pipeline.py`
+`test_zgoda_pod_wycena_nie_zdejmuje_progu_na_caly_przebieg` (sprawdzony mutacją).
+
+### 12.2 `Decyzja` jest trójwartościowa
+
+Z-6 zapisało `Decyzja = Callable[[Wycena], bool]`; kod ma `Werdykt = Literal["zgoda",
+"bez_zgody", "odmowa"]`, bo `bool` nie odróżniał „operator odmówił" od „obowiązuje próg jak przed
+ADR-0008". Rozszerzenie jest świadome i zostaje — ten punkt je odnotowuje, żeby ADR i kod mówiły
+to samo.
+
+### 12.3 Znacznik 2 obejmuje cały arkusz `Metadane`, nie sam wiersz `tryb`
+
+Z-3 wymienia sześć znaczników; wiersz `tryb` był prawdziwy, a dwa wiersze niżej ten sam arkusz
+twierdził `organ = Krajowa Izba Odwoławcza` i powtarzał atrybucję licencyjną Atlasu nad korpusem,
+którego nikt nie licencjonował. Znacznik 2 znaczy odtąd: **żaden wiersz arkusza eksportu
+pokazowego nie przypisuje rekordów realnemu organowi ani realnemu dostawcy.** `organ` niesie
+`exporter.ORGAN_POKAZU`, wiersze `atrybucja_*` — `ATRYBUCJA_POKAZU`.
+
+### 12.4 Numer sprawy połączonej pochodzi z puli wolnych numerów
+
+§6 pozwalało generatorowi dokleić `numer + 1`. Bez patrzenia na pulę druga sygnatura bywała
+sygnaturą **główną** innego dokumentu — zmierzone 7 z 384 — więc pokaz uczył właściwości, której
+rejestr nie ma (mina 4). Numer sprawy połączonej bierze się odtąd z numerów, których nikt nie ma
+za sygnaturę główną; `tests/test_demo.py` sprawdza, że każda sygnatura występuje w korpusie raz.

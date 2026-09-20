@@ -2439,3 +2439,50 @@ def test_samosprawdzenie_skanu_pytan(zrodlo: str, ile: int) -> None:
 def test_regula_7_pytajacy_naprawde_zna_questionary() -> None:
     """Lustro testu dla `rich`: zawieranie przechodzi też dla zbioru pustego."""
     assert uzytkownicy("questionary") == MODULY_QUESTIONARY
+
+
+# ------------------------------------------------------------------ sufit rozmiaru modułu
+
+SUFIT_LINII = 800
+"""Sufit z zasad projektu („pliki 200–400 linii typowo, 800 maksimum")."""
+
+PONAD_SUFITEM: dict[str, int] = {
+    "store.py": 1466,
+    "pipeline.py": 971,
+}
+"""Moduły, które sufit przekraczają dziś, z **pomiarem** z 2026-09-20 jako granicą.
+
+Do przeglądu kodu fazy 3 sufit żył wyłącznie w prozie: docstring `obsluga.py` powoływał się
+na niego jako na powód własnego wydzielenia, a dwa moduły stały ponad nim i nic tego nie
+mówiło. Wyjątek z liczbą jest tu czymś innym niż wyłączenie reguły: moduł z tej tablicy nie
+ma prawa **urosnąć**, a nowy moduł nie ma prawa się w niej znaleźć bez decyzji. Rozbicie obu
+jest długiem fazy 4, nie pracą do wciśnięcia w bramkę fazy 3.
+"""
+
+
+def test_zaden_modul_nie_przekracza_sufitu_linii() -> None:
+    za_duze = {
+        str(p.relative_to(PAKIET)): len(p.read_text(encoding="utf-8").splitlines())
+        for p in sorted(PAKIET.rglob("*.py"))
+        if len(p.read_text(encoding="utf-8").splitlines()) > SUFIT_LINII
+    }
+    dozwolone = {k: v for k, v in za_duze.items() if k in PONAD_SUFITEM}
+    nowe = {k: v for k, v in za_duze.items() if k not in PONAD_SUFITEM}
+
+    assert not nowe, (
+        f"moduły ponad sufitem {SUFIT_LINII} linii bez wpisu: {nowe}; rozbij albo dopisz "
+        "do `PONAD_SUFITEM` razem z powodem"
+    )
+    urosly = {k: (v, PONAD_SUFITEM[k]) for k, v in dozwolone.items() if v > PONAD_SUFITEM[k]}
+    assert not urosly, f"moduł z wyjątkiem urósł (jest, było): {urosly}"
+
+
+def test_metatest_kazdy_wpis_ponad_sufitem_naprawde_przekracza_sufit() -> None:
+    """Wpis o module, który już zszedł pod sufit, kłamałby o stanie drzewa."""
+    for nazwa, granica in PONAD_SUFITEM.items():
+        plik = PAKIET / nazwa
+        assert plik.exists(), nazwa
+        assert granica > SUFIT_LINII, nazwa
+        assert len(plik.read_text(encoding="utf-8").splitlines()) > SUFIT_LINII, (
+            f"{nazwa} mieści się już w suficie — zdejmij wpis zamiast go nosić"
+        )

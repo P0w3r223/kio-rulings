@@ -719,6 +719,49 @@ której pojedyncza pomyłka nie przesuwa.
 
 ---
 
+## Przegląd kodu fazy 3 — znaleziska i co z nimi zrobiono (2026-09-20)
+
+Przegląd zakresu `e8e595b~1..HEAD` (10 commitów, 50 plików) wykonany po zamknięciu prac fazy 3;
+w sesji z 2026-09-19 nie doszedł do skutku, bo agenta ubił limit sesji. Zero żądań do sieci —
+wszystkie liczby niżej pochodzą z atrap i z korpusu operatora.
+
+**Jedno znalezisko wysokiej wagi, zmierzone i naprawione.** Werdykt `zgoda` zdejmował próg
+`PROG_ZGODY` na resztę wywołania zamiast wiązać zgodę z liczbą, którą operator zobaczył.
+Odtworzone na atrapie zgłaszającej `total = 5` przy trzech stronach po sto rekordów: tabela
+kosztów pokazała „5 żądań, 4 s", pytanie miało wtedy domyślne „tak" (bo przebieg nie jest
+masowy), a po Enterze wyszły **103 żądania przy progu 50** — rozjazd widoczny dopiero
+w podsumowaniu, czyli po wydatku. Naprawa w ADR-0008 §12.1: zgoda niesie sufit
+`(wycena + już wysłane) × proby z kontraktu`, przekroczenie kończy przebieg jako `przerwany`
+ze zdaniem wymieniającym obie liczby. Sufit sprawdzony mutacją (wyłączony warunek zapala test).
+
+**Trzy znaleziska średniej wagi.** Arkusz `Metadane` eksportu pokazowego twierdził
+`organ = Krajowa Izba Odwoławcza` i powtarzał atrybucję licencyjną Atlasu — znacznik `tryb` mówił
+prawdę, a dwa wiersze niżej ten sam arkusz przypisywał fikcję realnemu organowi i realnemu
+dostawcy (ADR-0008 §12.3). Generator korpusu pokazowego doklejał numer sprawy połączonej bez
+patrzenia na pulę, więc **7 z 384** dokumentów miało drugą sygnaturę będącą sygnaturą główną
+innego dokumentu (§12.4). `PARSE_VERSION` nie został podniesiony przy zmianie `docid`
+z 2026-09-19 (ADR-0006 §10.2) — tu skutek na tej bazie **nie wystąpił**, bo korpus był po tamtej
+zmianie przeliczony ręcznie: zmierzone po podniesieniu wersji do 3 i przeliczeniu 443 wersji
+(0 żądań) — 1 118 różnych sygnatur cytowanych przed i po, zero z rokiem czterocyfrowym w obu.
+Brakowało obserwatora, nie danych; obserwatorem jest odtąd odcisk źródeł odczytu.
+
+**Siedem drobnych.** `KIO_TOOL_DEMO_TEMPO=nan` przechodziło przez `float()` i wywracało pokaz
+w środku ścieżki; `zbuduj_pokaz` stał przed obsługą błędów, więc zła konfiguracja pokazu dawała
+ślad stosu i kod 1 zamiast zdania i kodu 3; koniec wejścia w kreatorze kończył się angielskim
+„Aborted." z kodem 1; stała `UDZIAL_PELNEGO_TYTULU = 327 / 443` przepisywała ręcznie sumę dwóch
+liczb z `wzorce.yaml`; `czas_ludzki` dawało „22 dób" zamiast „22 doby"; kreator proponował eksport
+także po błędzie wyszukiwania i przy zerze trafień; sufit 800 linii żył wyłącznie w prozie przy
+dwóch modułach powyżej (`store.py` 1 466, `pipeline.py` 971). Wszystkie naprawione, każda
+z obserwatorem.
+
+**Co przegląd potwierdził.** Punkt decyzji nie kosztuje żądania i jest mierzony kosztem, nie
+wywołaniem funkcji; reguła 10 obejmuje `questionary` razem z samosprawdzeniem skanu w obie
+strony; `wzorce.yaml` jest generowany ze zmierzonego wejścia z SHA-256 i białą listą kluczy
+czytaną ze skryptu, nie z pamięci; wrogie napisy stoją w samym korpusie pokazowym, nie tylko
+w prozie o nim.
+
+---
+
 ## Status pomiarów
 
 **Ta sekcja zastępuje `docs/pomiary.md`** (istniał od 2026-09-17 do 2026-09-18; ADR-0005, Z-8).

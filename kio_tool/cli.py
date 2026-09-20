@@ -105,7 +105,10 @@ def _obsluga_bledow() -> Iterator[None]:
     except KioError as blad:
         view.error(texts.blad(str(blad)))
         raise typer.Exit(code=blad.exit_code) from blad
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, EOFError):
+        # `EOFError` obok Ctrl+C: kreator poza terminalem spada na `input()`, a koniec wejścia
+        # przechwytywał click i kończył angielskim „Aborted.” z kodem 1 (przegląd kodu fazy 3,
+        # 2026-09-20). Zamknięte wejście jest przerwaniem operatora, tylko innym klawiszem.
         view.error(texts.PRZERWANE)
         raise typer.Exit(code=KOD_WYJSCIA_PRZERWANIE) from None
 
@@ -214,10 +217,14 @@ def _uruchom_pokaz(
 ) -> None:
     """Kreator nad bazą pokazową (ADR-0008 Z-1, Z-8): atrapa Atlasu jako transport, osobny
     katalog danych, znacznik w pliku bazy. Bez `KIO_TOOL_CONTACT` i bez klucza (Z-14)."""
-    pokaz = pokaz or zbuduj_pokaz()
     katalog = katalog_pokazu()
     sciezka = katalog / PLIK_BAZY
     with _obsluga_bledow():
+        # Budowa pokazu **wewnątrz** obsługi błędów (przegląd kodu fazy 3, 2026-09-20):
+        # `zbuduj_pokaz` czyta kontrakt i wzorce, więc zgłasza `ConfigError` — na zewnątrz
+        # wychodził on śladem stosu i kodem 1 zamiast zdaniem i kodem 3, akurat w poleceniu,
+        # które ma działać „w dniu klonu” u kogoś, kto projektu nie zna.
+        pokaz = pokaz or zbuduj_pokaz()
         if od_nowa:
             _usun_baze_pokazowa(sciezka)
         with Store.open(sciezka, clock=pokaz.zegar, pokazowa=True) as store:

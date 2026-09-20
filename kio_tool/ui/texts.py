@@ -337,7 +337,17 @@ def czas_ludzki(sekundy: float) -> str:
     if godziny < 24:
         return f"{godziny} h {minuty} min"
     doby, godziny = divmod(godziny, 24)
-    return f"{doby} {'doba' if doby == 1 else 'doby' if doby < 5 else 'dób'} {godziny} h"
+    return f"{doby} {_doby(doby)} {godziny} h"
+
+
+def _doby(ile: int) -> str:
+    """Odmiana licznika dób. Wycena rocznika idzie w dziesiątki dób, a reguła „od pięciu dób”
+    kończy się na 21: poprawne jest „22 doby”, nie „22 dób” (przegląd kodu fazy 3, 2026-09-20)."""
+    if ile == 1:
+        return "doba"
+    if ile % 10 in (2, 3, 4) and ile % 100 not in (12, 13, 14):
+        return "doby"
+    return "dób"
 
 
 def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | None = None) -> Block:

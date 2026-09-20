@@ -42,7 +42,7 @@ from .errors import (
     SourceContractBroken,
     StoreError,
 )
-from .exporter import ATRYBUCJA_POKAZU, FORMATY, PRZEDROSTEK_POKAZU, Wpis
+from .exporter import ATRYBUCJA_POKAZU, FORMATY, ORGAN_POKAZU, PRZEDROSTEK_POKAZU, Wpis
 from .exporter import eksportuj as zapisz_eksport
 from .httpclient import build_http_client
 from .logbook import Wynik
@@ -50,7 +50,7 @@ from .odczyt import metryka, odczytaj, struktura
 from .parser.details import PARSE_VERSION, MapaPol, rekord_z_bajtow, wyczytaj
 from .progress import Events, NullEvents
 from .ratelimit import DOBA_S, InMemoryHistory, RateLimiter
-from .source.contract import Contract, load_contract
+from .source.contract import Contract, Ponowienia, load_contract
 from .source.protocol import Channel, Scope
 from .source.registry import REGISTRY
 from .store import (
@@ -115,10 +115,23 @@ ODMOWA_PO_WYCENIE = (
 
 class _Zgoda:
     """Zgoda w obrębie jednego wywołania — zmienia ją werdykt wyceny, czyta ją też bramka
-    ponowień kanału (ADR-0007 Z-9), więc jest obiektem, a nie parametrem przekazanym raz."""
+    ponowień kanału (ADR-0007 Z-9), więc jest obiektem, a nie parametrem przekazanym raz.
+
+    `sufit` jest drugą połową tej samej zgody, dopisaną po przeglądzie kodu fazy 3
+    (2026-09-20, HIGH; ADR-0008 §12). „Tak" pada pod tabelą kosztów, więc zgoda dotyczy
+    **liczby, którą operator zobaczył** — a do tej pory ustawiała wyłącznie `jest`, co zdejmowało
+    `PROG_ZGODY` na resztę wywołania. Zmierzone na atrapie zgłaszającej `total = 5`: wycena
+    pokazała 5 żądań, operator nacisnął Enter (przy małej wycenie pytanie ma domyślne „tak"),
+    wyszły **103** żądania przy progu 50. Sufit wraca do tej liczby z zapasem na ponowienia,
+    bo wycena ich nie zna, a ADR-0007 Z-9 liczy je do zgody.
+    """
 
     def __init__(self, jest: bool) -> None:
         self.jest = jest
+        self.sufit: int | None = None
+        """Żądań wolno wysłać najwyżej tyle; `None` = zgoda udzielona bez znanego rozmiaru."""
+        self.wycenionych: int | None = None
+        """Liczba z tabeli kosztów — zdanie zatrzymujące przebieg wymienia ją obok sufitu."""
 
 
 @dataclass(frozen=True)
@@ -369,7 +382,7 @@ def pobierz(
                 ),
                 # ADR-0007 Z-9: ponowienie jest żądaniem jak każde inne, więc przed nim też
                 # pada pytanie o zgodę — inaczej pętla prób przekraczała próg o `proby - 1`.
-                przed_ponowieniem=lambda: _wymagaj_zgody(stan.jest, puls, kryteria.maks),
+                przed_ponowieniem=lambda: _wymagaj_zgody(stan, puls, kryteria.maks),
             )
             _przebieg(
                 kanal_obj,
@@ -498,14 +511,15 @@ def _przebieg(
             return
         if not wyceniono:
             wyceniono = True
-            _rozstrzygnij(decyzja(_wycena(kontrakt, puls, licznik, maks)), zgoda)
+            wycena = _wycena(kontrakt, puls, licznik, maks)
+            _rozstrzygnij(decyzja(wycena), zgoda, wycena, kontrakt.ponowienia)
         # Zgoda sprawdzana **przed** rozstrzygnięciem „nowy czy pominięty" (przegląd kodu
         # 2026-09-18, HIGH): strony listy są żądaniami do cudzego serwisu tak samo jak dokumenty,
         # a przebieg, w którym wszyscy kandydaci są już w bazie, nie dochodził do sprawdzenia ani
         # razu — zmierzone: 60 stron listy bez zgody przy progu 50. Ponowne `pobierz` na dużym
         # zakresie wymaga więc `--zgoda` także wtedy, gdy nie pobierze ani jednego dokumentu:
         # 296 żądań to 296 żądań.
-        _wymagaj_zgody(zgoda.jest, puls, maks)
+        _wymagaj_zgody(zgoda, puls, maks)
         licznik.kandydatow += 1
         licznik.pozycja += 1
         doc_id = document_id(kanal.name, kandydat.source_ref, ref_case=kontrakt.ref_case)
@@ -586,15 +600,41 @@ def _wycena(kontrakt: Contract, puls: _Puls, licznik: _Licznik, maks: int | None
     )
 
 
-def _rozstrzygnij(werdykt: Werdykt, zgoda: _Zgoda) -> None:
+def _rozstrzygnij(werdykt: Werdykt, zgoda: _Zgoda, wycena: Wycena, ponowienia: Ponowienia) -> None:
     if werdykt == "odmowa":
         raise ConsentMissingError(ODMOWA_PO_WYCENIE)
     if werdykt == "zgoda":
         zgoda.jest = True
+        zgoda.wycenionych = None if wycena.zadan is None else wycena.zadan + wycena.zadan_juz
+        zgoda.sufit = _sufit(wycena, ponowienia)
 
 
-def _wymagaj_zgody(zgoda: bool, puls: _Puls, maks: int | None) -> None:
-    if zgoda:
+def _sufit(wycena: Wycena, ponowienia: Ponowienia) -> int | None:
+    """Ile żądań wolno wysłać po zgodzie udzielonej pod tą wyceną.
+
+    `None`, gdy kanał nie podał liczby: tabela kosztów mówi wtedy wprost „kanał nie podał liczby",
+    a pytanie jest pytaniem o przebieg masowy z domyślnym „nie" — zgoda pada więc świadomie na
+    przebieg o nieznanym rozmiarze i sufitu nie ma z czego policzyć.
+
+    Zapas to `proby` z bloku `ponowienia` kontraktu, nie liczba wzięta stąd: wycena liczy żądania
+    udane, a ponowienie jest żądaniem jak każde inne (ADR-0007 Z-9), więc sufit bez zapasu
+    zatrzymywałby przebieg za awarię cudzego serwisu zamiast za rozjazd wyceny.
+    """
+    if wycena.zadan is None:
+        return None
+    return (wycena.zadan + wycena.zadan_juz) * max(ponowienia.proby, ponowienia.proby_429)
+
+
+def _wymagaj_zgody(zgoda: _Zgoda, puls: _Puls, maks: int | None) -> None:
+    if zgoda.jest:
+        if zgoda.sufit is not None and puls.zadan >= zgoda.sufit:
+            raise ConsentMissingError(
+                f"Przebieg wyszedł poza wycenę, pod którą padła zgoda: tabela kosztów mówiła "
+                f"o najwyżej {zgoda.wycenionych} żądaniach, sufit z zapasem na ponowienia wynosi "
+                f"{zgoda.sufit}, a wysłano {puls.zadan}. Kanał pomylił się co do rozmiaru zakresu "
+                "albo zakres urósł od czasu wyceny. Przebieg zostaje zapisany jako przerwany — "
+                "wznowienie policzy koszt od nowa i zapyta jeszcze raz."
+            )
         return
     przewidywane = _przewidywane(puls.razem, maks)
     if puls.zadan >= PROG_ZGODY or (przewidywane is not None and przewidywane > PROG_ZGODY):
@@ -869,11 +909,13 @@ def build_metadata(
             ("eksport_utc", utc_iso(zegar.wall())),
             ("wersja_narzedzia", __version__),
             ("wersja_odczytu", PARSE_VERSION),
-            ("organ", "Krajowa Izba Odwoławcza"),
+            ("organ", ORGAN_POKAZU if pokaz else "Krajowa Izba Odwoławcza"),
         ]
     )
+    # Atrybucja licencyjna kanału jest twierdzeniem o pochodzeniu danych, więc w eksporcie
+    # pokazowym byłaby fałszywa tak samo jak nazwa organu (przegląd kodu fazy 3, 2026-09-20).
     for kanal, atrybucja in sorted(atrybucje.items()):
-        meta.append((f"atrybucja_{kanal}", atrybucja))
+        meta.append((f"atrybucja_{kanal}", ATRYBUCJA_POKAZU if pokaz else atrybucja))
     return meta
 
 

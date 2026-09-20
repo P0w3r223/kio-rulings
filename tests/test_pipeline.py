@@ -906,3 +906,69 @@ def test_odtworzone_powiazania_zgadzaja_sie_z_tym_co_zapisal_przebieg(tmp_path: 
         assert list(store.iter_run_documents(wynik.run_id)) == pierwotne
         assert store.count_run_documents(wynik.run_id, nowe=True) == 100
         assert store.count_requests(wynik.run_id) == 102
+
+
+# --- sufit zgody: zgoda dotyczy liczby, którą operator zobaczył (przegląd kodu fazy 3) ---------
+
+
+def _serwer_mylacy_sie_co_do_rozmiaru() -> Serwer:
+    """Kanał zgłasza `total = 5`, a oddaje trzy strony po sto rekordów.
+
+    Nie potrzeba do tego złośliwego serwisu: dokładność `total` Atlasu nie jest zmierzona
+    (pomiar 24 czeka na pierwszy przebieg kwartalny), a zakres może urosnąć między wyceną
+    a końcem przebiegu.
+    """
+    pierwsza = dict(LISTA)
+    pierwsza[LICZNIK] = 5
+    rekordy: list[dict[str, object]] = list(LISTA[KLUCZ])
+    return Serwer(
+        strony=[
+            json.dumps(pierwsza).encode(),
+            strona(rekordy, ma_wiecej=True, total=5),
+            strona(rekordy, ma_wiecej=False, total=5),
+        ]
+    )
+
+
+def test_zgoda_pod_wycena_nie_zdejmuje_progu_na_caly_przebieg(store: Store) -> None:
+    """Enter pod tabelą „5 żądań" nie jest zgodą na 103 żądania.
+
+    Przed poprawką werdykt `zgoda` ustawiał wyłącznie `stan.jest`, więc `_wymagaj_zgody`
+    wychodziło natychmiast — także z bramki przed ponowieniem (ADR-0007 Z-9). Zmierzone
+    na tej atrapie: wycena 5 żądań, wysłane 103 przy `PROG_ZGODY = 50`.
+    """
+    serwer = _serwer_mylacy_sie_co_do_rozmiaru()
+    pokazane: list[pipeline.Wycena] = []
+
+    def decyzja(wycena: pipeline.Wycena) -> pipeline.Werdykt:
+        pokazane.append(wycena)
+        return "zgoda"
+
+    with pytest.raises(ConsentMissingError) as blad:
+        pipeline.pobierz(
+            "atlas",
+            KRYTERIA,
+            store,
+            NullEvents(),
+            zgoda=False,
+            decyzja=decyzja,
+            user_agent=UA_TESTOWY,
+            klient_factory=partial(build_http_client, transport=httpx.MockTransport(serwer)),
+            zegar=ZegarTestowy(),
+        )
+
+    proby = max(KONTRAKT.ponowienia.proby, KONTRAKT.ponowienia.proby_429)
+    sufit = (pokazane[0].zadan or 0) + pokazane[0].zadan_juz
+    assert pokazane[0].zadan == 5, "operator zobaczył liczbę kanału, nie prawdę"
+    assert len(serwer.zadania) <= sufit * proby
+    assert str(sufit) in str(blad.value) and str(sufit * proby) in str(blad.value), (
+        "zdanie ma wymienić obie liczby: wycenę i sufit"
+    )
+    assert store.get_run(store.list_runs(1)[0].run_id).status == "przerwany"
+
+
+def test_przebieg_zgodny_z_wycena_przechodzi_pod_sufitem(store: Store) -> None:
+    """Sufit nie może zatrzymywać przebiegu, który mieści się w tym, co pokazała tabela."""
+    wynik = uruchom(store, Serwer())
+
+    assert (wynik.status, wynik.zadan) == ("zakonczony", 102)

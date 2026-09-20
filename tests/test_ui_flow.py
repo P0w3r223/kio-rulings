@@ -47,6 +47,7 @@ class Akcje:
     przebiegi: Sequence[tuple[str, str]] = ()
     blad: Exception | None = None
     prog_zgody: int = 50
+    trafien: int = 3
     czas_pokazu: Callable[[float], float] | None = None
     pobrania: list[Criteria] = field(default_factory=list)
     werdykty: list[str] = field(default_factory=list)
@@ -75,8 +76,9 @@ class Akcje:
         self.werdykty.append(decyzja(self.wycena))
         return WynikPobrania(run_id, 10)
 
-    def szukaj(self, kryteria: Criteria) -> None:
+    def szukaj(self, kryteria: Criteria) -> int:
         self.szukane.append(kryteria)
+        return self.trafien
 
     def eksportuj(
         self, *, run_ids: tuple[str, ...], kryteria: Criteria | None, format: str

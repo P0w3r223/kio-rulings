@@ -3,7 +3,29 @@
 Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej. Nowe repozytorium,
 wzorce przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 
-## Stan na 2026-09-19 (gałąź `feat/finalizacja-faz-2-3`)
+## Stan na 2026-09-20 (gałąź `feat/finalizacja-faz-2-3`, PR #1)
+
+**Przegląd kodu fazy 3 wykonany** (`decisions.md`, „Przegląd kodu fazy 3"); wszystkie znaleziska
+naniesione. Co zmienia zastane odruchy:
+
+- **Zgoda ma sufit, nie wyłącznik** (ADR-0008 §12.1). Werdykt `zgoda` wiąże przebieg z liczbą
+  z tabeli kosztów: `(wycena + już wysłane) × proby` z bloku `ponowienia`. Dotyczy **także**
+  `--zgoda` na ścieżce flag. Przekroczenie = przebieg `przerwany` ze zdaniem, wznowienie liczy
+  koszt od nowa. Zmierzone przed naprawą: 103 żądania po Enterze pod tabelą mówiącą „5".
+- **`PARSE_VERSION` ma 3 i ma obserwatora.** `tests/test_wersja_odczytu.py` trzyma odcisk
+  SHA-256 źródeł odczytu (`parser/`, `docid.py`, `odczyt.py`); zmiana bez podniesienia wersji
+  zapala test. Korpus operatora przeliczony (443 wersje, 0 żądań), raport
+  `docs/raporty/pokrycie_2026-09-20.*`.
+- **Sufit 800 linii ma strażnika** (`test_boundaries.py`): `store.py` (1 466) i `pipeline.py`
+  (971) mają wpis z pomiarem i **nie mają prawa urosnąć**; nowy moduł ponad sufitem zapala test.
+  Rozbicie obu to dług fazy 4.
+- Arkusz `Metadane` eksportu pokazowego nie przypisuje już rekordów KIO ani Atlasowi; numer
+  sprawy połączonej w korpusie pokazowym pochodzi z puli wolnych numerów.
+
+Bramka fazy 3 §10 pkt 4 dostała obserwatora dopiero teraz — `pobierz` z flag drukował tabelę
+kosztów, ale żaden test tego nie oglądał.
+
+### Stan na 2026-09-19 (gałąź `feat/finalizacja-faz-2-3`)
 
 **ADR-0006, ADR-0007 i ADR-0008 przyjęte 2026-09-19; fazy 2 i 3 zbudowane, czekają na przyjęcie
 właściciela** (fazę kończy przyjęcie, nie zielona suita). Co jest nowe, w kolejności warstw:
@@ -13,7 +35,7 @@ właściciela** (fazę kończy przyjęcie, nie zielona suita). Co jest nowe, w k
   każdym ponowieniem, `requests_log.proba` (schemat 5).
 - **Faza 2 (ADR-0006):** `parser/{clean,sections,cite,provisions}.py`, `odczyt.py` (parser →
   wiersze magazynu), schemat 6 (`sections`, `citations`, `provisions` — offsety w oryginale,
-  `zrodlo` `tresc|kanal`, przepis z ustawą z treści, nigdy z daty), `PARSE_VERSION` 2,
+  `zrodlo` `tresc|kanal`, przepis z ustawą z treści, nigdy z daty), `PARSE_VERSION` 2 (dziś 3),
   `pokrycie.py` + polecenie `pokrycie` (raport w `docs/raporty/`, `--zloty` z kodem 1 przy
   rozbieżności), złoty zbiór `tests/gold/` — **wyłącznie sekcje**, 17 dokumentów (ADR-0006 §10.1).
 - **Faza 3 (ADR-0008):** `wycena.py` + `Decyzja` w punkcie zgody (tabela kosztów bez dodatkowego
@@ -31,7 +53,7 @@ schematu 6 leży obok bazy (`korpus.sqlite.przed-schematem-6-20260919`).
 właściciel sam); luka „`Retry-After` przy 5xx nie przeżywa `wznow`" (ADR-0007 §8.1); postaci
 sygnatur nierozpoznane w pomiarze 22 (`KIO/KD`, rok czterocyfrowy przy KIO, sam numer).
 
-### Stan na 2026-09-18 (historia)
+#### Stan na 2026-09-18 (historia)
 
 **Bramka fazy 0 zamknięta 2026-09-18: pomiary 3a i 23 wykonane (5 żądań), ADR-0004 i ADR-0001
 przyjęte, pierwszym adapterem jest `atlas`. Bramka fazy 1 spełniona tego samego dnia:

@@ -11,6 +11,7 @@ kontraktu, tylko szybciej, a tabela kosztów drukuje czas **produkcyjny** obok c
 
 from __future__ import annotations
 
+import math
 import os
 import time
 from dataclasses import dataclass
@@ -79,14 +80,23 @@ def wczytaj_wzorce() -> Wzorce:
         etykiety_przepisow=tuple(
             (e["etykieta"], int(e["liczba"])) for e in dane["etykiety_przepisow"]
         ),
+        ustawy_pzp=dict(dane["ustawy_pzp"]),
     )
 
 
 def tempo_ze_srodowiska() -> float:
+    """Tempo pokazu ze środowiska; każda wartość spoza liczb skończonych wraca do domyślnej.
+
+    `float("nan")` przechodzi przez `float()` bez wyjątku, a `min(max(nan, 1.0), 50.0)` zwraca
+    `nan` — pierwszy postój limitera wywracał wtedy pokaz na `ValueError: Invalid value NaN`
+    w środku ścieżki (przegląd kodu fazy 3, 2026-09-20). Śmieć odrzucany przez `float()` łapał
+    się już wcześniej; ten nie jest śmieciem dla `float()`, tylko dla zegara.
+    """
     try:
-        return float(os.environ.get(TEMPO_ENV, TEMPO_DOMYSLNE))
+        tempo = float(os.environ.get(TEMPO_ENV, TEMPO_DOMYSLNE))
     except ValueError:
         return TEMPO_DOMYSLNE
+    return tempo if math.isfinite(tempo) else TEMPO_DOMYSLNE
 
 
 def zbuduj_pokaz(

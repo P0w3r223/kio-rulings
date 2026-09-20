@@ -57,6 +57,13 @@ odstepstwa:
     powod: >-
       Korpus ma medianę 11 416 znaków i maksimum 355 527 (pomiar 5); pokaz generuje uzasadnienia
       rzędu kilku tysięcy znaków, bo pokaz ma przejść w minutę, a długość nie zmienia ścieżki.
+  - cecha: rodzaj_postanowienia
+    powod: >-
+      Korpus ma 218 postanowień z 443 (49,2 %; `rodzaje` we wzorcach), pokaz wychodzi na 43,5 %,
+      bo rodzaj jest **wyprowadzany** z rozstrzygnięcia (umorzenie i odrzucenie to postanowienia),
+      a nie losowany osobno. Wyprowadzanie jest wierniejsze wobec rejestru niż zgodny udział
+      przy niespójnych parach, więc zostaje różnica 5,7 pkt proc. Zapisana 2026-09-20 po
+      przeglądzie kodu fazy 3, bo do tej pory nie była zapisana nigdzie.
   - cecha: rozjazd_daty_rozprawy
     powod: >-
       9 z 295 rekordów ma datę wydania wcześniejszą niż rozprawy (Jakość pól Atlasu); pokaz tego

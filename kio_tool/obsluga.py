@@ -18,6 +18,7 @@ from typing import Protocol
 from . import pipeline
 from .clock import Clock
 from .config import user_agent
+from .console import PulsKonsoli
 from .criteria import Criteria
 from .errors import ConfigError
 from .progress import Events
@@ -100,8 +101,9 @@ def raport_przebiegu(view: Widok, wynik: pipeline.Podsumowanie, baza: Path) -> N
     )
 
 
-def pokaz_wyszukanie(view: Widok, store: Store, kryteria: Criteria, *, limit: int) -> None:
-    """Tabela trafień z liczbami nad nią — ta sama po `szukaj` i w kreatorze."""
+def pokaz_wyszukanie(view: Widok, store: Store, kryteria: Criteria, *, limit: int) -> int:
+    """Tabela trafień z liczbami nad nią — ta sama po `szukaj` i w kreatorze. Zwraca liczbę
+    trafień, bo kreator proponuje eksport tylko wtedy, gdy jest co eksportować."""
     wynik = pipeline.szukaj(store, kryteria, limit=limit)
     for ostrzezenie in kryteria.ostrzezenia():
         view.warning(texts.uwaga(ostrzezenie))
@@ -114,7 +116,7 @@ def pokaz_wyszukanie(view: Widok, store: Store, kryteria: Criteria, *, limit: in
                 bez_daty=wynik.bez_daty_poza_filtrem,
             )
         )
-        return
+        return 0
     wiersze = tuple(
         (
             t.sygnatura or t.source_ref,
@@ -134,6 +136,7 @@ def pokaz_wyszukanie(view: Widok, store: Store, kryteria: Criteria, *, limit: in
             bez_daty_poza_filtrem=wynik.bez_daty_poza_filtrem,
         )
     )
+    return wynik.trafien
 
 
 class AkcjeKreatora:
@@ -212,8 +215,8 @@ class AkcjeKreatora:
         raport_przebiegu(self._view, wynik, self._sciezka)
         return WynikPobrania(wynik.run_id, wynik.objetych_lacznie)
 
-    def szukaj(self, kryteria: Criteria) -> None:
-        pokaz_wyszukanie(self._view, self._store, kryteria, limit=self._limit)
+    def szukaj(self, kryteria: Criteria) -> int:
+        return pokaz_wyszukanie(self._view, self._store, kryteria, limit=self._limit)
 
     def eksportuj(
         self, *, run_ids: tuple[str, ...], kryteria: Criteria | None, format: str
@@ -230,6 +233,4 @@ class AkcjeKreatora:
         )
 
     def _puls(self) -> Events:
-        from .console import PulsKonsoli
-
         return PulsKonsoli()

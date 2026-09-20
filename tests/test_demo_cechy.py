@@ -25,6 +25,11 @@ CECHY = yaml.safe_load(
     (Path(__file__).resolve().parent / "fixtures" / "cechy_atlasu.yaml").read_text(encoding="utf-8")
 )
 KORPUS = generuj(wczytaj_wzorce())
+WZORCE = yaml.safe_load(
+    (Path(__file__).resolve().parent.parent / "kio_tool" / "demo" / "wzorce.yaml").read_text(
+        encoding="utf-8"
+    )
+)
 
 POMIARY: dict[str, Callable[[DokumentPokazowy], bool]] = {
     "wysuw_strony": lambda d: "\f" in d.tresc,
@@ -69,3 +74,28 @@ def test_parser_fazy_2_widzi_w_pokazie_komplet_sekcji() -> None:
     rodzaje = [{s.rodzaj for s in segmentuj(d.tresc)} for d in KORPUS]
     komplet = {"naglowek", "sentencja", "pouczenie", "uzasadnienie"}
     assert sum(komplet <= r for r in rodzaje) == len(KORPUS)
+
+
+def test_kazde_odstepstwo_ma_powod_zapisany_zdaniem() -> None:
+    """Odstępstwo bez powodu jest różnicą, o której nikt nie zdecydował."""
+    odstepstwa = CECHY["odstepstwa"]
+
+    assert odstepstwa
+    for wpis in odstepstwa:
+        assert {"cecha", "powod"} <= set(wpis), wpis
+        assert len(str(wpis["powod"]).split()) >= 15, wpis["cecha"]
+
+
+def test_udzial_postanowien_rozjezdza_sie_z_pomiarem_dokladnie_o_zapisane_odstepstwo() -> None:
+    """`rodzaje` we wzorcach jest liczbą zmierzoną, a pokaz wyprowadza rodzaj z rozstrzygnięcia.
+
+    Różnica jest zamierzona i zapisana w `odstepstwa`; ten test pilnuje, żeby nie urosła po
+    cichu — i jest jedynym czytelnikiem klucza `rodzaje`, który bez niego byłby liczbą
+    wygenerowaną i nieprzeczytaną przez nikogo (przegląd kodu fazy 3, 2026-09-20).
+    """
+    rodzaje = WZORCE["rodzaje"]
+    zmierzony = rodzaje["postanowienie"] / sum(rodzaje.values())
+    pokazowy = sum(d.rodzaj == "postanowienie" for d in KORPUS) / len(KORPUS)
+
+    assert abs(zmierzony - pokazowy) <= 0.08, f"pokaz {pokazowy:.3f}, zmierzone {zmierzony:.3f}"
+    assert any(o["cecha"] == "rodzaj_postanowienia" for o in CECHY["odstepstwa"])

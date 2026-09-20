@@ -88,7 +88,10 @@ przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o
 **Kreator** (ADR-0008) prowadzi przez pobranie, wznowienie, wyszukiwanie i eksport bez znajomości
 poleceń. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
 najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to około trzech dób, nie godzina) —
-i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Kanał, który nic nie zwrócił, kończy się
+i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Zgoda dotyczy **tej liczby**:
+przebieg, który wyszedłby poza wycenę (kanał pomylił się co do rozmiaru zakresu albo zakres
+urósł), zatrzymuje się ze zdaniem wymieniającym obie liczby i czeka na wznowienie, które policzy
+koszt od nowa — to samo obowiązuje `--zgoda` na ścieżce flag. Kanał, który nic nie zwrócił, kończy się
 propozycją zdjęcia jednego filtra, a nie powrotem do menu bez słowa.
 
 **Tryb pokazowy** działa w dniu klonu: bez `KIO_TOOL_CONTACT`, bez klucza, bez żadnego żądania do

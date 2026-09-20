@@ -37,7 +37,7 @@ from kio_tool.demo import (
 from kio_tool.demo.atlas import AtlasPokazowy
 from kio_tool.demo.korpus import ZNACZNIK_TRESCI, DokumentPokazowy, generuj
 from kio_tool.docid import SourceName
-from kio_tool.errors import StoreError
+from kio_tool.errors import ConfigError, StoreError
 from kio_tool.exporter import (
     ARKUSZ_METADANE,
     ARKUSZ_ORZECZENIA,
@@ -500,3 +500,37 @@ def test_rekord_atrapy_niesie_pole_demo_i_znacznik_w_pierwszym_wierszu_tresci() 
         tresc = rekord[KONTRAKT.ksztalt.dokument.pole_tresci]
         assert rekord["demo"] is True
         assert isinstance(tresc, str) and tresc.splitlines()[0] == ZNACZNIK_TRESCI
+
+
+def test_tempo_spoza_liczb_skonczonych_wraca_do_domyslnego(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`nan` nie jest śmieciem dla `float()`, tylko dla zegara.
+
+    `min(max(nan, 1.0), 50.0)` zwraca `nan`, a pierwszy postój limitera wywracał wtedy pokaz
+    na `ValueError: Invalid value NaN` w środku ścieżki (przegląd kodu fazy 3, 2026-09-20).
+    """
+    for wartosc in ("nan", "-nan", "NaN"):
+        monkeypatch.setenv(TEMPO_ENV, wartosc)
+        assert tempo_ze_srodowiska() == TEMPO_DOMYSLNE
+    monkeypatch.setenv(TEMPO_ENV, "inf")
+    assert tempo_ze_srodowiska() == TEMPO_DOMYSLNE
+
+
+def test_bledna_konfiguracja_pokazu_konczy_sie_zdaniem_i_kodem_3(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`zbuduj_pokaz` stał **przed** obsługą błędów, więc `ConfigError` wychodził śladem stosu.
+
+    Ścieżka jest realna: brak `demo/wzorce.yaml` w instalacji daje dokładnie ten scenariusz,
+    a `demo` jest poleceniem „w dniu klonu" u kogoś, kto projektu nie zna.
+    """
+
+    def wybuch() -> None:
+        raise ConfigError("wzorce pokazu nie do odczytania")
+
+    monkeypatch.setattr(cli, "zbuduj_pokaz", wybuch)
+    wynik = CliRunner().invoke(cli.app, ["demo"])
+
+    assert wynik.exit_code == 3, wynik.output
+    assert "wzorce pokazu nie do odczytania" in wynik.output

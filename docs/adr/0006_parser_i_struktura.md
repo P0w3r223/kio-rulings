@@ -287,3 +287,20 @@ ostrzeżeniem". Suita pytest nie ma korpusu (leży poza repozytorium), więc tę
 `kio-tool pokrycie --zloty tests/gold` — od 2026-09-19 kończy się **kodem 1**, gdy którakolwiek
 adnotacja jest rozbieżna albo niesprawdzona, i **kodem 3**, gdy katalogu nie ma. Raport jest wtedy
 zapisany mimo to: rozbieżność jest wynikiem, nie awarią.
+
+### 10.2 Poprawka po przeglądzie kodu fazy 3 (2026-09-20): `PARSE_VERSION` dostaje obserwatora
+
+Z-10 mówi „jedna wersja odczytu na pakiet, podnoszona przy każdej zmianie parsera", a 2026-09-19
+`docid.znajdz_sygnatury` zaczęło skracać rok czterocyfrowy do dwucyfrowego przy tej samej
+`PARSE_VERSION = 2`. Zmiana bez podniesienia wersji jest cicha z definicji: `przelicz` bez
+`--wszystko` bierze wersje **starsze** niż bieżąca, więc nie ma czego przeliczyć, korpus zostaje
+z wynikiem sprzed zmiany, a powód zmiany (pięć par rozdzielonych spraw) nie jest na nim osiągnięty.
+
+Dwie rzeczy z tego wynikają. `PARSE_VERSION` ma dziś **3**, a korpus operatora został przeliczony
+(443 wersje, 0 żądań) — po przeliczeniu liczby raportu pokrycia są identyczne co do cytowania,
+bo ta baza była już przeliczona po tamtej zmianie ręcznie; obserwatora zabrakło, nie danych.
+I druga: `tests/test_wersja_odczytu.py` trzyma **odcisk SHA-256 źródeł odczytu** (`parser/`,
+`docid.py`, `odczyt.py`). Zmiana źródeł bez ruszenia wersji zapala test, a reakcja jest jedna
+z dwóch — podnieś wersję albo wpisz nowy odcisk z powodem, dla którego wynik się nie zmienia.
+Odcisk zapala się także przy zmianie komentarza i to jest cena przyjęta świadomie: alternatywą
+jest cisza, a wynik da się policzyć tylko na korpusie, który leży poza repozytorium.

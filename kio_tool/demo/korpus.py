@@ -71,8 +71,6 @@ UDZIAL_ROZSTRZELONEGO = 88 / 341
 """Nagłówek rozstrzelony spacjami — 88 z 341 dokumentów (pomiar 5, 2026-09-19)."""
 UDZIAL_CYTOWAN = 194 / 443
 """Dokumenty z cytowaniami — 194 z 443 (pomiar 22, 2026-09-19)."""
-UDZIAL_PELNEGO_TYTULU = 327 / 443
-"""Dokumenty nazywające ustawę Pzp pełnym tytułem (258 + 69 z 443, 2026-09-19)."""
 UDZIAL_WIELU_SYGNATUR = 17 / 295
 """Dokumenty z więcej niż jedną sygnaturą — 16 × 2 i 1 × 3 z 295 (pomiar 17, dopełnienie)."""
 UDZIAL_ROKU_POPRZEDNIEGO = 186 / 295
@@ -86,6 +84,18 @@ class Wzorce:
 
     rozstrzygniecia: Mapping[str, int]
     etykiety_przepisow: Sequence[tuple[str, int]]
+    ustawy_pzp: Mapping[str, int]
+    """Rozkład ustaw rozpoznanych w treści. Stała `UDZIAL_PELNEGO_TYTULU = 327 / 443` stała
+    tu do przeglądu kodu fazy 3 (2026-09-20) i przepisywała ręcznie sumę dwóch liczb z tego
+    właśnie pola — po odtworzeniu wzorców z innej bazy rozjechałaby się po cichu, bo nic
+    nie porównywało jej ze źródłem."""
+
+    @property
+    def udzial_pelnego_tytulu(self) -> float:
+        """Udział dokumentów nazywających Pzp pełnym tytułem: ustawa rozpoznana z treści."""
+        razem = sum(self.ustawy_pzp.values())
+        rozpoznane = razem - self.ustawy_pzp.get("nieustalone", 0)
+        return rozpoznane / razem if razem else 0.0
 
 
 @dataclass(frozen=True)
@@ -131,10 +141,26 @@ def generuj(
     los = random.Random(ziarno)
     dni = dni_robocze(od, do)
     numery = los.sample(range(NUMER_OD, NUMER_DO + 1), k=len(dni) * na_dzien)
+    # Numery wolne, czyli takie, które nie są niczyją sygnaturą główną: stąd bierze numer
+    # sprawa połączona. Dopisane po przeglądzie kodu fazy 3 (2026-09-20) — doklejanie
+    # `numer + 1` bez patrzenia na pulę dawało 7 z 384 dokumentów, których druga sygnatura
+    # była główną sygnaturą innego dokumentu. W rejestrze numery sprawy połączonej należą
+    # do tej jednej sprawy, więc pokaz uczył własności, której źródło nie ma (mina 4).
+    wolne = sorted(set(range(NUMER_OD, NUMER_DO + 1)) - set(numery))
     dokumenty: list[DokumentPokazowy] = []
     for i, numer in enumerate(numery):
-        dokumenty.append(_dokument(los, wzorce, numer, dni[i // na_dzien], dokumenty))
+        dokumenty.append(_dokument(los, wzorce, numer, dni[i // na_dzien], dokumenty, wolne))
     return tuple(dokumenty)
+
+
+def _wolny_po(numer: int, wolne: list[int]) -> int | None:
+    """Najbliższy numer powyżej `numer`, którego nikt nie ma za sygnaturę główną.
+
+    Zwykle jest to `numer + 1` — sprawy połączone mają w rejestrze numery kolejne — a gdy ten
+    numer jest już czyjąś sygnaturą, następny wolny. `None` znaczy, że pula się skończyła:
+    dokument zostaje wtedy z jedną sygnaturą, bo lepszy mniejszy udział spraw połączonych
+    niż dwa dokumenty o tej samej sygnaturze."""
+    return next((n for n in wolne if n > numer), None)
 
 
 def _dokument(
@@ -143,6 +169,7 @@ def _dokument(
     numer: int,
     dzien: date,
     poprzednie: Sequence[DokumentPokazowy],
+    wolne: list[int],
 ) -> DokumentPokazowy:
     rok = (
         dzien.year - 1
@@ -151,8 +178,11 @@ def _dokument(
     )
     glowna = f"KIO {numer}/{rok % 100:02d}"
     sygnatury = [glowna]
-    if los.random() < UDZIAL_WIELU_SYGNATUR and numer < NUMER_DO:
-        sygnatury.append(f"KIO {numer + 1}/{rok % 100:02d}")
+    if los.random() < UDZIAL_WIELU_SYGNATUR:
+        drugi = _wolny_po(numer, wolne)
+        if drugi is not None:
+            wolne.remove(drugi)
+            sygnatury.append(f"KIO {drugi}/{rok % 100:02d}")
     rozstrzygniecie = _wybierz(los, wzorce.rozstrzygniecia)
     rodzaj = "postanowienie" if rozstrzygniecie in ("umorzono", "odrzucono") else "wyrok"
     przepisy = _przepisy(los, wzorce)
@@ -166,7 +196,16 @@ def _dokument(
     osoby = (los.choice(PRZEWODNICZACY), los.choice(PROTOKOLANCI))
     strony = (los.choice(ODWOLUJACY), los.choice(ZAMAWIAJACY))
     tresc = _tresc(
-        los, sygnatury, rodzaj, rozstrzygniecie, dzien, osoby, strony, przepisy, cytowane
+        los,
+        sygnatury,
+        rodzaj,
+        rozstrzygniecie,
+        dzien,
+        osoby,
+        strony,
+        przepisy,
+        cytowane,
+        wzorce.udzial_pelnego_tytulu,
     )
     slug = f"kio-{numer}-{rok % 100:02d}"
     return DokumentPokazowy(
@@ -211,6 +250,7 @@ def _tresc(
     strony: tuple[str, str],
     przepisy: Sequence[str],
     cytowane: Sequence[str],
+    udzial_pelnego_tytulu: float,
 ) -> str:
     """Treść w kształcie orzeczenia po ekstrakcji z PDF-a — kotwice z pomiaru 5, cechy PDF-a."""
     naglowek = "POSTANOWIENIE" if rodzaj == "postanowienie" else "WYROK"
@@ -218,7 +258,7 @@ def _tresc(
     tytul = "Uz as adnienie" if los.random() < UDZIAL_ROZSTRZELONEGO else "Uzasadnienie"
     ustawa = (
         "ustawy z dnia 11 września 2019 r. – Prawo zamówień publicznych"
-        if los.random() < UDZIAL_PELNEGO_TYTULU
+        if los.random() < udzial_pelnego_tytulu
         else "ustawy Pzp"
     )
     haslo = los.choice(HASLA)

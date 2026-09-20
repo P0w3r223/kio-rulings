@@ -687,3 +687,44 @@ def test_pokrycie_z_rozbieznym_zlotym_zbiorem_zapala_kod_wyjscia(
     )
     assert wynik.exit_code == 1, wynik.output
     assert any(cel.glob("*.md")), "raport zapisany mimo rozbieżności"
+
+
+def test_pobierz_z_flag_drukuje_tabele_kosztow_przed_pierwszym_dokumentem(
+    baza: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bramka fazy 3, ADR-0008 §10 pkt 4 — do przeglądu kodu fazy 3 nie miała obserwatora.
+
+    Asercje są dwie, bo kryterium jest dwuczęściowe: tabela pada **przed** pierwszym żądaniem
+    o dokument (stąd podgląd licznika dokumentów atrapy w chwili jej składania) i liczba żądań
+    przebiegu jest taka jak przed ADR-0008 (dwie strony listy i sto dokumentów).
+    """
+    serwer = Serwer()
+    podstaw(monkeypatch, serwer)
+    dokumentow_przy_tabeli: list[int] = []
+    oryginal = texts.tabela_kosztow
+
+    def podglad(*args: object, **kwargs: object) -> object:
+        dokumentow_przy_tabeli.append(serwer.dokumentow)
+        return oryginal(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(texts, "tabela_kosztow", podglad)
+
+    kod, wyjscie = pobierz(baza, "--zgoda")
+
+    assert kod == 0, wyjscie
+    assert dokumentow_przy_tabeli == [0], "dokładnie jedna wycena, przed pierwszym dokumentem"
+    assert "Koszt przebiegu" in wyjscie
+    assert len(serwer.zadania) == 102, "ADR-0008 nie dokłada żądań"
+
+
+def test_kreator_bez_wejscia_konczy_zdaniem_z_texts_a_nie_cudzym_slowem(baza: Path) -> None:
+    """Koniec wejścia to przerwanie operatora, tylko innym klawiszem niż Ctrl+C.
+
+    Kreator poza terminalem spada na `input()`; `EOFError` przechwytywał click i kończył
+    angielskim „Aborted." z kodem 1 (przegląd kodu fazy 3, 2026-09-20).
+    """
+    wynik = runner.invoke(app, ["kreator", "--baza", str(baza)], input="")
+
+    assert wynik.exit_code == KOD_WYJSCIA_PRZERWANIE, wynik.output
+    assert "Aborted" not in wynik.output
+    assert texts.PRZERWANE.split(".")[0] in wynik.output
