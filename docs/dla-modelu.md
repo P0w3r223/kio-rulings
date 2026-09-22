@@ -201,8 +201,9 @@ zapisuj klucza w repozytorium, w poleceniu ani w pliku konfiguracyjnym w drzewie
 jest potrzebny, poproś operatora, żeby ustawił zmienną — nie ustawiaj jej za niego i nie wypisuj
 jej wartości.
 
-Przy 1 s odstępu 443 orzeczenia to około ośmiu minut pracy maszyny. Cała dotychczasowa historia
-projektu to 464 żądania.
+Przy 1 s odstępu 443 orzeczenia to około ośmiu minut pracy maszyny. Zbudowanie tego korpusu od
+zera kosztowało 464 żądania (Przebieg 3, 2026-09-19); `kio-tool runy` pokazuje, ile wysłano
+na bieżącej maszynie.
 
 ## 8. Jak odpowiadać na podstawie tego korpusu
 

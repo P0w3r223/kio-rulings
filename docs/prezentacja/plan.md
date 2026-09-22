@@ -124,7 +124,7 @@ Stan na 2026-09-20, wersja odczytu 6.
 | Rozkład cytowań | KIO 1 279 · SO 165 · SN 99 · TSUE 60 · KIO bez repertorium 29 · inne 26 · SA 19 · WSA 12 · NSA 12 · UZP ZO 7 | `citations.rodzaj` |
 | Przepisów | 16 834 | `provisions` |
 | Rozkład aktów | Pzp 2019 — 7 849 · **nieustalone — 5 233 (31,1 %)** · Pzp 2004 — 2 529 · kc 591 · inne 554 · rozporządzenie 52 · kpc 26 | `provisions.akt` |
-| Żądań sieciowych wykonanych **przez cały projekt** | 464 | `requests_log`, wszystkie przebiegi |
+| Żądań na zbudowanie korpusu 443 od zera | 464 | Przebieg 3, `requests_log` tamtej bazy — **nie** cały projekt: poza nim Przebiegi 1–2, pomiary sondą, pomiar 26 i Przebieg 4 (2026-09-22: baza tej maszyny ma 475 żądań w 26 przebiegach) |
 | Przebiegów | 19 | `runs` |
 | Złoty zbiór | 17 dokumentów, 68 granic sekcji, 91 cytowań, 226 postaci przepisów — **potwierdzone przez właściciela 2026-09-20** | `tests/gold/*.json`, pole `przeglad` |
 | Dług zadeklarowany | `store.py` 1 466 linii i `pipeline.py` 971 przy sufitze 800 — wpis z pomiarem, bez prawa wzrostu | `tests/test_boundaries.py` |
