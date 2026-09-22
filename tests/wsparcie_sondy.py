@@ -44,7 +44,7 @@ import importlib
 import os
 import pkgutil
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
@@ -394,6 +394,27 @@ def przekieruj_domyslne_sciezki(monkeypatch: pytest.MonkeyPatch, katalog: Path) 
             if getattr(modul, nazwa, None) is oryginal:
                 monkeypatch.setattr(modul, nazwa, zamienniki[nazwa])
                 podstawione.append(f"{modul.__name__}.{nazwa}")
+    return tuple(podstawione)
+
+
+def podstaw_fabryke_klienta(
+    monkeypatch: pytest.MonkeyPatch, fabryka: Callable[..., httpx.Client]
+) -> tuple[str, ...]:
+    """Podstawia `build_http_client` w **każdym** module pakietu potoku, który go trzyma.
+
+    ADR-0009 Z-3 i Z-6: fasada `kio_tool.pipeline` tej nazwy celowo nie wystawia, bo podstawienie
+    na fasadzie byłoby bez skutku — `pobierz` czyta fabrykę z globali `pobieranie.py`. Zakres
+    „cały pakiet potoku" jest dokładnie dawnym zakresem „cały moduł `pipeline.py`", więc fabryka
+    zabroniona w testach operacji bez sieci pilnuje tyle samo co przed rozbiciem, także gdyby
+    `lokalne.py` kiedyś zaimportował fabrykę. Dopasowanie po nazwie, nie po tożsamości: fixture
+    `korpus` w `test_cli` podstawia dwa razy. Pusty wynik jest błędem, nie zielonym testem.
+    """
+    podstawione: list[str] = []
+    for modul in moduly_kio_tool():
+        if modul.__name__.startswith("kio_tool.pipeline") and hasattr(modul, "build_http_client"):
+            monkeypatch.setattr(modul, "build_http_client", fabryka)
+            podstawione.append(modul.__name__)
+    assert podstawione, "żaden moduł potoku nie trzyma `build_http_client` — podstawienie puste"
     return tuple(podstawione)
 
 

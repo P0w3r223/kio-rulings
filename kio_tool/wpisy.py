@@ -6,9 +6,9 @@ a trafienie wyszukiwania niosło tylko sygnaturę i fragment: od trafienia do ź
 wyłącznie droga przez eksport. Blok ma być **ten sam**, nie podobny, więc oba wyjścia budują go
 jedną funkcją (`exporter.blok_atrybucji`) z jednego `Wpis`, a ten powstaje wyłącznie tutaj.
 
-`pipeline.py` stoi ponad sufitem 800 linii z zakazem wzrostu (`test_boundaries.PONAD_SUFITEM`),
-więc dopisanie tam nowej drogi nie wchodziło w grę; wydzielenie jest przy tym szwem prawdziwym —
-odczyt rekordu kanału na strukturę eksportu nie należy do orkiestracji przebiegu.
+`pipeline.py` stał wtedy ponad sufitem 800 linii z zakazem wzrostu (`PONAD_SUFITEM`; od ADR-0009
+jest pakietem), więc dopisanie tam nowej drogi nie wchodziło w grę; wydzielenie jest przy tym
+szwem prawdziwym — odczyt rekordu kanału na strukturę eksportu nie należy do orkiestracji przebiegu.
 
 Moduł zna kontrakt kanału i **nie zna bazy** (reguła 5: sieć i bazę naraz widzi tylko
 `pipeline`). Dokument przychodzi jako `DokumentSurowy` — kształt, który `store.Dokument` spełnia

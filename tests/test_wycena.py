@@ -29,7 +29,7 @@ from tests.test_odpornosc_wspolne import (
     jedyny_przebieg,
     store,
 )
-from tests.wsparcie_sondy import UA_TESTOWY, ZegarTestowy
+from tests.wsparcie_sondy import UA_TESTOWY, ZegarTestowy, podstaw_fabryke_klienta
 
 __all__ = ["_bez_klucza_ze_srodowiska", "store"]
 
@@ -170,7 +170,7 @@ def test_produkcja_buduje_klienta_bez_podstawionego_transportu(
         wywolania.append(kwargs)
         raise StopError
 
-    monkeypatch.setattr(pipeline, "build_http_client", szpieg)
+    podstaw_fabryke_klienta(monkeypatch, szpieg)
     with pytest.raises(StopError):
         pipeline.pobierz("atlas", KRYTERIA, store, zgoda=False, user_agent=UA_TESTOWY)
     assert wywolania and "transport" not in wywolania[0]

@@ -306,12 +306,13 @@ def test_zaden_modul_nie_zostal_z_prawdziwa_domyslna_sciezka(nazwa: str) -> None
 
 def test_przekierowane_sciezki_prowadza_do_piaskownicy_tego_testu(tmp_path: Path) -> None:
     """Widziane z wnętrza dowolnego testu i przez te same nazwy, których używa produkcja:
-    `cli.default_db_path` przy poleceniu bez `--baza`, `pipeline.default_output_dir` przy
-    eksporcie bez `--out`."""
-    from kio_tool import cli, pipeline
+    `cli.default_db_path` przy poleceniu bez `--baza`, `pipeline.lokalne.default_output_dir`
+    przy eksporcie bez `--out` (od ADR-0009 szew mieszka w module, który go czyta)."""
+    from kio_tool import cli
+    from kio_tool.pipeline import lokalne
 
     assert tmp_path in cli.default_db_path().parents
-    assert tmp_path in pipeline.default_output_dir().parents
+    assert tmp_path in lokalne.default_output_dir().parents
 
 
 def test_przekierowanie_obejmuje_miejsca_uzycia_nie_tylko_modul_config(
@@ -319,19 +320,21 @@ def test_przekierowanie_obejmuje_miejsca_uzycia_nie_tylko_modul_config(
 ) -> None:
     """Sedno przekierowania, zmierzone na cofniętej piaskownicy.
 
-    Podstawienie samego `kio_tool.config` **nie działa**: `cli.py` i `pipeline.py` mają własne
-    nazwy z `from .config import …`, związane przy imporcie. Test przywraca oryginały w czterech
-    miejscach, każe piaskownicy przekierować je jeszcze raz i pyta o wynik po nazwach modułów —
+    Podstawienie samego `kio_tool.config` **nie działa**: `cli.py` i `pipeline/lokalne.py` mają
+    własne nazwy z `from .config import …`, związane przy imporcie. Test przywraca oryginały
+    w czterech miejscach, każe piaskownicy przekierować je jeszcze raz i pyta o wynik po nazwach
+    modułów —
     więc przekierowanie zawężone kiedyś do `config` zapali się tutaj, zamiast po cichu wypuścić
     polecenia do katalogu operatora.
     """
-    from kio_tool import cli, config, pipeline
+    from kio_tool import cli, config
+    from kio_tool.pipeline import lokalne
 
     miejsca = (
         (config, "default_db_path"),
         (config, "default_output_dir"),
         (cli, "default_db_path"),
-        (pipeline, "default_output_dir"),
+        (lokalne, "default_output_dir"),
     )
     for modul, nazwa in miejsca:
         monkeypatch.setattr(modul, nazwa, wsparcie.ORYGINALNE_SCIEZKI[nazwa])
@@ -340,7 +343,7 @@ def test_przekierowanie_obejmuje_miejsca_uzycia_nie_tylko_modul_config(
 
     assert set(podstawione) == {f"{m.__name__}.{n}" for m, n in miejsca}
     assert cli.default_db_path().parent == tmp_path / "drugie"
-    assert pipeline.default_output_dir().parent == tmp_path / "drugie"
+    assert lokalne.default_output_dir().parent == tmp_path / "drugie"
 
 
 # --- fixture: czy porównanie stanu wciąż jest w jej ciele -----------------------------------

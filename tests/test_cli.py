@@ -18,7 +18,7 @@ import pytest
 from typer import rich_utils
 from typer.testing import CliRunner
 
-from kio_tool import cli, pipeline
+from kio_tool import cli
 from kio_tool.cli import app
 from kio_tool.config import CONTACT_ENV, default_db_path, default_output_dir
 from kio_tool.errors import KOD_WYJSCIA_PRZERWANIE
@@ -27,7 +27,7 @@ from kio_tool.httpclient import build_http_client
 from kio_tool.ui import texts
 from tests.test_pipeline import KLUCZ, KONTRAKT, LISTA, MA_WIECEJ, Serwer, strona
 from tests.test_store import baza_schematu_1
-from tests.wsparcie_sondy import ZegarTestowy
+from tests.wsparcie_sondy import ZegarTestowy, podstaw_fabryke_klienta
 
 POLECENIA = ("pobierz", "wznow", "eksportuj", "runy", "przelicz", "szukaj")
 
@@ -80,9 +80,8 @@ def baza(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def podstaw(monkeypatch: pytest.MonkeyPatch, serwer: Serwer) -> None:
-    monkeypatch.setattr(
-        pipeline,
-        "build_http_client",
+    podstaw_fabryke_klienta(
+        monkeypatch,
         partial(build_http_client, transport=httpx.MockTransport(serwer)),
     )
 
@@ -405,7 +404,7 @@ def korpus(baza: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> tuple
     def zabroniona(**_: object) -> httpx.Client:
         raise AssertionError("polecenie bez sieci zbudowało klienta HTTP")
 
-    monkeypatch.setattr(pipeline, "build_http_client", zabroniona)
+    podstaw_fabryke_klienta(monkeypatch, zabroniona)
     return baza, run_id
 
 

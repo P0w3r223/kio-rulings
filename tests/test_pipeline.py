@@ -30,10 +30,11 @@ from kio_tool.criteria import Criteria
 from kio_tool.docid import SourceName
 from kio_tool.errors import ConfigError, ConsentMissingError, RateLimitError
 from kio_tool.httpclient import build_http_client
+from kio_tool.pipeline import lokalne
 from kio_tool.progress import NullEvents
 from kio_tool.source.contract import load_contract
 from kio_tool.store import Store
-from tests.wsparcie_sondy import UA_TESTOWY, ZegarTestowy
+from tests.wsparcie_sondy import UA_TESTOWY, ZegarTestowy, podstaw_fabryke_klienta
 
 ZLOTE = Path(__file__).resolve().parent / "examples" / "atlas"
 LISTA_BAJTY = (ZLOTE / "lista_20260918T103525Z.json").read_bytes()
@@ -651,7 +652,7 @@ def bez_sieci(monkeypatch: pytest.MonkeyPatch) -> None:
     def zabroniona(**_: object) -> httpx.Client:
         raise AssertionError("operacja bez sieci zbudowała klienta HTTP")
 
-    monkeypatch.setattr(pipeline, "build_http_client", zabroniona)
+    podstaw_fabryke_klienta(monkeypatch, zabroniona)
 
 
 def test_pobierz_indeksuje_dokumenty_w_tej_samej_transakcji(store: Store) -> None:
@@ -779,7 +780,7 @@ def test_nazwa_eksportu_z_kryteriow_nie_niesie_znakow_sciezki_ani_dwukropka(
 
     (sciezka,) = wynik.sciezki
     assert wynik.dokumentow == 2 and sciezka.is_file()
-    assert sciezka.parent == pipeline.default_output_dir(), (
+    assert sciezka.parent == lokalne.default_output_dir(), (
         "eksport bez `--out` ma trafić do domyślnego katalogu wyników (w teście: do piaskownicy)"
     )
     assert "/" not in sciezka.name and "\\" not in sciezka.name and ":" not in sciezka.name

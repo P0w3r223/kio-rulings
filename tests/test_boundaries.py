@@ -260,6 +260,13 @@ def pliki_pakietu() -> tuple[Path, ...]:
     return moduly_py(PAKIET)
 
 
+PLIK_SIEC_Z_BAZA = "kio_tool/pipeline/pobieranie.py"
+"""Jedyny moduł łączący sieć z bazą (reguła 5). Od 2026-09-22 (ADR-0009) potok jest pakietem,
+a reguła trzyma **równość z jednym plikiem**, nie „niepusty podzbiór `pipeline/`" — podzbiór
+przepuściłby drugi moduł potoku z drugą ścieżką od żądania do zapisu, czyli dokładnie to, czego
+ta reguła zakazuje."""
+
+
 def pliki_store() -> tuple[Path, ...]:
     """Reguły 3 i 4: pakiet `store/`, **rekursywnie** — ta sama lekcja co reguła 2 z ADR-0003 §4.
 
@@ -384,7 +391,8 @@ def test_regula_4_kanaly_i_baza_nie_rysuja() -> None:
 def test_regula_5_tylko_pipeline_widzi_naraz_siec_i_baze() -> None:
     """Reguła 5 — ta, na której stoi wznawianie.
 
-    Równość, nie zawieranie — od etapu III (2026-09-18), kiedy `pipeline.py` powstał. Do tego
+    Równość, nie zawieranie — od etapu III (2026-09-18), kiedy `pipeline.py` powstał; od
+    2026-09-22 równość z `PLIK_SIEC_Z_BAZA` wewnątrz pakietu `pipeline/` (ADR-0009). Do tego
     dnia stało tu zawieranie z powodu z ADR-0003 5.4: równość byłaby czerwona przy pustym
     drzewie. Teraz pilnuje obu kierunków: że drugiego takiego modułu nie ma **i** że ten jeden
     nadal łączy sieć z bazą — gdyby przestał, wznawianie działoby się gdzie indziej albo nigdzie.
@@ -395,7 +403,7 @@ def test_regula_5_tylko_pipeline_widzi_naraz_siec_i_baze() -> None:
         if {"source", "store"} <= package_targets(path)
     }
 
-    assert obaj == {"kio_tool/pipeline.py"}, (
+    assert obaj == {PLIK_SIEC_Z_BAZA}, (
         f"drugi moduł łączący sieć z bazą: {sorted(obaj)}. Druga ścieżka od żądania do zapisu "
         "to drugi checkpoint do pogodzenia — a niezmiennik „rekordy strony i checkpoint jedną "
         "transakcją” żyje tylko dopóki wszystko idzie przez `pipeline`."
@@ -1923,7 +1931,7 @@ REGULY: tuple[Regula, ...] = (
         ("kio_tool/source/**/*.py", "kio_tool/store/**/*.py"),
         lambda: wzgledne((*pliki_source(), *pliki_store())),
     ),
-    Regula(5, ("kio_tool/pipeline.py",), lambda: wzgledne(pliki_pakietu())),
+    Regula(5, ("kio_tool/pipeline/**/*.py",), lambda: wzgledne(pliki_pakietu())),
     Regula(
         6,
         (
@@ -2157,7 +2165,7 @@ def test_metatest_regula_w_stanie_wyzwalacza_nie_ma_jeszcze_plikow() -> None:
 WLASCICIELE_OBOWIAZKOWE: dict[int, str] = {
     3: "kio_tool/store/__init__.py",
     4: "kio_tool/store/__init__.py",
-    5: "kio_tool/pipeline.py",
+    5: PLIK_SIEC_Z_BAZA,
 }
 """Pliki, które **muszą** leżeć w skanie swojej reguły (ADR-0009 Z-4.1). Lista obowiązków, nie
 wyjątków: każdy wpis czyni regułę ostrzejszą. Metatest wyżej łapie „właściciel jest, a skan go
@@ -2475,12 +2483,10 @@ def test_regula_7_pytajacy_naprawde_zna_questionary() -> None:
 SUFIT_LINII = 800
 """Sufit z zasad projektu („pliki 200–400 linii typowo, 800 maksimum")."""
 
-PONAD_SUFITEM: dict[str, int] = {
-    "pipeline.py": 921,
-}
-"""Moduły, które sufit przekraczają dziś, z **pomiarem** jako granicą: `store.py` z 2026-09-20,
-`pipeline.py` z 2026-09-22 (971 → 921 po wydzieleniu `wpisy.py` — granica idzie za pomiarem
-w dół, żeby odzyskane linie nie wróciły po cichu).
+PONAD_SUFITEM: dict[str, int] = {}
+"""Moduły, które sufit przekraczają dziś, z **pomiarem** jako granicą. Pusta od 2026-09-22:
+`store.py` (1 466) i `pipeline.py` (971 → 921) rozbite na pakiety (ADR-0009, O-5 zamknięte).
+Wpis wraca wyłącznie z decyzją i pomiarem — nowy moduł ponad sufitem zapala test niżej.
 
 Do przeglądu kodu fazy 3 sufit żył wyłącznie w prozie: docstring `obsluga.py` powoływał się
 na niego jako na powód własnego wydzielenia, a dwa moduły stały ponad nim i nic tego nie

@@ -35,7 +35,7 @@ from kio_tool.httpclient import build_http_client
 from kio_tool.store import Store
 from kio_tool.ui import texts
 from tests.test_pipeline import KLUCZ, LISTA, Serwer, strona
-from tests.wsparcie_sondy import ZegarTestowy
+from tests.wsparcie_sondy import ZegarTestowy, podstaw_fabryke_klienta
 
 runner = CliRunner()
 ZAKRES = ("--od", "2024-01-01", "--do", "2024-01-31")
@@ -54,9 +54,8 @@ def _srodowisko_operatora(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def podstaw(monkeypatch: pytest.MonkeyPatch, serwer: Serwer) -> None:
-    monkeypatch.setattr(
-        pipeline,
-        "build_http_client",
+    podstaw_fabryke_klienta(
+        monkeypatch,
         partial(build_http_client, transport=httpx.MockTransport(serwer)),
     )
 
@@ -79,7 +78,7 @@ def korpus(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         app, ["pobierz", *ZAKRES, "--baza", str(baza), "--out", str(tmp_path / "pierwszy")]
     )
     assert wynik.exit_code == 0, wynik.output
-    monkeypatch.setattr(pipeline, "build_http_client", _bez_sieci)
+    podstaw_fabryke_klienta(monkeypatch, _bez_sieci)
     return baza
 
 
