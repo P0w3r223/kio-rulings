@@ -119,3 +119,10 @@ def _wiersz_pulsu(konsola: Console, tekst: str) -> None:
 # Bez tego przypisania dopisanie metody do protokołu `Events` nie zapaliłoby tu niczego —
 # ten sam powód, dla którego linia stoi w `kio_tool/progress.py`.
 _ZGODNOSC_Z_PROTOKOLEM: Events = PulsKonsoli()
+
+
+def puls_dla(*, maszynowo: bool) -> PulsKonsoli:
+    """Puls na stdout dla człowieka, na stderr pod `--json` — stdout niesie wtedy wyłącznie linie
+    JSON, a puls nadal jest widoczny (cisza jest usterką, 2026-09-22). Funkcja, nie metoda:
+    `test_console` pilnuje, że każda metoda `PulsKonsoli` jest zdarzeniem z obserwatorem."""
+    return PulsKonsoli(_KONSOLA_BLEDOW if maszynowo else None)

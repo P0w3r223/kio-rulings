@@ -31,6 +31,8 @@ class ConsoleView:
         self.bledy = bledy or make_console(stderr=True)
 
     def block(self, block: Block) -> None:
+        if block.tylko_maszynowo:
+            return
         tytul = safe_or_none(block.title)
         if block.headers:
             naglowki = [Column(header=safe(h), overflow="fold") for h in block.headers]

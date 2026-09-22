@@ -111,6 +111,25 @@ def raport_przebiegu(view: Widok, wynik: pipeline.Podsumowanie, baza: Path) -> N
             ponowien_lacznie=wynik.ponowien_lacznie,
         )
     )
+    view.block(
+        texts.blok_przebiegu(
+            run_id=wynik.run_id,
+            status=wynik.status,
+            liczby=(
+                ("kandydatow", wynik.kandydatow),
+                ("nowych", wynik.nowych),
+                ("pominietych", wynik.pominietych),
+                ("zadan", wynik.zadan),
+                ("zgloszone", wynik.zgloszone),
+                ("objetych_lacznie", wynik.objetych_lacznie),
+                ("pobranych_lacznie", wynik.pobranych_lacznie),
+                ("zadan_lacznie", wynik.zadan_lacznie),
+                ("bledow_odczytu", wynik.bledow_odczytu),
+                ("brakujacych", wynik.brakujacych),
+                ("ponowien_lacznie", wynik.ponowien_lacznie),
+            ),
+        )
+    )
 
 
 def pokaz_wyszukanie(

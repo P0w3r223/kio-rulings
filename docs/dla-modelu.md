@@ -14,7 +14,9 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 1. **Sieć tylko ze zgodą.** `pobierz` i `wznow` wysyłają żądania do cudzego serwisu. Przebieg
    powyżej 50 żądań wymaga `--zgoda`, a tę może dać wyłącznie operator w bieżącej sesji. Nie
    dodawaj `--zgoda` sam, nie obchodź progu podnoszeniem `--maks` ani ponawianiem polecenia.
-   Najpierw sprawdź `szukaj`, czy materiału nie ma już w korpusie.
+   Najpierw sprawdź `szukaj`, czy materiału nie ma już w korpusie. Przed prośbą o zgodę
+   zmierz koszt: `pobierz … --wycena --json` (jedno żądanie, zero dokumentów) i podaj
+   operatorowi liczbę żądań i czas z bloku „Koszt przebiegu”.
 2. **Każde twierdzenie z orzeczenia podpieraj źródłem** — sygnaturą, datą i najlepiej polem
    `cytowanie` z wyniku. Podawaj liczbę trafień i wielkość korpusu („7 z 443”), nie samo
    „znalazłem”.
@@ -37,12 +39,12 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 |---|---|---|---|
 | `szukaj --fraza "…"` | fraza dosłownie w pełnym tekście, z filtrami | nie | tak |
 | `czytaj <sygnatura\|doc_id>` | jedno orzeczenie: metadane, cytowanie, mapa sekcji, treść (`--sekcja`, `--bez-tresci`) | nie | tak |
-| `eksportuj` | pliki `xlsx`, `csv`, `jsonl`, `md` (`--format`, `--out`) | nie | — |
+| `eksportuj` | pliki `xlsx`, `csv`, `jsonl`, `md` (`--format`, `--out`) | nie | tak |
 | `runy` | ostatnie przebiegi: status, zakres, liczby (`--status`, `--limit`) | nie | tak |
 | `przelicz` | ponowny odczyt z zapisanych bajtów (`--wszystko`) | nie | tak |
 | `pokrycie` | raport jakości odczytu (`--cel`, `--zloty tests/gold`) | nie | tak |
-| `pobierz` | pobranie według kryteriów (`--maks`, `--zgoda`); na końcu eksport | **tak** | — |
-| `wznow` | dokończenie przerwanego przebiegu (`--run-id`) | **tak** | — |
+| `pobierz` | pobranie według kryteriów (`--maks`, `--zgoda`, `--wycena`); na końcu eksport | **tak** | tak |
+| `wznow` | dokończenie przerwanego przebiegu (`--run-id`, `--zgoda`) | **tak** | tak |
 
 Wywołuj polecenia z flagami; `kio-tool` bez polecenia to kreator dla człowieka. `--baza`
 wskazuje inny plik bazy.
@@ -69,6 +71,14 @@ kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
   w całości). Puste `url_zrodla` i `cytowanie` naraz: wersji nie dało się odczytać, trafienie
   jest prawdziwe, źródło ustal po `doc_id`.
 - Liczbę trafień bez listy daje `szukaj … --json --limit 1`.
+- `pobierz`, `wznow`, `eksportuj` z `--json`: blok „Koszt przebiegu” (`liczby`: `dokumentow`,
+  `stron_listy`, `zadan`, `zadan_juz`, `czas_s`, `prog_zgody`, `wymaga_zgody` 0/1), blok
+  „Przebieg” (`wiersze`: `run_id`, `status`; `liczby`: `kandydatow`, `nowych`, `pominietych`,
+  `zadan` i sumy `*_lacznie`) i blok „Eksport zapisany” (`wiersze` z kluczem `plik` — ścieżki;
+  `liczby`: `dokumentow`, `bez_daty_poza_filtrem`). Puls przebiegu idzie wtedy na stderr.
+- `pobierz … --wycena`: kod 0, przebieg zostaje `przerwany`. Po zgodzie operatora wywołaj
+  **to samo polecenie** z `--zgoda` zamiast `--wycena` — wznowi ten przebieg, nie założy nowego.
+  `--wycena` z `--zgoda` naraz → kod 3.
 - Bez `--json` tabela w potoku łamie wartości na 80 znakach — nie parsuj jej.
 
 ### Jedno orzeczenie: `czytaj`

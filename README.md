@@ -41,6 +41,7 @@ bez bloku cytowania).
 Z aktywnym `.venv` (`.venv\Scripts\activate`), inaczej `.venv\Scripts\kio-tool.exe`:
 
 ```
+kio-tool pobierz --od 2024-02-01 --do 2024-02-29 --wycena --json
 kio-tool pobierz --od 2024-02-01 --do 2024-02-29 --zgoda
 kio-tool wznow
 kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
@@ -65,7 +66,8 @@ kio-tool pokrycie --zloty tests/gold
 Filtry wspólne dla `pobierz`, `szukaj` i `eksportuj`: `--od`, `--do`, `--fraza`,
 `--rozstrzygniecie`, `--rodzaj`, `--przepis`, `--przewodniczacy`, `--strona`. W `pobierz`
 `--fraza` trafia do wyszukiwarki Atlasu, która dopasowuje sygnaturę, nie treść — treść
-przeszukuje lokalnie `szukaj`. `szukaj`, `czytaj`, `runy`, `przelicz` i `pokrycie` przyjmują `--json`.
+przeszukuje lokalnie `szukaj`. Wszystkie polecenia poza kreatorem i pokazem przyjmują `--json`; `pobierz --wycena` podaje sam koszt
+(jedna strona listy, zero dokumentów).
 
 Kody wyjścia: 0 — wykonane, 1 — błąd, 2 — przebieg do wznowienia (albo błąd składni polecenia),
 3 — konfiguracja, brak zgody albo zły parametr, 130 — Ctrl+C.

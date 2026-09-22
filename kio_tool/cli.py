@@ -32,10 +32,10 @@ from .config import (
     katalog_pokazu,
     user_agent,
 )
-from .console import PulsKonsoli
+from .console import PulsKonsoli, puls_dla
 from .criteria import Criteria, bledy_po_polsku
 from .demo import Pokaz, zbuduj_pokaz
-from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, KioError
+from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, ConsentMissingError, KioError
 from .exporter import FORMATY
 from .parser.details import PARSE_VERSION
 from .parser.sections import RODZAJE_SEKCJI
@@ -88,6 +88,7 @@ OpcjaWszystko = Annotated[bool, typer.Option("--wszystko", help=texts.POMOC_WSZY
 ArgumentKlucz = Annotated[str, typer.Argument(help=texts.POMOC_KLUCZ, show_default=False)]
 OpcjaSekcja = Annotated[list[str] | None, typer.Option("--sekcja", help=texts.POMOC_SEKCJA)]
 OpcjaBezTresci = Annotated[bool, typer.Option("--bez-tresci", help=texts.POMOC_BEZ_TRESCI)]
+OpcjaWycena = Annotated[bool, typer.Option("--wycena", help=texts.POMOC_WYCENA)]
 
 FORMAT_DOMYSLNY = ",".join(pipeline.FORMATY_DOMYSLNE)
 LIMIT_RUNOW = 20
@@ -197,13 +198,19 @@ def _limit(limit: int) -> int:
     return limit
 
 
-def _decyzja_flag(zgoda: bool) -> pipeline.Decyzja:
-    """Ścieżka flag: tabela kosztów zawsze na ekranie, werdykt z `--zgoda` (ADR-0008 Z-6)."""
+def _decyzja_flag(
+    zgoda: bool, widok: obsluga.Widok, *, tylko_wycena: bool = False
+) -> pipeline.Decyzja:
+    """Ścieżka flag: tabela kosztów zawsze na ekranie, werdykt z `--zgoda` (ADR-0008 Z-6).
+
+    `--wycena` odmawia po tabeli — ta sama droga co odmowa w kreatorze: przebieg `przerwany`,
+    zero żądań o dokument, wznowienie tym samym poleceniem z `--zgoda` (2026-09-22).
+    """
     polityka = pipeline.decyzja_z_flagi(zgoda)
 
     def decyzja(wycena: Wycena) -> pipeline.Werdykt:
-        view.block(texts.tabela_kosztow(wycena, prog_zgody=pipeline.PROG_ZGODY))
-        return polityka(wycena)
+        widok.block(texts.tabela_kosztow(wycena, prog_zgody=pipeline.PROG_ZGODY))
+        return "odmowa" if tylko_wycena else polityka(wycena)
 
     return decyzja
 
@@ -302,8 +309,13 @@ def pobierz(
     baza: OpcjaBaza = None,
     kanal: OpcjaKanal = KANAL_DOMYSLNY,
     zgoda: OpcjaZgoda = False,
+    wycena: OpcjaWycena = False,
+    maszynowo: OpcjaJson = False,
 ) -> None:
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
+        if wycena and zgoda:
+            raise ConfigError(texts.WYCENA_I_ZGODA)
         kryteria = _kryteria(
             od=od,
             do=do,
@@ -324,26 +336,34 @@ def pobierz(
         # (`tests/test_cli.py`). Drugi `SystemClock()` w `pipeline` dawał testowi CLI prawdziwe
         # `time.sleep(1.0)` na każde ze stu żądań atrapy.
         zegar = SystemClock()
-        view.message(texts.start_przebiegu(kanal, kryteria.describe(), str(sciezka), tozsamosc))
+        wy.message(texts.start_przebiegu(kanal, kryteria.describe(), str(sciezka), tozsamosc))
         for ostrzezenie in kryteria.ostrzezenia():
-            view.warning(texts.uwaga(ostrzezenie))
-        with _otworz_baze(sciezka, zegar) as store:
-            wynik = pipeline.pobierz(
-                kanal,
-                kryteria,
-                store,
-                PulsKonsoli(),
-                zgoda=zgoda,
-                user_agent=tozsamosc,
-                decyzja=_decyzja_flag(zgoda),
-                zegar=zegar,
-            )
-            obsluga.raport_przebiegu(view, wynik, sciezka)
+            wy.warning(texts.uwaga(ostrzezenie))
+        with _otworz_baze(sciezka, zegar, wy) as store:
+            try:
+                wynik = pipeline.pobierz(
+                    kanal,
+                    kryteria,
+                    store,
+                    puls_dla(maszynowo=maszynowo),
+                    zgoda=zgoda,
+                    user_agent=tozsamosc,
+                    decyzja=_decyzja_flag(zgoda, wy, tylko_wycena=wycena),
+                    zegar=zegar,
+                )
+            except ConsentMissingError as blad:
+                if not (wycena and str(blad) == pipeline.ODMOWA_PO_WYCENIE):
+                    raise
+                wy.message(texts.WYCENA_GOTOWA)
+                return
+            obsluga.raport_przebiegu(wy, wynik, sciezka)
             if wynik.objetych_lacznie == 0:
-                view.block(texts.zero_kandydatow(kryteria))
+                wy.block(texts.zero_kandydatow(kryteria))
+                return
+            if wycena:
                 return
             obsluga.eksport_i_raport(
-                view,
+                wy,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -362,33 +382,33 @@ def wznow(
     cel: OpcjaCel = None,
     baza: OpcjaBaza = None,
     zgoda: OpcjaZgoda = False,
+    maszynowo: OpcjaJson = False,
 ) -> None:
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         formaty = _formaty(format)
         tozsamosc = user_agent()
         sciezka = baza or default_db_path()
         zegar = SystemClock()
-        with _otworz_baze(sciezka, zegar) as store:
+        with _otworz_baze(sciezka, zegar, wy) as store:
             wybrany, kryteria = pipeline.do_wznowienia(store, run_id)
             przebieg = store.get_run(wybrany)
-            view.message(
-                texts.wznawiam(wybrany, kryteria.describe(), przebieg.ostatnia_strona or 1)
-            )
-            view.message(
+            wy.message(texts.wznawiam(wybrany, kryteria.describe(), przebieg.ostatnia_strona or 1))
+            wy.message(
                 texts.start_przebiegu(przebieg.kanal, kryteria.describe(), str(sciezka), tozsamosc)
             )
             wynik = pipeline.wznow(
                 store,
                 wybrany,
-                PulsKonsoli(),
+                puls_dla(maszynowo=maszynowo),
                 zgoda=zgoda,
                 user_agent=tozsamosc,
-                decyzja=_decyzja_flag(zgoda),
+                decyzja=_decyzja_flag(zgoda, wy),
                 zegar=zegar,
             )
-            obsluga.raport_przebiegu(view, wynik, sciezka)
+            obsluga.raport_przebiegu(wy, wynik, sciezka)
             obsluga.eksport_i_raport(
-                view,
+                wy,
                 store,
                 run_ids=(wynik.run_id,),
                 kryteria=None,
@@ -414,8 +434,10 @@ def eksportuj(
     out: OpcjaOut = None,
     cel: OpcjaCel = None,
     baza: OpcjaBaza = None,
+    maszynowo: OpcjaJson = False,
 ) -> None:
-    with _obsluga_bledow():
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
         formaty = _formaty(format)
         kryteria = _kryteria(
             od=od,
@@ -436,9 +458,9 @@ def eksportuj(
             raise ConfigError(texts.EKSPORT_RUN_I_KRYTERIA)
         sciezka = baza or default_db_path()
         zegar = SystemClock()
-        with _otworz_baze(sciezka, zegar) as store:
+        with _otworz_baze(sciezka, zegar, wy) as store:
             obsluga.eksport_i_raport(
-                view,
+                wy,
                 store,
                 run_ids=run_ids,
                 kryteria=None if run_ids else kryteria,

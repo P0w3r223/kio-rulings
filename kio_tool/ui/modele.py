@@ -59,6 +59,9 @@ class Block:
     przejść od trafienia do źródła bez drugiego polecenia (2026-09-22)."""
     wiersze_maszynowe: tuple[tuple[str, ...], ...] = ()
     odcinki: tuple[Odcinek, ...] = ()
+    tylko_maszynowo: bool = False
+    """Blok wyłącznie dla `--json` — liczby, które człowiek ma już w zdaniu obok (rachunek
+    przebiegu). Konsola go pomija, żeby nie drukować tego samego dwa razy (2026-09-22)."""
     """Tekst ciągły pod tabelą — odcinki orzeczenia w `czytaj`. Konsola drukuje te z treścią,
     wyjście maszynowe oddaje wszystkie (z treścią albo samą długością)."""
 

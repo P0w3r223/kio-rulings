@@ -163,6 +163,31 @@ def wznawiam(run_id: str, kryteria: str, strona: int) -> str:
     return f"Wznawiam przebieg {run_id} ({kryteria}) od strony {strona}."
 
 
+WYCENA_I_ZGODA = (
+    "Podaj `--wycena` albo `--zgoda`, nie oba: wycena pyta o koszt przed zgodą, a zgoda pada "
+    "dopiero po obejrzeniu kosztu."
+)
+WYCENA_GOTOWA = (
+    "Wycena gotowa: wysłano jedną stronę listy, zero żądań o dokument. Przebieg zapisany jako "
+    "przerwany; po zgodzie operatora to samo polecenie z `--zgoda` zamiast `--wycena` go dokończy."
+)
+
+
+def blok_przebiegu(
+    *,
+    run_id: str,
+    status: str,
+    liczby: Sequence[tuple[str, int | None]],
+) -> Block:
+    """Rachunek przebiegu dla programu — te same liczby co w `podsumowanie`, bez zdań wokół."""
+    return Block(
+        title="Przebieg",
+        rows=(("run_id", run_id), ("status", status)),
+        liczby=tuple((nazwa, wartosc) for nazwa, wartosc in liczby if wartosc is not None),
+        tylko_maszynowo=True,
+    )
+
+
 def podsumowanie(
     *,
     run_id: str,
@@ -257,7 +282,12 @@ def blok_eksportu(
             f"Poza filtrem dat zostało {bez_daty_poza_filtrem} dokumentów bez daty wydania — "
             "filtr po dacie ich nie widzi (architektura 4.8)."
         )
-    return Block(title="Eksport zapisany", rows=tuple(wiersze), notes=tuple(uwagi))
+    return Block(
+        title="Eksport zapisany",
+        rows=tuple(wiersze),
+        notes=tuple(uwagi),
+        liczby=(("dokumentow", dokumentow), ("bez_daty_poza_filtrem", bez_daty_poza_filtrem)),
+    )
 
 
 def blok_runow(wiersze: Sequence[tuple[str, ...]], lacznie: int) -> Block:
@@ -313,6 +343,7 @@ def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | No
                 f"Bez liczby z kanału próg zgody pilnuje licznik żądań: bez zgody najwyżej "
                 f"{prog_zgody} żądań.",
             ),
+            liczby=(("prog_zgody", prog_zgody), ("zadan_juz", wycena.zadan_juz)),
         )
     wiersze = [
         ("dokumentów do pobrania (najwyżej)", str(wycena.dokumentow)),
@@ -325,11 +356,25 @@ def tabela_kosztow(wycena: Wycena, *, prog_zgody: int, czas_pokazu_s: float | No
     uwagi = [
         "Liczby są górną granicą: dokument już w bazie nie kosztuje żądania.",
     ]
-    if wycena.zadan + wycena.zadan_juz > prog_zgody:
+    masowy = wycena.zadan + wycena.zadan_juz > prog_zgody
+    if masowy:
         uwagi.append(
             f"To przebieg masowy (ponad {prog_zgody} żądań) — wymaga zgody udzielonej w tej sesji."
         )
-    return Block(title="Koszt przebiegu", rows=tuple(wiersze), notes=tuple(uwagi))
+    return Block(
+        title="Koszt przebiegu",
+        rows=tuple(wiersze),
+        notes=tuple(uwagi),
+        liczby=(
+            ("dokumentow", wycena.dokumentow or 0),
+            ("stron_listy", wycena.stron_listy or 0),
+            ("zadan", wycena.zadan),
+            ("zadan_juz", wycena.zadan_juz),
+            ("czas_s", round(wycena.czas_s or 0.0)),
+            ("prog_zgody", prog_zgody),
+            ("wymaga_zgody", int(masowy)),
+        ),
+    )
 
 
 def blok_pokrycia(

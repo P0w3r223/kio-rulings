@@ -94,6 +94,10 @@ POMOC_SEKCJA = (
     "zdanie_odrebne, nieprzypisane"
 )
 POMOC_BEZ_TRESCI = "bez treści — same metadane i mapa sekcji z długościami"
+POMOC_WYCENA = (
+    "tylko koszt: jedna strona listy, zero żądań o dokument; przebieg zostaje przerwany do "
+    "dokończenia tym samym poleceniem z --zgoda"
+)
 POMOC_JSON = (
     "wynik jako JSON Lines na standardowe wyjście, jeden dokument na wiersz — dla programu, "
     "nie dla oka; tabela dla człowieka bez terminala łamie wartości na 80 znakach"
@@ -137,5 +141,6 @@ __all__ = [
     "POMOC_KLUCZ",
     "POMOC_SEKCJA",
     "POMOC_BEZ_TRESCI",
+    "POMOC_WYCENA",
     "POMOC_JSON",
 ]
