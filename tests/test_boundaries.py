@@ -260,6 +260,16 @@ def pliki_pakietu() -> tuple[Path, ...]:
     return moduly_py(PAKIET)
 
 
+def pliki_store() -> tuple[Path, ...]:
+    """Reguły 3 i 4: pakiet `store/`, **rekursywnie** — ta sama lekcja co reguła 2 z ADR-0003 §4.
+
+    Do 2026-09-22 skan czytał `istniejace("kio_tool/store.py")`; po rozbiciu na pakiet
+    (ADR-0009) dałby pustkę i zielono. Pustkę łapie teraz
+    `test_metatest_warstwa_danych_nie_wraca_do_stanu_wyzwalacza`.
+    """
+    return moduly_py(PAKIET / "store")
+
+
 ROLE_KANALU = frozenset({"masowa", "weryfikacja", "doplyw"})
 """Zamknięta lista ról z reguły 23. Rola spoza listy jest błędem, nie rozszerzeniem."""
 
@@ -345,10 +355,10 @@ def test_regula_2_kanaly_nie_siegaja_do_bazy() -> None:
 
 
 def test_regula_3_baza_nie_chodzi_do_sieci() -> None:
-    """Reguła 3: `store.py` nie importuje `httpx`."""
+    """Reguła 3: żaden moduł pakietu `store/` (rekursywnie) nie importuje `httpx`."""
     naruszenia = {
         path.relative_to(ROOT).as_posix(): sorted(imported_roots(path) & {"httpx"})
-        for path in istniejace("kio_tool/store.py")
+        for path in pliki_store()
         if imported_roots(path) & {"httpx"}
     }
 
@@ -356,12 +366,12 @@ def test_regula_3_baza_nie_chodzi_do_sieci() -> None:
 
 
 def test_regula_4_kanaly_i_baza_nie_rysuja() -> None:
-    """Reguła 4: `source/` (rekursywnie) i `store.py` nie importują `rich`.
+    """Reguła 4: `source/` i `store/` (oba rekursywnie) nie importują `rich`.
 
     Postęp idzie przez protokół `Events` z `kio_tool/progress.py`. Moduł, który rysuje sam,
     wymaga w teście terminala — a `NullEvents` istnieje właśnie po to, żeby nie wymagał.
     """
-    objete = (*pliki_source(), *istniejace("kio_tool/store.py"))
+    objete = (*pliki_source(), *pliki_store())
     naruszenia = {
         path.relative_to(ROOT).as_posix(): sorted(imported_roots(path) & {"rich"})
         for path in objete
@@ -1907,11 +1917,11 @@ REGULY: tuple[Regula, ...] = (
         lambda: wzgledne(pliki_czyste()),
     ),
     Regula(2, ("kio_tool/source/**/*.py",), lambda: wzgledne(pliki_source())),
-    Regula(3, ("kio_tool/store.py",), lambda: wzgledne(istniejace("kio_tool/store.py"))),
+    Regula(3, ("kio_tool/store/**/*.py",), lambda: wzgledne(pliki_store())),
     Regula(
         4,
-        ("kio_tool/source/**/*.py", "kio_tool/store.py"),
-        lambda: wzgledne((*pliki_source(), *istniejace("kio_tool/store.py"))),
+        ("kio_tool/source/**/*.py", "kio_tool/store/**/*.py"),
+        lambda: wzgledne((*pliki_source(), *pliki_store())),
     ),
     Regula(5, ("kio_tool/pipeline.py",), lambda: wzgledne(pliki_pakietu())),
     Regula(
@@ -2026,10 +2036,10 @@ POZA_SKANEM: tuple[PozaSkanem, ...] = (
     ),
     PozaSkanem(
         19,
-        ("kio_tool/store.py",),
+        ("kio_tool/store/__init__.py",),
         "Reguła 19 jest tu **częściowo**: część kontraktowa (`pola_odrzucone:` z powodem "
         "i datą) ma skan wyżej, a część zapisu — bajty w całości, `content_sha256` z tego, co "
-        "zapisano — jest własnością `store.py` i mieszka w `tests/test_store.py`; jego "
+        "zapisano — jest własnością pakietu `store/` i mieszka w `tests/test_store.py`; jego "
         "istnienie sprawdza `test_metatest_regula_19_ma_zywego_strazniska_zapisu`. Sufiks "
         "`-derived` i manifest zbioru od modelu czekają na fazę 4.",
     ),
@@ -2142,6 +2152,25 @@ def test_metatest_regula_w_stanie_wyzwalacza_nie_ma_jeszcze_plikow() -> None:
         f"{next(w.powod for w in POZA_SKANEM if w.numer == numer)}"
         for numer, pliki in sorted(przedwczesne.items())
     )
+
+
+WLASCICIELE_OBOWIAZKOWE: dict[int, str] = {
+    3: "kio_tool/store/__init__.py",
+    4: "kio_tool/store/__init__.py",
+    5: "kio_tool/pipeline.py",
+}
+"""Pliki, które **muszą** leżeć w skanie swojej reguły (ADR-0009 Z-4.1). Lista obowiązków, nie
+wyjątków: każdy wpis czyni regułę ostrzejszą. Metatest wyżej łapie „właściciel jest, a skan go
+nie czyta", ale nie łapie „właściciel zniknął" — a zmiana nazwy `store.py` na pakiet rozbrajała
+reguły 3 i 4 bez jednego czerwonego testu (zmierzone przy rozbiciu 2026-09-22: 1 371 zielonych,
+dwa skany puste). Stan wyzwalacza był uczciwy do etapu III; od 2026-09-18 magazyn i potok są
+częścią narzędzia i nie mają prawa po cichu z niego wypaść."""
+
+
+def test_metatest_warstwa_danych_nie_wraca_do_stanu_wyzwalacza() -> None:
+    skany = {r.numer: r.objete_skanem() for r in REGULY}
+    for numer, plik in WLASCICIELE_OBOWIAZKOWE.items():
+        assert plik in skany[numer], f"reguła {numer}: {plik} nie istnieje albo leży poza skanem"
 
 
 def test_metatest_kazda_regula_granic_ma_w_tym_pliku_swoje_miejsce() -> None:
@@ -2447,7 +2476,6 @@ SUFIT_LINII = 800
 """Sufit z zasad projektu („pliki 200–400 linii typowo, 800 maksimum")."""
 
 PONAD_SUFITEM: dict[str, int] = {
-    "store.py": 1466,
     "pipeline.py": 921,
 }
 """Moduły, które sufit przekraczają dziś, z **pomiarem** jako granicą: `store.py` z 2026-09-20,
@@ -2463,6 +2491,9 @@ jest długiem fazy 4, nie pracą do wciśnięcia w bramkę fazy 3.
 
 
 def test_zaden_modul_nie_przekracza_sufitu_linii() -> None:
+    assert moduly_py(PAKIET), (
+        "skan sufitu nie widzi ani jednego modułu — pusty skan nie jest zielonym"
+    )
     za_duze = {
         str(p.relative_to(PAKIET)): len(p.read_text(encoding="utf-8").splitlines())
         for p in sorted(PAKIET.rglob("*.py"))

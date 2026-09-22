@@ -16,7 +16,7 @@ Trzy bramki mają tu kształt implikacji „jeśli istnieje artefakt kodu, to is
 | Artefakt kodu | Wymagany ADR | Czemu ta kolejność |
 |---|---|---|
 | `source/<kanał>/` | ADR-0004 | kanał nie jest wybrany, więc adapter nie ma czego implementować |
-| `store.py` | ADR-0001 | tożsamość dokumentu przed **pierwszym zapisem do bazy** (audyt 9) |
+| `store/` | ADR-0001 | tożsamość dokumentu przed **pierwszym zapisem do bazy** (audyt 9) |
 | `mcp_server.py` | ADR-0002 | czy treść orzeczenia wolno wysłać do modelu (audyt 12, faza 4) |
 
 Druga kolejność jest strażnikiem miny 1: w CEIDG jeden wpis miał dwie pisownie identyfikatora,
@@ -200,10 +200,12 @@ BRAMKI: tuple[Bramka, ...] = (
         ),
     ),
     Bramka(
-        nazwa="store.py przed ADR-0001",
+        nazwa="store/ przed ADR-0001",
         adr="0001",
-        obecne=_artefakt("kio_tool/store.py"),
-        podrzuc=_podrzuc_plik("kio_tool/store.py"),
+        # Od 2026-09-22 (ADR-0009) magazyn jest pakietem; artefaktem jest jego `__init__.py`,
+        # jak `demo/__init__.py` niżej — stara ścieżka patrzyłaby w miejsce, którego nie ma.
+        obecne=_artefakt("kio_tool/store/__init__.py"),
+        podrzuc=_podrzuc_plik("kio_tool/store/__init__.py"),
         powod=(
             "audyt 9, faza 1: tożsamość dokumentu rozstrzygnięta przed **pierwszym zapisem do "
             "bazy**. To jest strażnik miny 1 — w CEIDG jeden wpis miał dwie pisownie "
@@ -896,10 +898,13 @@ def test_samosprawdzenie_kontrakt_w_pisowni_wielolinijkowej_jest_zarzutem(tmp_pa
     assert pomiary_wejsciowe_bramki(korzen) == {"atlas": frozenset()}
 
 
-NUMERY_ADR_OCZEKIWANE = frozenset({"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008"})
+NUMERY_ADR_OCZEKIWANE = frozenset(
+    {"0001", "0002", "0003", "0004", "0005", "0006", "0007", "0008", "0009"}
+)
 """Numery, o których ten plik coś wie: trzy bramki, ADR-0003 (kształt `source/`), ADR-0005
 (bramka per kanał, 2026-09-18 — zmienia kryterium, po którym ten plik chodzi), ADR-0006
-(faza 2), ADR-0007 (polityka ponowień) i ADR-0008 (faza 3) — trzy ostatnie przyjęte 2026-09-19.
+(faza 2), ADR-0007 (polityka ponowień) i ADR-0008 (faza 3) — trzy przyjęte 2026-09-19 — oraz
+ADR-0009 (`store` i `pipeline` jako pakiety, przyjęty 2026-09-22).
 Numery stały tu od dnia powstania ADR-ów, jeszcze jako `proposed`, żeby duplikat miał strażnika
 od pierwszego dnia, a nie dopiero po przyjęciu — dwa ADR-y powstałe tego samego dnia od dwóch
 architektów sięgnęły po ten sam numer i tylko ten strażnik by to złapał.

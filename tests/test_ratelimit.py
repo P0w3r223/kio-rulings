@@ -1158,10 +1158,13 @@ def test_wyzwalacz_plaster_miesci_sie_pod_dzierzawa_blokady_bazy() -> None:
         # zmienia więc przedmiot: nie „czy `store.py` powstał", tylko „czy powstała w nim blokada
         # bez nazwanego okresu dzierżawy". Blokada bez dzierżawy to dokładnie ta awaria z CEIDG,
         # którą `WAIT_SLICE_S` ma omijać — więc dzień jej dopisania ma być tu czerwony.
-        store = PAKIET / "store.py"
-        if store.exists():
+        # Od 2026-09-22 (ADR-0009) magazyn jest pakietem: warunek `if store.py exists()` po
+        # rozbiciu przestał cokolwiek sprawdzać, więc pakiet jest tu **wymagany**, nie zakładany.
+        pakiet_store = PAKIET / "store"
+        assert pakiet_store.is_dir(), "pakiet `store/` zniknął — ten skan nie ma czego czytać"
+        for store in sorted(pakiet_store.rglob("*.py")):
             assert not _funkcje_blokady(store), (
-                "`store.py` ma blokadę, a skan nie widzi okresu dzierżawy — nazwij stałą tak, "
+                f"`{store.name}` ma blokadę, a skan nie widzi okresu dzierżawy — nazwij stałą tak, "
                 "żeby ten test ją widział (`*LOCK_STALE*`, `*LEASE*`, `*STALE_S*`, `*DZIERZAW*`)"
             )
         return
