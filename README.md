@@ -1,40 +1,12 @@
 # kio-tool
 
-Narzędzie budujące **lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej**:
-pobiera orzeczenia z pełnym tekstem z publicznego API Atlasu Przetargów, zapisuje je w bazie
-SQLite tak, jak przyszły, wyciąga z nich metadane, indeksuje pełny tekst i eksportuje wynik
-do skoroszytu Excel, CSV, JSONL albo katalogu Markdown — zawsze z atrybucją źródła.
+Lokalny, wersjonowany korpus orzecznictwa **Krajowej Izby Odwoławczej**. Pobiera orzeczenia
+z pełnym tekstem z publicznego API Atlasu Przetargów (licencja CC BY 4.0), zapisuje je w SQLite
+dokładnie tak, jak przyszły, rozkłada na sekcje, cytowania i przepisy, szuka bez sieci
+i eksportuje do `xlsx`, `csv`, `jsonl` i `md` — zawsze z atrybucją źródła.
 
-**Status na 2026-09-22: fazy 0–3 przyjęte przez właściciela, narzędzie pracuje.** Pobiera
-z kanału `atlas`, rozkłada każde orzeczenie na sekcje, cytowane wyroki i powołane przepisy,
-szuka bez sieci, prowadzi operatora kreatorem, ma tryb pokazowy i wyjście maszynowe dla modelu
+**Stan na 2026-09-22:** fazy 0–3 przyjęte; kreator, tryb pokazowy, wyjście maszynowe dla modelu
 (`--json`, `docs/dla-modelu.md`). Korpus operatora: 443 orzeczenia z roczników 2010–2026.
-Wykrywania zmian u źródła (`aktualizuj`) i drugiego kanału nie ma — sekcja „Czego narzędzie nie
-robi" niżej.
-
-Dokumenty: `docs/decisions.md` (wyniki i status pomiarów, decyzje właściciela),
-`docs/adr/` (decyzje architektoniczne), `docs/dla-modelu.md` (instrukcja dla modelu obsługującego
-narzędzie), `docs/AUDYT_KIO_ORZECZENIA.md` (stan źródła,
-dopuszczalność, doktryna), `docs/ARCHITEKTURA_KIO_TOOL.md` (architektura, reguły granic,
-polecenia), `docs/raport_przekazania.md` (raport dla nowej osoby), `CLAUDE.md` (fakty
-o projekcie dla Claude Code).
-
-## Po co to powstaje
-
-Orzecznictwo KIO jest publiczne, ale Urząd nie udostępnia do niego żadnego udokumentowanego
-interfejsu programistycznego: jest wyszukiwarka WWW, serwer FTP z archiwum przestał publikować
-30 września 2025 i dziś nie odpowiada, a jedyne API oferuje pośrednik prywatny — Atlas Przetargów,
-który ponowne wykorzystywanie licencjonuje wprost (CC BY 4.0, odczytane u dostawcy 2026-09-18).
-Kto chce policzyć cokolwiek na całości orzecznictwa — a nie przeczytać jedno orzeczenie — nie
-ma dziś czym.
-
-Dla potrzeby „wyszukać i przeczytać" budowa nie ma uzasadnienia: Atlas robi to za darmo, SzuKIO
-i wydawnictwa prawnicze odpłatnie. Sens jest węższy i tylko taki: **programowy dostęp do korpusu
-pod własny potok przetwarzania** — analizy, zestawienia, cytowania, w przyszłości warstwa modelu.
-
-Jednostką nie jest rekord, tylko **dokument**: kilkanaście stron polszczyzny prawniczej ze
-strukturą wewnętrzną, której nie da się sensownie zmieścić w komórce arkusza. Dlatego skoroszyt
-niesie metadane i długość tekstu, a sam tekst leży w bazie, w JSONL i w Markdownie.
 
 ## Instalacja
 
@@ -44,370 +16,120 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pytest
 ```
 
-Wymaga Pythona 3.12. Testy działają przy **zablokowanej sieci** (`--block-network` w konfiguracji
-pytest, egzekwowane na poziomie gniazda) — żaden test nie wysyła żądania do cudzego serwisu.
+Python 3.12. Testy działają przy zablokowanej sieci — żaden nie wysyła żądania na zewnątrz.
 
-## Adres kontaktowy i klucz
-
-Każde żądanie do prawdziwego źródła niesie `User-Agent` z adresem kontaktowym operatora —
-żeby administrator serwisu miał jak napisać, gdy coś pójdzie nie tak. Bez zmiennej
-`KIO_TOOL_CONTACT` klient HTTP się nie zbuduje i to jest odmowa zamierzona, nie usterka.
-Adres trafia wyłącznie do nagłówka; nie zapisuje się go w bazie, plikach wynikowych ani
-w repozytorium.
+Do pobierania wymagany jest adres kontaktowy do nagłówka `User-Agent` (bez niego narzędzie nie
+wyśle żądania); klucz API Atlasu jest opcjonalny i podnosi limit z 1 500 do 5 000 żądań na dobę:
 
 ```
-set KIO_TOOL_CONTACT=twoj@adres          # cmd
-$env:KIO_TOOL_CONTACT = "twoj@adres"     # PowerShell
+set KIO_TOOL_CONTACT=twoj@adres
+set KIO_TOOL_ATLAS_KEY=klucz          # opcjonalnie
 ```
 
-Klucz API Atlasu jest opcjonalny: bez niego pośrednik daje 1500 żądań na dobę na adres IP,
-z kontem 5000 (dokumentacja Atlasu, odczyt 2026-09-18). Klucz podaje się zmienną
-`KIO_TOOL_ATLAS_KEY`; jest maskowany w każdym komunikacie i nigdy nie trafia do bazy.
-
-## Zgoda na przebieg masowy
-
-Pobranie powyżej **50 żądań** wymaga flagi `--zgoda`. Bez niej narzędzie wysyła najwyżej
-kilkadziesiąt żądań, zatrzymuje się na progu, zapisuje przebieg jako `przerwany` i mówi, ile
-dokumentów jest w zakresie — to samo polecenie z `--zgoda` wznawia go od miejsca zatrzymania.
-Zgody nie da się zapisać w konfiguracji: obowiązuje w sesji, w której padła, bo ruch idzie do
-cudzego serwera na cudzy koszt.
-
-Narzędzie samo pilnuje tempa: odstęp co najmniej 1 s między żądaniami, okna 450 żądań na
-minutę i 1400 na dobę (zawężone poniżej limitów pośrednika, bo limit liczy się na adres IP,
-a nie na proces), budżet czytany z nagłówków `X-RateLimit-*`, a po odpowiedzi 429 albo `Retry-After`
-przebieg staje i odczekuje wskazany czas przy wznowieniu. **Narzędzie nie omija zabezpieczeń**:
-przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o tym operatorowi.
-
-## Najprościej: kreator i tryb pokazowy
+## Najprościej
 
 ```
-.venv\Scripts\kio-tool.exe            # na terminalu: kreator — menu, pytania, tabela kosztów
-.venv\Scripts\kio-tool.exe demo       # to samo na fikcyjnym korpusie, bez sieci i bez konfiguracji
-.venv\Scripts\kio-tool.exe demo --od-nowa   # pokaz od pustej bazy (kasuje wyłącznie bazę pokazu)
+.venv\Scripts\kio-tool.exe            # kreator: menu, podpowiedzi, tabela kosztów przed pobraniem
+.venv\Scripts\kio-tool.exe demo       # to samo na korpusie fikcyjnym, bez sieci i konfiguracji
 ```
 
-**Kreator** (ADR-0008) prowadzi przez pobranie, wznowienie, wyszukiwanie i eksport bez znajomości
-poleceń. Pierwszy ekran pokazuje, co masz w bazie i jak się tym steruje; każda pozycja menu mówi,
-co zrobi i czy kosztuje żądania; każde pytanie tekstowe niesie podpowiedź — format daty, przykład
-sygnatury, znaczenie pustej odpowiedzi. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
-najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to kilka dób, nie godzina) —
-i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Zgoda dotyczy **tej liczby**:
-przebieg, który wyszedłby poza wycenę (kanał pomylił się co do rozmiaru zakresu albo zakres
-urósł), zatrzymuje się ze zdaniem wymieniającym obie liczby i czeka na wznowienie, które policzy
-koszt od nowa — to samo obowiązuje `--zgoda` na ścieżce flag. Kanał, który nic nie zwrócił, kończy się
-propozycją zdjęcia jednego filtra, a nie powrotem do menu bez słowa.
-
-**Tryb pokazowy** działa w dniu klonu: bez `KIO_TOOL_CONTACT`, bez klucza, bez żadnego żądania do
-sieci. Korpus jest **generowany** (sygnatury KIO 9000–9999, osoby i strony fikcyjne, adresy
-`pokaz.invalid`), a ścieżka jest ta sama co na danych prawdziwych: tabela kosztów, zgoda, Ctrl+C,
-wznowienie, eksport, wyszukiwanie. Wszystko, co pokaz wytwarza, jest oznaczone: baza ma znacznik
-w pliku i leży w osobnym katalogu, pliki wyniku mają przedrostek `DEMO_`, arkusz `Metadane` wiersz
-`tryb`, a każdy rekord zdanie o fikcji zamiast bloku cytowania — rekord pokazowy wyjęty z pliku nie
-udaje orzeczenia KIO.
+Wszystko, co wytwarza tryb pokazowy, jest oznaczone (osobna baza, przedrostek `DEMO_`, rekordy
+bez bloku cytowania).
 
 ## Użycie
 
+Z aktywnym `.venv` (`.venv\Scripts\activate`), inaczej `.venv\Scripts\kio-tool.exe`:
+
 ```
-.venv\Scripts\python.exe -m kio_tool.cli --help
-.venv\Scripts\python.exe -m kio_tool.cli pobierz --od 2024-02-01 --do 2024-02-29 --zgoda
-.venv\Scripts\python.exe -m kio_tool.cli pobierz --od 2024-01-01 --do 2024-01-31 --zgoda --format xlsx,jsonl,md --cel "analiza kosztów"
-.venv\Scripts\python.exe -m kio_tool.cli pobierz --przepis "art. 226 ust. 1 pkt 5" --maks 40      # bez zgody: najwyżej 50 żądań
-.venv\Scripts\python.exe -m kio_tool.cli wznow                                                   # ostatni przerwany przebieg
-.venv\Scripts\python.exe -m kio_tool.cli wznow --run-id atlas-dd55fb768069 --zgoda
-.venv\Scripts\python.exe -m kio_tool.cli runy --status przerwany
-.venv\Scripts\python.exe -m kio_tool.cli eksportuj --run-id atlas-969ac406dd8f --format csv,md
-.venv\Scripts\python.exe -m kio_tool.cli eksportuj --od 2024-01-01 --do 2024-01-31 --rodzaj wyrok --format xlsx
-.venv\Scripts\python.exe -m kio_tool.cli przelicz                                                # indeks i metadane, zero żądań
-.venv\Scripts\python.exe -m kio_tool.cli szukaj --fraza "odrzuca odwołanie" --rozstrzygniecie oddalono --limit 20
+kio-tool pobierz --od 2024-02-01 --do 2024-02-29 --zgoda
+kio-tool wznow
+kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
+kio-tool eksportuj --od 2024-01-01 --do 2024-01-31 --format xlsx,md
+kio-tool runy
+kio-tool przelicz
+kio-tool pokrycie --zloty tests/gold
 ```
 
-| Polecenie | Co robi | Żądań do sieci |
+| Polecenie | Co robi | Sieć |
 |---|---|---|
-| `pobierz` | według kryteriów pobiera listę z Atlasu, a za każdy dokument, którego nie ma w bazie, jeden rekord z pełnym tekstem; zapisuje surowe bajty, metadane i indeks; na końcu eksportuje i drukuje podsumowanie | strony listy + 1 na nowy dokument |
-| `wznow` | wznawia przerwany przebieg (`--run-id` albo ostatni) od zapisanej strony listy; kryteria bierze z bazy; dokumenty już zapisane pomija bez żądania | tylko brakujące |
-| `eksportuj` | z bazy, bez sieci: dokumenty objęte przebiegiem (`--run-id`, można powtórzyć) **albo** pasujące do kryteriów; obu naraz odmawia | zero |
-| `runy` | ostatnie przebiegi: status, zakres, liczba dokumentów i żądań (`--status`, `--limit`, `--json`) | zero |
-| `przelicz` | przelicza metadane i indeks pełnotekstowy z surowych wersji (`--wszystko` także już przeliczone) — po zmianie odczytu, bez ponownego pobierania; `--json` | zero |
-| `szukaj` | fraza dosłownie w pełnym tekście (FTS5) z filtrami; nad tabelą zawsze: dokumentów w korpusie, zaindeksowanych, trafień; z `--json` każde trafienie niesie `doc_id`, adres źródła (PDF w wyszukiwarce UZP) i blok cytowania | zero |
-| `pokrycie` | raport pokrycia parsera (sekcje, cytowania, przepisy z ustawą, po roczniku z sygnatury) do `docs/raporty/`; z `--zloty tests/gold` sprawdza złoty zbiór i kończy się kodem 1 przy rozbieżności; `--json` | zero |
-| `kreator`, `demo` | kreator nad bazą operatora albo nad bazą pokazową (wyżej) | jak `pobierz` / zero |
+| `pobierz` | lista z Atlasu + jeden rekord z pełnym tekstem za każdy nowy dokument; na końcu eksport | tak |
+| `wznow` | dokończenie przerwanego przebiegu bez duplikatów | tak |
+| `szukaj` | fraza dosłownie w pełnym tekście z filtrami; zawsze z liczbą dokumentów w korpusie i trafień | nie |
+| `eksportuj` | dokumenty przebiegu (`--run-id`) albo pasujące do kryteriów | nie |
+| `runy` | historia przebiegów | nie |
+| `przelicz` | ponowny odczyt z zapisanych bajtów, bez pobierania | nie |
+| `pokrycie` | raport jakości odczytu; `--zloty` sprawdza złoty zbiór | nie |
 
-`pobierz` i `wznow` drukują przed pierwszym dokumentem tę samą tabelę kosztów co kreator; bez
-`--zgoda` obowiązuje dotychczasowy próg. Zerwane łącze, urwana odpowiedź, 5xx i 429 są ponawiane
-przez limiter według bloku `ponowienia` kontraktu (ADR-0007): każde ponowienie ma własny wiersz
-w dzienniku z numerem próby, liczy się do zgody i trafia do podsumowania; trzy żądania z rzędu
-wymagające ponowienia albo `Retry-After` dłuższy niż godzina zatrzymują przebieg ze zdaniem.
+Filtry wspólne dla `pobierz`, `szukaj` i `eksportuj`: `--od`, `--do`, `--fraza`,
+`--rozstrzygniecie`, `--rodzaj`, `--przepis`, `--przewodniczacy`, `--strona`. W `pobierz`
+`--fraza` trafia do wyszukiwarki Atlasu, która dopasowuje sygnaturę, nie treść — treść
+przeszukuje lokalnie `szukaj`. `szukaj`, `runy`, `przelicz` i `pokrycie` przyjmują `--json`.
 
-Kryteria mają własne flagi i działają tak samo w `pobierz`, `eksportuj` i `szukaj`: `--od`/`--do`
-(daty wydania, włącznie), `--fraza`, `--rozstrzygniecie` (oddalono, uwzglednione, umorzono,
-odrzucono, inne — lista zmierzona na stu rekordach, nie udokumentowana), `--rodzaj` (wyrok,
-postanowienie), `--przepis`, `--przewodniczacy`, `--strona` (podnapisy). W `pobierz` filtr idzie
-do wyszukiwarki Atlasu pod nazwą z `contract.yaml` kanału; lokalnie ten sam filtr działa na
-metadanych z bazy. `--maks` ogranicza liczbę kandydatów w przebiegu, `--cel` zapisuje zdanie
-w arkuszu `Metadane` i nigdzie indziej, `--baza` zmienia miejsce bazy. `--out` jest rdzeniem
-nazwy plików wyniku bez rozszerzenia (`--out C:\dane\styczen` daje `styczen.xlsx`); istniejący
-katalog dostaje plik o nazwie domyślnej w środku. Ścieżka `--baza`, której jeszcze nie ma,
-dostaje pustą bazę i zdanie o tym na ekranie — literówka nie wygląda wtedy jak utrata korpusu.
+Kody wyjścia: 0 — wykonane, 1 — błąd, 2 — przebieg do wznowienia (albo błąd składni polecenia),
+3 — konfiguracja, brak zgody albo zły parametr, 130 — Ctrl+C.
 
-Każda pomyłka kończy się zdaniem po polsku i kodem wyjścia: 3 przy błędzie wywołania
-(brak adresu, złe kryteria, literówka w identyfikatorze przebiegu, brak zgody), 2 przy błędzie
-wznawialnym (sieć, serwis), 1 przy pozostałych, 130 po Ctrl+C. Pomyłki w samej składni
-poleceń (`pobież`, `--limitt`) obsługuje biblioteka `typer` — jedyne zdania po angielsku
-w narzędziu, też z kodem 2. Na Windowsie polskie znaki w wyjściu przekierowanym do pliku
-wymagają `set PYTHONUTF8=1`.
+## Zgoda na przebieg masowy
 
-Postęp długiej operacji liczy się w **żądaniach wysłanych i dokumentach zapisanych**, nigdy
-w stronach; postoje limitera i odmowy serwisu są wypisywane, bo program, który milczy, bywa
-zabijany w trakcie poprawnej pracy.
+Powyżej **50 żądań** potrzebna jest flaga `--zgoda`; bez niej przebieg staje na progu jako
+`przerwany`, a to samo polecenie z `--zgoda` go wznawia. Zgoda wiąże się z liczbą z tabeli
+kosztów — przebieg, który by ją przekroczył, zatrzymuje się. Zgody nie da się zapisać
+w konfiguracji.
 
-## Po przerwaniu
+Tempo pilnuje samo narzędzie: co najmniej 1 s między żądaniami, najwyżej 450 na minutę i 1 400 na
+dobę; 429, 5xx i zerwane łącza są ponawiane według kontraktu kanału. **Narzędzie nie omija
+zabezpieczeń** — przy CAPTCHA czy blokadzie zatrzymuje się i mówi o tym.
 
-Przebieg przerwany przez Ctrl+C, brak zgody, błąd sieci albo odmowę serwisu zostaje w bazie ze
-statusem `przerwany`, zapisaną ostatnią stroną listy i powodem. Wznawia go `wznow` albo to samo
-polecenie `pobierz` z tymi samymi kryteriami (rozpoznane po odcisku kryteriów). Dokument, który
-już jest w bazie, nie idzie drugi raz — klucz `(doc_id, sha256)` nie pozwala na duplikat nawet
-przy nieaktualnym punkcie kontrolnym. Prośba serwisu o odczekanie po odpowiedzi 429
-(`Retry-After`) jest zapisana w dzienniku żądań i przeżywa przerwanie: wznowienie odczekuje ją,
-zanim wyśle pierwsze żądanie.
-
-**Zanik zasilania, ubicie procesu, pełny dysk.** Proces, który zginął bez sprzątania, nie zdąża
-zapisać statusu — przebieg zostaje w bazie jako pracujący (`w_toku`) bez procesu, czyli
-osierocony. To samo `pobierz` albo `wznow` rozpoznaje go, mówi o tym zdaniem i wznawia od
-zapisanej strony; baza jest w trybie WAL, więc zapis przerwany w połowie dokumentu cofa się
-w całości i liczniki tabel się zgadzają (zmierzone 2026-09-18 ubiciem procesu `taskkill /F`
-w trakcie zapisu). Gdy nie da się zapisać nawet zakończenia przebiegu, powód przerwania zostaje
-na ekranie, a przebieg jako osierocony. Dokument, który zniknął u pośrednika między listą
-a pobraniem (404), jest liczony i pomijany, a przebieg idzie dalej — ale dziesięć kolejnych
-404 zatrzymuje go jako złamany kontrakt, bo tak wygląda przeniesiony punkt końcowy, nie wycofane
-sprawy. Odpowiedź z JSON-em uciętym w połowie jest traktowana jak zerwane łącze — przebieg jest
-wznawialny, a nie zamknięty jako złamany kontrakt. Przebieg zakończony błędem (`blad`: wygasły
-klucz, odmowa serwisu, złamany kontrakt) wznawia wyłącznie jawne `wznow --run-id`, bo stan bywa
-ustępujący, a punkt kontrolny jest wart stron listy; automat do niego nie wraca.
-
-Eksport przerwany w trakcie zapisu nie zostawia pliku, który wygląda na kompletny: plik
-powstaje jako tymczasowy i jest podmieniany w całości; katalog Markdown tak samo. Powtórny
-eksport Markdown pod to samo `--out` zastępuje poprzedni wynik, ale wyłącznie katalog z własnym
-znacznikiem `.kio-tool-eksport` — cudzy katalog pod tą nazwą zostaje nietknięty i eksport
-odmawia zdaniem.
-
-Czego tu **nie ma**: blokady między dwoma procesami na tej samej bazie — jedno pobranie naraz
-jest obowiązkiem operatora, nie narzędzia; dlatego przebieg `w_toku` przy
-wznawianiu znaczy „osierocony", a nie „inny proces pracuje".
-
-## Gdzie są dane
-
-Wszystko poza repozytorium, w katalogu danych użytkownika — na Windowsie
-`%LOCALAPPDATA%\kio-tool\kio-tool\`:
-
-| Miejsce | Co niesie | Dlaczego tu |
-|---|---|---|
-| `korpus.sqlite` | korpus: surowe wersje, dokumenty, metadane, indeks pełnotekstowy, przebiegi, dziennik żądań | orzeczenia niosą pełne nazwiska składu orzekającego i protokolantów; operator jest dla nich administratorem danych, więc korpus nie wchodzi do repozytorium |
-| `wyniki/` | pliki eksportu (`--out` zmienia ścieżkę) | te same nazwiska, co w korpusie |
-| `docs/dziennik_zadan.md` (w repozytorium) | ślad po każdym żądaniu **sondy fazy 0**, dopisywany w chwili powrotu żądania | pomiary są dowodami i zostają w historii repozytorium |
-| `scripts/out/` (poza historią) | surowe odpowiedzi sondy | zawierają dane osobowe z rekordów |
-| `tests/examples/atlas/` | złote pliki z pomiaru 3a z `ZRODLO.md` (licencja, SHA-256) | reguła 17: adapter jest testowany na prawdziwej odpowiedzi, nie na atrapie |
-
-Po pierwszym korpusie (2026-09-18) baza miała 24,5 MB przy 295 dokumentach, z czego 11,5 MB to
-surowe bajty odpowiedzi; przy 443 dokumentach (2026-09-22) — 52,7 MB, z czego 19,8 MB treści.
-
-### Co jest w bazie i dlaczego
-
-| Tabela | Zawartość | Powód istnienia |
-|---|---|---|
-| `raw_versions` | surowa odpowiedź kanału **w całości** (bajty, SHA-256, moment pobrania, nagłówki); klucz `(doc_id, sha256)` | reguła 19: łańcuch dowodowy — każdy wiersz pochodny da się przeliczyć z bajtów, które naprawdę przyszły; wersja nigdy nie jest nadpisywana |
-| `documents` | tożsamość dokumentu `atlas:<slug>`, wszystkie sygnatury, data wydania, pierwsze i ostatnie widzenie, bieżąca wersja | ADR-0001: dokument jest jednostką, sygnatura etykietą (sprawy połączone mają kilka); slug małymi literami, żeby dwie pisownie nie dały dwóch dokumentów |
-| `metadata` | pola odczytane z surowej wersji przez mapę z `contract.yaml`: sygnatura, daty, rodzaj, rozstrzygnięcie, przewodniczący, strony, przepisy, koszty, adres u źródła, długość tekstu; z numerem wersji odczytu | filtry i eksport bez czytania blobów; `przelicz` odtwarza tabelę po zmianie odczytu |
-| `sections`, `citations`, `provisions` | struktura bieżącej wersji: granice sekcji (nagłówek, sentencja, pouczenie, uzasadnienie, zdanie odrębne) z offsetami w oryginale, cytowane sygnatury z rodzajem organu, powołane przepisy z ustawą ustaloną z treści albo „nieustalone"; z numerem wersji odczytu | raport `pokrycie`, złoty zbiór i dodatek „Odesłania odczytane z treści" w eksporcie `md`; przeliczalne z bajtów |
-| `fts` | indeks FTS5 po pełnym tekście i sygnaturach | `szukaj` bez sieci; `remove_diacritics 2` składa `ó`→`o`, ale `ł` nie ma rozkładu w Unicode, więc „lodz" nie trafia „Łódź" |
-| `runs` | przebieg: kanał, zakres, kryteria i ich odcisk, status (`w_toku`, `zakonczony`, `przerwany`, `blad`), ostatnia strona, powód | wznowienie i rozliczenie: `runy` mówi, co, kiedy i za ile żądań |
-| `run_documents` | które dokumenty objął przebieg i czy były nowe | `eksportuj --run-id` bez zgadywania; przebieg sprzed migracji schematu nie ma tych wierszy i eksportuje się po kryteriach |
-| `requests_log` | każde żądanie: czas, metoda, adres bez parametrów i sekretów, status, milisekundy, bajty, SHA-256 odpowiedzi, ocena kształtu, `Retry-After`, numer próby | „cisza jest usterką": to, co poszło do cudzego serwera, ma ślad; limiter czyta stąd historię po wznowieniu |
-
-Schemat ma numer (`PRAGMA user_version`, dziś 6) i migruje się sam przy pierwszym poleceniu,
-bez utraty danych.
-
-Pola, których pochodzenia nie znamy (`thesis`, `thesis_snippet` — teza może być tekstem od
-modelu), zostają w surowych bajtach, ale **nie wchodzą** do metadanych, wyszukiwania ani
-eksportu; lista z powodem i datą stoi w `contract.yaml` kanału (`pola_odrzucone`).
+Przerwany przebieg (Ctrl+C, sieć, ubity proces, pełny dysk) zostaje w bazie z punktem
+kontrolnym i wznawia się bez duplikatów.
 
 ## Pliki wynikowe
 
-Nazwa pliku powstaje z identyfikatora przebiegu albo z kryteriów i znacznika czasu UTC:
-`kio_atlas-969ac406dd8f_20260918T121721Z.xlsx`,
-`kio_daty_wydania_2024-01-01_–_2024-01-31_20260918T121806Z.csv`. Zapis jest atomowy — plik
-pojawia się dopiero w całości.
+Baza i eksporty leżą poza repozytorium: `%LOCALAPPDATA%\kio-tool\kio-tool\` (`korpus.sqlite`,
+`wyniki/`). Korpus niesie nazwiska składu orzekającego i protokolantów, więc nie trafia do
+repozytorium.
 
-| Format | Co zawiera |
+| Format | Zawartość |
 |---|---|
-| `xlsx` | arkusz `Orzeczenia` (tabela z autofiltrem, 21 kolumn), `Slownik` (opis każdej kolumny), `Metadane` (kryteria, cel pobrania, liczba dokumentów w eksporcie i w korpusie, formaty, czas, wersja narzędzia i odczytu, organ, atrybucja) |
-| `csv` | te same kolumny, separator `;`, UTF-8 z BOM (Excel otwiera poprawnie polskie znaki) |
-| `jsonl` | jeden obiekt na dokument: tożsamość, blok cytowania i **surowy rekord kanału w całości** z pełnym tekstem — format dla własnego potoku |
-| `md` | katalog `<nazwa>_md/` z jednym plikiem na orzeczenie (`atlas_kio-1205-20.md`: nagłówek metadanych, blok atrybucji, pełny tekst z nagłówkami sekcji — Sentencja, Uzasadnienie… — i dodatek „Odesłania odczytane z treści” z cytowanymi orzeczeniami i powołanymi przepisami) i `INDEX.md` z metadanymi eksportu i tabelą odsyłaczy |
+| `xlsx` | arkusz `Orzeczenia` (21 kolumn), `Slownik`, `Metadane`; bez pełnego tekstu |
+| `csv` | te same kolumny, `;`, UTF-8 z BOM |
+| `jsonl` | tożsamość, blok cytowania i surowy rekord kanału z pełnym tekstem |
+| `md` | plik na orzeczenie: metadane, blok cytowania, tekst z nagłówkami sekcji, spis cytowanych orzeczeń i przepisów; `INDEX.md` |
 
-Kolumny: `sygnatura`, `sygnatury`, `data_wydania`, `data_rozprawy`, `rodzaj`, `rozstrzygniecie`,
-`rozstrzygniecie_surowe`, `przewodniczacy`, `odwolujacy`, `zamawiajacy`, `przepisy`, `koszty`,
-`organ`, `atrybucja`, `kanal`, `slug`, `url_zrodla`, `doc_id`, `sha256`, `pobrano`,
-`dlugosc_tresci`. Każdy wiersz i każdy plik niesie oznaczenie organu i atrybucję
-„Źródło: Atlas Przetargów (https://atlasprzetargow.pl)" — reguła 15, pilnowana testem.
-Sygnatury i daty są tekstem, `koszty` i `dlugosc_tresci` liczbami. Wartości ze źródła
-zaczynające się od `=`, `+`, `-`, `@` są neutralizowane, a znaki sterujące usuwane — w skoroszycie,
-CSV, Markdownie i na ekranie, bo nazwa strony postępowania pochodzi z cudzego serwisu i trzeba
-ją traktować jak wrogie wejście.
-
-`data_wydania` jest zapisana tak, jak przyszła z kanału: u pośrednika bywa błędna (w styczniu
-2024 dziewięć z 295 dat wcześniejszych niż rozprawa), więc filtr po datach może wciągnąć cudze
-i zgubić własne. To jest cena zapisana, nie ukryta.
+Każdy wiersz niesie adres orzeczenia w wyszukiwarce UZP, skrót SHA-256 wersji i atrybucję
+„Źródło: Atlas Przetargów (https://atlasprzetargow.pl)". `data_wydania` jest taka, jak podał
+pośrednik — bywa błędna albo pusta.
 
 ## Czego narzędzie nie robi
 
-- **Nie wykrywa zmian u źródła** — nie ma `aktualizuj` ani `porownaj`; powtórne `pobierz` na tym
-  samym zakresie pobiera listę i pomija dokumenty już zapisane, ale nie sprawdza, czy ich treść
-  się zmieniła.
-- **Ma jeden kanał.** Kanały `uzp` i `saos` nie istnieją; kompletność Atlasu względem wyszukiwarki
-  UZP jest niepotwierdzona (cena wyboru zapisana w ADR-0004 §6).
-- **`--fraza` w `pobierz` nie przeszukuje treści u Atlasu** — jego `search` dopasowuje
-  sygnaturę (zmierzone 2026-09-18, 6 żądań; słowo obecne w treści daje zero, sygnatura daje ten
-  dokument). Treść przeszukuje lokalnie `szukaj` po pobraniu zakresu dat. `--rozstrzygniecie`
-  u kanału jest zgodne z lokalnym (6 na 6 sygnatur). `--przepis`, `--przewodniczacy` i `--strona`
-  u kanału nie miały jeszcze własnego wywołania.
-- **Nie ma modelu językowego w środku** — decyzja właściciela z 2026-09-20: narzędzie prowadzi
-  model z zewnątrz, przez polecenia i `--json` (`docs/dla-modelu.md`); nie ma też serwera MCP
-  ani polecenia `cytowania`.
-- **Nie ocenia sprawy prawnie** — wyszukuje i cytuje; wniosek należy do człowieka.
-- **Nie pilnuje dwóch procesów naraz** (sekcja „Po przerwaniu").
-- **Nie usuwa danych** — nie ma retencji ani `wyczysc`; bazę i `wyniki/` kasuje operator.
-
-## Pierwszy korpus
-
-Styczeń 2024, wykonany 2026-09-18 za zgodą właściciela: 295 dokumentów i 4 żądania listy
-(strona pierwsza poszła dwa razy — przed zatrzymaniem na progu zgody i po wznowieniu), razem
-299 żądań, wszystkie 200 i każda odpowiedź kształtu zgodnego, około sześciu minut; trzecie
-wywołanie tego samego polecenia wysłało 3 żądania listy i zero za dokumenty. W korpusie: 122 wyroki i 173 postanowienia; rozstrzygnięcia:
-umorzono 134, oddalono 67, uwzględnione 57, inne 31, odrzucono 6. Pełny zapis
-w `docs/decisions.md`, „Przebieg 1".
-
-Drugi przebieg tego samego dnia sprawdził odporność na żywym serwisie: 1–5 lutego 2024,
-46 orzeczeń, proces ubity siłą po 22 dokumentach i dokończony tym samym poleceniem jako
-osierocony (24 nowe, 22 pominięte bez żądania, 48 żądań łącznie). Korpus po obu przebiegach:
-341 orzeczeń, każde z wersją surową, metadanymi i indeksem. Zapis w „Przebieg 2".
-
-Dziś korpus operatora ma **443 orzeczenia**: styczeń i 1–5 lutego 2024 oraz próbka po sześć
-orzeczeń z każdego rocznika 2010–2026 (`docs/decisions.md`, „Przebieg 3" i „Audyt przed
-prezentacją"). Z nich: 1 772 sekcje, 1 708 cytowań, 16 834 powołania na przepisy.
-
-## Co już zmierzono
-
-Wyniki z datami i liczbą żądań oraz status każdego pomiaru stoją w `docs/decisions.md`
-(sekcja „Status pomiarów"). Najważniejsze pomiary własne:
-
-- **FTP UZP nie odpowiada** (pomiar 1, 2026-09-15) — port 21 milczy przy kontroli na cudzym
-  serwerze FTP z tej samej maszyny w tej samej minucie.
-- **Dla wyszukiwarki UZP nie ma warunków ponownego wykorzystywania ani informacji o ich braku**
-  (pomiar 14, 2026-09-15); licencja CC BY-SA 4.0 ze stopki gov.pl jest zakreślona domeną
-  `www.gov.pl`. To jest dziś powód reguły 23.
-- **Blokada sieci w testach działa na poziomie gniazda** (pomiar 21, 2026-09-15).
-- **Atlas zwraca pełny tekst orzeczenia** (pomiar 3a, 2026-09-18, 2 żądania): rekord
-  `GET /api/kio/{slug}` niesie `full_text`, listę sygnatur i identyfikator UZP; zbiór liczy
-  29 580 orzeczeń i sięga co najmniej rocznika 2010.
-- **Atlas licencjonuje ponowne wykorzystywanie wprost** (pomiar 23, 2026-09-18, 3 żądania):
-  CC BY 4.0 z atrybucją, odczytane u dostawcy; korzeń SAOS nie odpowiedział w 45 s.
-- **Filtr `outcome` Atlasu jest zgodny z lokalnym, `search` dopasowuje sygnaturę, nie treść**
-  (pomiar filtrów, 2026-09-18, 6 żądań): te same 6 sygnatur „odrzucono" u kanału i lokalnie;
-  fraza z 11 orzeczeń stycznia daje u kanału zero, sygnatura daje dokładnie jeden dokument.
-- **Przebieg ubity w trakcie na żywym serwisie dokończył się tym samym poleceniem** (przebieg 2,
-  2026-09-18, 48 żądań): 1–5 lutego 2024, 46 orzeczeń, proces ubity po 22 dokumentach.
-- **Kształt tekstu, anonimizacja, cytowania** (pomiary 5, 10, 22, 25; 2026-09-19 i 20, zero
-  żądań): segmentacja na całym korpusie, skład i protokolant nieanonimizowani, 98,7 % cytowań
-  rozpoznanych.
-- **Spis rocznikowy zbioru** (pomiar 26, 2026-09-20, 20 żądań): 29 580 orzeczeń u pośrednika,
-  roczniki 2007–2009 puste.
-
-## Ścieżka bez korespondencji
-
-Właściciel rozstrzygnął 2026-09-17, że **projekt nie prowadzi korespondencji**: nie idzie
-wniosek do UZP z art. 39 ustawy o otwartych danych, nie idą pytania do prawnika, nie idzie mail
-do pośrednika. Projekty pism zostają gotowe w `docs/pisma/`, niewysłane. Konsekwencja jest jedna:
-**pobranie całości zbioru idzie wyłącznie z kanału, który ponowne wykorzystywanie licencjonuje
-wprost.** Wyszukiwarka UZP nie pełni roli kanału masowego. To nie jest opinia
-prawna i nie udaje jej — ryzyko resztkowe przyjął właściciel, zapis w `docs/decisions.md`.
-
-## Trzy reguły, które obowiązują od pierwszego commita
-
-**Narzędzie nie omija zabezpieczeń.** Żadnego rozwiązywania CAPTCHA, podszywania się pod
-przeglądarkę ani obchodzenia ograniczeń tempa. Granica jest prawna, nie estetyczna.
-
-**Żadnej liczby bez źródła i daty.** Każde twierdzenie w `docs/` niesie datę i sposób uzyskania.
-Sygnatury, nazwy własne i treść przepisów pochodzą z odczytu z datą, nigdy z pamięci modelu.
-
-**UZP nigdy nie pełni roli kanału masowego** (reguła 23). Każdy kanał deklaruje w `contract.yaml`
-pole `role:` z zamkniętej listy, a `uzp` nie ma prawa zadeklarować `masowa`.
-
-Wszystkie trzy mają **mechanicznych strażników** w `tests/test_boundaries.py`
-i `tests/test_bramki_faz.py`, nie deklaracje. Dwadzieścia trzy reguły granic razem z powodem
-istnienia każdej — w audycie 8.3 i architekturze 4.1.
+- Nie sięga przed rocznik 2010 i nie wie, czy korpus jest kompletny wobec urzędu.
+- Ma jeden kanał (`atlas`); nie wykrywa zmian u źródła po pobraniu.
+- Nie ocenia spraw prawnie i nie ma modelu językowego w środku — model prowadzi je z zewnątrz.
+- Nie pilnuje dwóch procesów pracujących na jednej bazie.
 
 ## Rozwój
 
 ```
-set PYTHONUTF8=1                          # polskie znaki na konsoli Windows
-.venv\Scripts\python.exe -m pytest        # 1 397 testów w 50 plikach, sieć zablokowana
+set PYTHONUTF8=1
+.venv\Scripts\python.exe -m pytest        # 1 397 testów (2026-09-22), sieć zablokowana
 .venv\Scripts\ruff.exe check .
 .venv\Scripts\ruff.exe format --check .
 .venv\Scripts\mypy.exe kio_tool scripts   # strict
 ```
 
-Liczby zmierzone 2026-09-22; wszystkie cztery bramki zielone. Testy odporności (`tests/test_odpornosc_*.py`) mierzą zanik sieci na dokumencie i na
-stronie listy, 429 i 5xx, 404, 200 o złym kształcie i urwane, ubicie procesu `TerminateProcess`
-w trakcie zapisu do bazy i w trakcie eksportu, pełny dysk w połowie dokumentu i w `finally`,
-cel zajęty i katalog nie do założenia. Testy ścieżki użytkownika (`tests/test_uzytkownik_*.py`)
-przechodzą każde polecenie na ścieżce szczęśliwej i w każdej przewidywalnej pomyłce laika,
-z brzmieniem zdań odczytanym z `ui/texts.py`, nie z ekranu. 2026-09-18 osiemnaście znalezisk testerów
-i osiem z przeglądu kodu naprawiono tego samego dnia; dwadzieścia jeden zabezpieczeń sprawdzono
-mutacją (psując produkcję i patrząc, czy test się zapala). Pakiet
-`kio_tool/` ma 57 plików i 11 669 linii (2026-09-22), żaden moduł ponad 800: warstwę infrastruktury (`httpclient` — jedyne miejsce budujące
-klienta HTTP, bramka wyjścia odmawia wszystkiemu poza `https` i hostami kanału; `ratelimit`;
-`docid` — jedyny producent tożsamości; `safetext`, `richtext`, `config`, `logbook`, `console`,
-`ksztalt`), kanał `source/atlas/` z `contract.yaml` (jedyne miejsce z adresami i nazwami pól
-pośrednika), pakiety `store/` (magazyn SQLite) i `pipeline/` (`pobieranie` — jedyny moduł
-łączący sieć z bazą, `lokalne`, `zgoda`, `slad`; ADR-0009), `criteria.py`, `parser/` (metadane,
-sekcje, cytowania, przepisy), `odczyt.py`, `wpisy.py`, `exporter.py`, `pokrycie.py`, `wycena.py`,
-`obsluga.py`, `cli.py`, `ui/` (kreator, widok konsolowy i maszynowy) i `demo/` (tryb pokazowy). Sonda fazy 0 w `scripts/` (dyspozytor, środowisko żądania, pomiary per kanał,
-oczekiwania kształtu):
-
-```
-.venv\Scripts\python.exe scripts\sonda.py --lista
-.venv\Scripts\python.exe scripts\sonda.py atlas        # 2 żądania: lista i jeden dokument
-.venv\Scripts\python.exe scripts\sonda.py licencje     # 3 żądania: warunki reuse u SAOS i Atlasu
-```
-
-Sonda wykonuje pojedyncze odczyty diagnostyczne, które zgody nie wymagają, ale każdy zostawia
-wiersz w `docs/dziennik_zadan.md`. Piaskownica testów przekierowuje bazę, katalog wyników
-i zapis sondy do `tmp_path` i porównuje stan prawdziwych ścieżek przed i po — bo test, który
-zapisał do prawdziwego katalogu, zdarzył się 2026-09-18 dwa razy.
-
-Poprawkę w module o charakterze zabezpieczenia sprawdza się mutacją: psując produkcję i patrząc,
-czy test się zapala. Kilka luk przeszło przez zieloną suitę i pokazała je dopiero mutacja.
+Granice między modułami (m.in. sieć z bazą łączy wyłącznie `pipeline/pobieranie.py`) pilnują
+testy w `tests/test_boundaries.py`. Poprawkę zabezpieczenia sprawdza się mutacją: zepsuć kod
+i zobaczyć, że test się zapala.
 
 ## Dokumentacja
 
 | Plik | Co niesie |
 |---|---|
-| `docs/AUDYT_KIO_ORZECZENIA.md` | stan źródła, dopuszczalność w sześciu reżimach, rachunek build-vs-buy, doktryna, reguły granic, plan faz |
-| `docs/ARCHITEKTURA_KIO_TOOL.md` | przegląd istniejących narzędzi, architektura, model danych, reguły 17–23, decyzje właściciela |
-| `docs/decisions.md` | wyniki pomiarów z datami, decyzje właściciela, przebiegi i status pomiarów |
-| `docs/dla-modelu.md` | instrukcja dla modelu, który prowadzi narzędzie: polecenia, filtry, pułapki, kody wyjścia, `--json` |
-| `docs/anatomia-bazy.md`, `docs/raporty/` | co jest w bazie; raporty pokrycia parsera |
-| `docs/dziennik_zadan.md` | ślad po każdym żądaniu sondy |
-| `docs/adr/` | decyzje architektoniczne wraz z odrzuconymi wariantami (0001 tożsamość, 0003 kształt `source/`, 0004 wybór kanału, 0005 bramka per kanał, 0006 parser i struktura, 0007 ponowienia, 0008 kreator i tryb pokazowy, 0009 `store` i `pipeline` jako pakiety) |
-| `docs/pisma/` | projekty pism **gotowych i niewysłanych** |
-| `docs/raport_przekazania.md` | raport dla nowej osoby z recenzją 2026-09-18 |
-| `CLAUDE.md` | konfiguracja projektu dla sesji z Claude Code |
-
-Kolejność czytania, jeśli masz przeczytać tylko część: `docs/decisions.md`, potem ADR-0005
-i ADR-0004, potem sekcja 14 audytu — status dowodowy, czyli to, na których zdaniach wolno budować.
+| `docs/dla-modelu.md` | instrukcja dla modelu prowadzącego narzędzie |
+| `docs/decisions.md` | pomiary z datami, przebiegi, decyzje właściciela |
+| `docs/adr/` | decyzje architektoniczne 0001–0009 |
+| `docs/AUDYT_KIO_ORZECZENIA.md`, `docs/ARCHITEKTURA_KIO_TOOL.md` | źródło, dopuszczalność, reguły granic, architektura |
+| `CLAUDE.md` | zasady pracy dla Claude Code |
 
 ## Licencja
 
-MIT dla kodu. Korpus nie wchodzi do repozytorium — niesie pełne nazwiska składu orzekającego
-i protokolantów, a operator narzędzia jest dla tych danych administratorem. Dane z Atlasu
-Przetargów są na licencji CC BY 4.0 i każdy eksport niesie wymaganą atrybucję.
+MIT dla kodu. Dane z Atlasu Przetargów na licencji CC BY 4.0 — każdy eksport niesie atrybucję.
