@@ -488,18 +488,8 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(18px, calc(
   .lata { height: clamp(120px, 24vh, 210px); }
 }
 
-/* --- pasek kroków: ten sam schemat pięciu kroków co slajd „Droga jednego orzeczenia”,
-   podświetla krok, o którym mówi slajd. Stoi przy etykiecie, po lewej, bo prawy górny róg
-   zajmuje podpowiedź klawiszy. */
-
 .slide__top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin-bottom: 10px; }
 .slide__top .slide__kicker { margin-bottom: 0; }
-.trasa { display: flex; flex-wrap: wrap; gap: 5px; list-style: none; margin: 0; padding: 0; font-size: var(--mniejszy); line-height: 1.2; }
-.trasa li { display: flex; align-items: center; gap: 6px; padding: 2px 11px 2px 3px; border: 1px solid var(--line-soft); border-radius: 999px; color: var(--muted); }
-.trasa i { font-style: normal; font-family: var(--slab); font-weight: 700; width: 1.45em; height: 1.45em; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--muted); }
-.trasa li[data-on] { border-color: var(--accent); color: var(--accent); background: var(--surface); font-weight: 600; }
-.trasa li[data-on] i { background: var(--accent); color: var(--accent-ink); }
-@media (max-width: 900px) { .trasa span { display: none; } .trasa li { padding-right: 3px; } }
 @media (max-height: 730px) { .slide__top { margin-bottom: 6px; } }
 </style>
 
@@ -619,14 +609,14 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(18px, calc(
     <p class="strip"><b>Kroki 3–5 można powtórzyć w dowolnej chwili, bez sieci.</b> Jedno polecenie kasuje wynik odczytu i liczy go od nowa z zapisanych bajtów. Dlatego poprawka w sposobie czytania orzeczeń nie wymaga pobierania niczego drugi raz: korpus przeliczono tak 19 września, 443 dokumenty, zero żądań.</p>
   </div>
   <div class="slide__foot"><span>Kroki 1 i 2 to jedyne miejsca, w których narzędzie dotyka cudzego serwera. Wszystko poniżej dzieje się na dysku operatora.</span><span class="n"></span></div>
-  <aside><b>Przejście.</b> Od tego slajdu każdy kolejny ma w nagłówku ten sam pasek pięciu kroków z podświetlonym tym, o którym mówi. Idziemy po kolei: najpierw kroki 1–2, czyli źródło, potem to, co zostaje na dysku, na końcu krok 5 — jak się z tego korzysta.
+  <aside><b>Przejście.</b> Idziemy po kolei, krokami z tej mapy: najpierw kroki 1–2, czyli źródło, potem to, co zostaje na dysku, na końcu krok 5 — jak się z tego korzysta.
 
 Ten slajd odpowiada na pytanie „co się właściwie dzieje, gdy to uruchomię". Warto zatrzymać się na kroku trzecim: surowa odpowiedź jest zapisywana, zanim cokolwiek ją zinterpretuje, i nigdy nie jest nadpisywana. To jest różnica między narzędziem, któremu wierzy się na słowo, a takim, które da się sprawdzić po roku. Jeśli ktoś zapyta, po co osobno krok czwarty: bo sposób czytania orzeczeń będzie się jeszcze zmieniał, a bajty nie.</aside>
 </section>
 
 <section class="slide" id="s5b">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Rozkład zbioru</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 1, 2 z 5"><li data-on><i>1</i><span>Lista</span></li><li data-on><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Rozkład zbioru</span></div>
     <h2>Ponad połowa zbioru to roczniki 2021–2025</h2>
     <p class="slide__sub">Policzone 20 września jednym żądaniem na rocznik: dwadzieścia żądań, wyłącznie po licznik, bez pobierania treści.</p>
   </div>
@@ -669,7 +659,7 @@ Gdyby padło pytanie, czy lata 2007–2009 da się uzupełnić: obie drogi są d
 
 <section class="slide" id="s5a">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Skala</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 1, 2 z 5"><li data-on><i>1</i><span>Lista</span></li><li data-on><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Skala</span></div>
     <h2>Od ośmiu minut do trzech tygodni, zależnie od zakresu</h2>
   </div>
   <div class="slide__body">
@@ -687,7 +677,7 @@ Gdyby padło pytanie, czy lata 2007–2009 da się uzupełnić: obie drogi są d
 
 <section class="slide" id="s6">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Limity</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 1, 2 z 5"><li data-on><i>1</i><span>Lista</span></li><li data-on><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Limity</span></div>
     <h2>Narzędzie pracuje z rezerwą wobec limitu. Konto u dostawcy podnosi go ponad trzykrotnie.</h2>
   </div>
   <div class="slide__body">
@@ -712,7 +702,7 @@ Gdyby padło pytanie, czy lata 2007–2009 da się uzupełnić: obie drogi są d
 
 <section class="slide" id="s10">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">To, co już znacie</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 1, 2 z 5"><li data-on><i>1</i><span>Lista</span></li><li data-on><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">To, co już znacie</span></div>
     <h2>Zasady z ceidg-tool obowiązują tu tak samo. Nie będę ich powtarzał — poza tym, co się zmieniło.</h2>
   </div>
   <div class="slide__body">
@@ -732,7 +722,7 @@ Ten slajd istnieje po to, żeby nie robić sześciu slajdów o zabezpieczeniach 
 
 <section class="slide" id="s7b">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Co z tego zostaje</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 3, 4 z 5"><li><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li data-on><i>3</i><span>Zapis</span></li><li data-on><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Co z tego zostaje</span></div>
     <h2>Baza dzieli się na trzy warstwy według tego, co wolno przeliczyć</h2>
   </div>
   <div class="slide__body">
@@ -769,7 +759,7 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
 
 <section class="slide" id="s7">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Jakość odczytu</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 4 z 5"><li><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li data-on><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Jakość odczytu</span></div>
     <h2>Co narzędzie wyjmuje z orzeczenia i czego nie zgaduje</h2>
   </div>
   <div class="slide__body">
@@ -798,7 +788,7 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
 
 <section class="slide" id="s8">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Skąd wiadomo, że czyta dobrze</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 4 z 5"><li><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li data-on><i>4</i><span>Odczyt</span></li><li><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Skąd wiadomo, że czyta dobrze</span></div>
     <h2>Pięć rodzajów błędu narzędzie wyłapuje samo. Szóstego nie wyłapie żaden test.</h2>
   </div>
   <div class="slide__body">
@@ -843,7 +833,7 @@ Ostatni punkt bywa zaskoczeniem: mówimy o własnym długu technicznym, i to w c
 
 <section class="slide" id="s5">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">O co można zapytać</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 1, 5 z 5"><li data-on><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li data-on><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">O co można zapytać</span></div>
     <h2>Osiem filtrów i jedna pułapka, która jest opisana, nie ukryta</h2>
   </div>
   <div class="slide__body">
@@ -863,14 +853,14 @@ Ostatni punkt bywa zaskoczeniem: mówimy o własnym długu technicznym, i to w c
     </div>
   </div>
   <div class="slide__foot"><span>Wydruk skrócony: pełna pomoc wymienia jeszcze wartości domyślne i format dat. Zachowanie wyszukiwarki kanału zmierzone 18.09.2026, dostawca go nie dokumentuje.</span><span class="n"></span></div>
-  <aside><b>Przejście.</b> Krok 5: jak się z bazy korzysta. Pasek u góry ma dziś zapalone dwa kroki, 1 i 5, bo pułapka polega właśnie na tym, że ta sama flaga trafia raz do pierwszego, raz do piątego.
+  <aside><b>Przejście.</b> Krok 5: jak się z bazy korzysta. Ten slajd dotyka dwóch kroków naraz, 1 i 5, bo pułapka polega właśnie na tym, że ta sama flaga trafia raz do pierwszego, raz do piątego.
 
 Ta pułapka jest dobrym przykładem tego, po co istnieje plik z wytycznymi. Nie da się jej zgadnąć z nazwy flagi i nie ma jej w dokumentacji dostawcy — wyszła z pomiaru i została zapisana.</aside>
 </section>
 
 <section class="slide" id="s3">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Teza</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 5 z 5"><li><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li data-on><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Teza</span></div>
     <h2>Asystent w środku nic tu nie wnosi, a kosztuje czas i drugi adres wyjściowy</h2>
   </div>
   <div class="slide__body">
@@ -891,7 +881,7 @@ Wątek zapytań rozwinąć tylko wtedy, gdy ktoś zapyta, i rozwinąć uczciwie.
 
 <section class="slide" id="s4">
   <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Narzędzie dla modelu</span><ol class="trasa" aria-label="Droga orzeczenia, kroki 5 z 5"><li><i>1</i><span>Lista</span></li><li><i>2</i><span>Pobranie</span></li><li><i>3</i><span>Zapis</span></li><li><i>4</i><span>Odczyt</span></li><li data-on><i>5</i><span>Wynik</span></li></ol></div>
+    <div class="slide__top"><span class="slide__kicker">Narzędzie dla modelu</span></div>
     <h2>Co dokładnie narzędzie podaje modelowi</h2>
   </div>
   <div class="slide__body">
