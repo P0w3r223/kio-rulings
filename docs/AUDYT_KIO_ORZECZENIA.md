@@ -742,10 +742,11 @@ ją do pokrycia skanu. Dwie ostatnie są nowe i wynikają z tego audytu.
    `Path("source").glob("*.py")` jest skanem, który wygląda na działający dokładnie do dnia,
    w którym kanały stają się pakietami, a potem nie obejmuje niczego — bez jednego
    czerwonego testu. *(ADR-0003)*
-3. `store.py` nie importuje `httpx`.
-4. Żaden moduł w `source/` (rekursywnie) ani `store.py` nie importuje `rich`; postęp idzie
-   przez protokół `Events`. *(ADR-0003)*
-5. Tylko `pipeline.py` importuje jednocześnie `source` i `store`.
+3. Żaden moduł pakietu `store/` (rekursywnie, `store/**/*.py`) nie importuje `httpx`. *(ADR-0009)*
+4. Żaden moduł w `source/` ani w `store/` (oba rekursywnie) nie importuje `rich`; postęp idzie
+   przez protokół `Events`. *(ADR-0003, ADR-0009)*
+5. Tylko `pipeline/pobieranie.py` importuje jednocześnie `source` i `store`; tam dokument, wersja,
+   powiązanie z przebiegiem i punkt kontrolny idą jedną transakcją. *(ADR-0009)*
 6. Moduły czyste i `ui/texts.py` nie importują `rich`, `questionary`, `typer`, `httpx`, `anthropic`,
    `sqlite3`, `openpyxl`.
 7. Tylko `ui/prompts.py` importuje `questionary`; tylko `richtext.py`, `ui/render.py` i `console.py`

@@ -329,10 +329,11 @@ wejścia:  cli.py (typer)   ui/wizard.py (questionary)   faza 4: mcp_server.py (
                           criteria.py          CZYSTY: pydantic, bez I/O; jedyny kontrakt wejścia
                                   |
                                   v
-                          pipeline.py          orkiestracja; JEDYNY moduł widzący jednocześnie source/ i store.py
+                          pipeline/            orkiestracja; JEDYNY moduł widzący jednocześnie source/ i store/:
+                                               pipeline/pobieranie.py (ADR-0009, 2026-09-22)
                  ┌──────────┬──────────┼──────────┬──────────┐
                  v          v          v          v          v
-              source/          store.py   parser/       docid.py   exporter.py
+              source/          store/     parser/       docid.py   exporter.py
               ├ protocol.py    (SQLite,   ├ details.py  (CZYSTY)  (xlsx, md, parquet, warc)
               ├ contract.py     wersje,   ├ sections.py
               ├ registry.py     dzierżawa)├ clean.py

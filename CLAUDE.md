@@ -12,7 +12,11 @@ przy okazji.
 **2026-09-22 — audyt przed prezentacją (`decisions.md`, „Audyt przed prezentacją").** Trafienie
 `szukaj --json` niesie `doc_id`, `url_zrodla` i ten sam blok `cytowanie` co eksport; eksport `md`
 ma nagłówki sekcji i dodatek odesłań z treści; budowa `Wpis` mieszka w `wpisy.py`. Korpus tej
-maszyny odtworzony do 443 (Przebieg 4, 119 żądań). Adres `KIO_TOOL_CONTACT` ustawiony tu jako
+maszyny odtworzony do 443 (Przebieg 4, 119 żądań). **O-5 zamknięte (ADR-0009):** `store/`
+i `pipeline/` są pakietami z fasadą — importuj jak dawniej (`from .store import Store`), ale
+**podstawiaj w testach w module definicji**, nigdy na fasadzie (`tests/test_fasady.py` to
+zapali); fabrykę klienta podstawia `wsparcie_sondy.podstaw_fabryke_klienta`. Sieć z bazą łączy
+wyłącznie `pipeline/pobieranie.py`. Adres `KIO_TOOL_CONTACT` ustawiony tu jako
 zmienna użytkownika na prośbę właściciela.
 
 **O-4 zamknięte — złoty zbiór niesie cytowania i przepisy.** Adnotacja ma trzy granulacje
@@ -86,9 +90,9 @@ naniesione. Co zmienia zastane odruchy:
   SHA-256 źródeł odczytu (`parser/`, `docid.py`, `odczyt.py`); zmiana bez podniesienia wersji
   zapala test. Korpus operatora przeliczony (443 wersje, 0 żądań), raport
   `docs/raporty/pokrycie_2026-09-20.*`.
-- **Sufit 800 linii ma strażnika** (`test_boundaries.py`): `store.py` (1 466) i `pipeline.py`
-  (921 od 2026-09-22, wcześniej 971) mają wpis z pomiarem i **nie mają prawa urosnąć**; nowy moduł ponad sufitem zapala test.
-  Rozbicie obu to dług fazy 4.
+- **Sufit 800 linii ma strażnika** (`test_boundaries.py`), a `PONAD_SUFITEM` jest **pusty** od
+  2026-09-22: `store.py` i `pipeline.py` rozbite na pakiety `store/` i `pipeline/` (ADR-0009,
+  O-5 zamknięte). Nowy moduł ponad sufitem zapala test.
 - Arkusz `Metadane` eksportu pokazowego nie przypisuje już rekordów KIO ani Atlasowi; numer
   sprawy połączonej w korpusie pokazowym pochodzi z puli wolnych numerów.
 

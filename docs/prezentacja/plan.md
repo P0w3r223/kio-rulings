@@ -18,8 +18,8 @@ Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
 Dwie decyzje z tej samej rozmowy zmieniają treść slajdów 12 i 15: właściciel **potwierdził
 przegląd cytowań i przepisów** (O-4 zamknięte w całości), a rozbicie `store.py` i `pipeline.py`
-**zostaje świadomym, zmierzonym długiem** (O-5) — i tak ma być powiedziane, bo dług nazwany
-z liczbą jest mocniejszym przekazem niż cisza.
+miało zostać świadomym, zmierzonym długiem (O-5). **2026-09-22 właściciel zmienił tę decyzję:**
+oba pliki rozbite na pakiety (ADR-0009), slajd „Granice" mówi o tym w czasie przeszłym.
 
 ---
 
@@ -127,7 +127,7 @@ Stan na 2026-09-20, wersja odczytu 6.
 | Żądań na zbudowanie korpusu 443 od zera | 464 | Przebieg 3, `requests_log` tamtej bazy — **nie** cały projekt: poza nim Przebiegi 1–2, pomiary sondą, pomiar 26 i Przebieg 4 (2026-09-22: baza tej maszyny ma 475 żądań w 26 przebiegach) |
 | Przebiegów | 19 | `runs` |
 | Złoty zbiór | 17 dokumentów, 68 granic sekcji, 91 cytowań, 226 postaci przepisów — **potwierdzone przez właściciela 2026-09-20** | `tests/gold/*.json`, pole `przeglad` |
-| Dług zadeklarowany | `store.py` 1 466 linii i `pipeline.py` 971 przy sufitze 800 — wpis z pomiarem, bez prawa wzrostu | `tests/test_boundaries.py` |
+| Dług zamknięty | `store.py` 1 466 linii i `pipeline.py` 971 → 921 przy sufitze 800 — rozbite 2026-09-22 (ADR-0009), największy moduł ma dziś 497 linii | `tests/test_boundaries.py` |
 | Testów | 1 340, wszystkie zielone | `pytest`, 2026-09-20 |
 | Anonimizacja u pośrednika | przewodniczący nieanonimizowany w 404 dok., protokolant w 286 | pomiar 10, 2026-09-19 |
 | Licencja kanału | Atlas: CC BY 4.0, odczytana u źródła | pomiar 23, 2026-09-18 |

@@ -360,7 +360,7 @@ mutacją (psując produkcję i patrząc, czy test się zapala). Pakiet
 klienta HTTP, bramka wyjścia odmawia wszystkiemu poza `https` i hostami kanału; `ratelimit`;
 `docid` — jedyny producent tożsamości; `safetext`, `richtext`, `config`, `logbook`, `console`,
 `ksztalt`), kanał `source/atlas/` z `contract.yaml` (jedyne miejsce z adresami i nazwami pól
-pośrednika), `store.py`, `pipeline.py`, `criteria.py`, `parser/details.py`, `exporter.py`,
+pośrednika), pakiety `store/` i `pipeline/` (od 2026-09-22, ADR-0009), `criteria.py`, `parser/details.py`, `exporter.py`,
 `cli.py` i `ui/`. Sonda fazy 0 w `scripts/` (dyspozytor, środowisko żądania, pomiary per kanał,
 oczekiwania kształtu):
 

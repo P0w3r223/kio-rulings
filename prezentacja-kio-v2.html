@@ -832,13 +832,13 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
       <li><b>Nie sięgnie przed rok 2010.</b> Izba orzeka od grudnia 2007, kanał zaczyna się trzy lata później. Tych orzeczeń tam nie ma i żadna liczba żądań tego nie zmieni.</li>
       <li><b>Nie powie, czy korpus jest kompletny wobec urzędu.</b> Wiemy, ile trzyma pośrednik — 29 580 — i wobec tej liczby postęp jest policzalny co do sztuki. Nie wiemy, ile publikuje sam Urząd Zamówień Publicznych, więc zdanie „mamy wszystko" pozostaje niesprawdzalne. Wiadomo, jak to zmierzyć: dwa żądania.</li>
       <li><b>Nie sprawdzi pośrednika.</b> Porównanie z drugim, niezależnym źródłem wymaga drugiego kanału. Ryzyko przyjęte świadomie i tak zapisane.</li>
-      <li><b>Dwa pliki programu są za duże</b> względem własnej normy projektu — mają wpis z pomiarem i zakaz wzrostu. Dług wybrany, nie przeoczony.</li>
+      <li><b>Dwa pliki przekraczały własną normę projektu</b>; rozbite 22.09 bez zmiany zachowania, reguły granic przepięte tak, że nie osłabły.</li>
     </ul>
   </div>
   <div class="slide__foot"><span>Pełna lista pozycji otwartych, z powodem odłożenia i z tym, co każdą odblokuje, jest w dokumentacji projektu</span><span class="n"></span></div>
   <aside><b>Przejście.</b> Zanim pokażę, jak się z tej bazy korzysta — uczciwy bilans tego, czego ani źródło, ani odczyt nam nie da.
 
-Ostatni punkt bywa zaskoczeniem: mówimy o własnym długu technicznym z liczbą. Dług nazwany i pilnowany to stan wybrany; dług przemilczany to stan, który po czasie odkryje ktoś inny.</aside>
+Ostatni punkt bywa zaskoczeniem: mówimy o własnym długu technicznym, i to w czasie przeszłym. Do 20 września był nazwany i pilnowany; 22 września został spłacony — a testy granic, które pilnowały starych plików, przepięto na nowe pakiety i sprawdzono celowo psując kod, że nadal się zapalają.</aside>
 </section>
 
 <section class="slide" id="s5">
@@ -936,9 +936,9 @@ Wątek zapytań rozwinąć tylko wtedy, gdy ktoś zapyta, i rozwinąć uczciwie.
       <li><b>Instrukcja obsługi napisana dla modelu</b><small>Polecenia, filtry, pułapki, limity i czego nigdy nie robić — wersjonowana razem z kodem, więc nie rozjedzie się z narzędziem</small></li>
       <li><b>Zero modelu w środku</b><small>Nie ma drugiego rozumu w tej samej pętli, drugiego wyjścia z procesu ani cudzego łańcucha poświadczeń</small></li>
     </ul>
-    <p class="strip"><b>Stan: fazy od zerowej do trzeciej przyjęte, wzorcowy zbiór potwierdzony, 1 373 testy zielone.</b> Otwarte zostają trzy pozycje, żadna nie blokuje przekazania: zachowanie przy awarii serwisu (czeka na pierwszy duży przebieg), skuteczność ponawiania (progi są dziś decyzją, nie pomiarem) i <b>serwer, przez który model sięga do korpusu</b> — drzwi, nie narzędzie: zmiana interfejsu, nie zdolności, za bramką zgodności.</p>
+    <p class="strip"><b>Stan: fazy od zerowej do trzeciej przyjęte, wzorcowy zbiór potwierdzony, 1 393 testy zielone.</b> Otwarte zostają trzy pozycje, żadna nie blokuje przekazania: zachowanie przy awarii serwisu (czeka na pierwszy duży przebieg), skuteczność ponawiania (progi są dziś decyzją, nie pomiarem) i <b>serwer, przez który model sięga do korpusu</b> — drzwi, nie narzędzie: zmiana interfejsu, nie zdolności, za bramką zgodności.</p>
   </div>
-  <div class="slide__foot"><span>Stan drzewa 22.09.2026: 1 373 testy, z czego 21 pilnuje samego wyjścia maszynowego — żaden nie dotyka sieci. Dwa pliki ponad normą wielkości — na slajdzie o granicach.</span><span class="n"></span></div>
+  <div class="slide__foot"><span>Stan drzewa 22.09.2026: 1 393 testy, z czego 21 pilnuje samego wyjścia maszynowego — żaden nie dotyka sieci. Żaden plik programu nie przekracza normy wielkości.</span><span class="n"></span></div>
   <aside>To jest slajd, po którym pada decyzja. Jeśli ktoś zapyta „czyli można podpiąć asystenta od jutra?" — tak, przez powłokę, i tak to dziś działa. Serwer z typowanymi narzędziami jest wygodą i granicą procesu, nie warunkiem. Warto też powiedzieć wprost, że wyjście maszynowe powstało z pomiaru: tabela dla oka poza terminalem łamała identyfikatory w pół.
 
 Ostatnie zdanie paska domyka tezę z trzeciego slajdu: skoro modelu nie ma w środku, to etap czwarty jest drzwiami, przez które model wchodzi z zewnątrz. Nie jest to zmiana planu — taki był od początku.</aside>
