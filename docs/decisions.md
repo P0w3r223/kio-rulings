@@ -1000,7 +1000,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
 | O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
 | O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte w całości 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów, dwie usterki parsera znalezione i naprawione, **przegląd potwierdzony przez właściciela** tego samego dnia | — |
-| O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | Rozbicie w bramce fazy 3 byłoby zmianą struktury tuż przed przyjęciem | Dług fazy 4; do tego czasu oba mają wpis z pomiarem i **nie mogą urosnąć** (`test_boundaries.py`) |
+| O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | **zamknięte 2026-09-22 (ADR-0009)**: oba pliki są pakietami, największy moduł ma 497 linii, `PONAD_SUFITEM` pusty; decyzja właściciela zmieniła decyzję 3 niżej | — (sekcja „O-5 zamknięte — `store` i `pipeline` jako pakiety”) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | **zamknięte odmownie 2026-09-20**: właściciel zrezygnował — pozycja schodzi z listy jako „nie", nie jako „później" (sekcja „Asystent językowy — rezygnacja, nie odłożenie") | — (wraca wyłącznie z nowym ADR-em; bramka AI Act przed fazą 4 stoi niezależnie, bo serwer MCP też oddaje tekst modelowi) |
 | O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma; **co każdy z nich dałby projektowi — sekcja „Co dałyby pomiary kanałów `uzp` i `saos`" (2026-09-20)** | Decyzja o drugim kanale albo wejście w fazę 4 |
 
@@ -1015,7 +1015,7 @@ który zobaczy odbiorca prezentacji.
 |---|---|---|---|
 | 1 | Otwarty PR #2 na GitHubie | **Zamknąć bez scalania** | Zamknięty 2026-09-20 z komentarzem wyjaśniającym; niósł stan sprzed sześciu commitów, więc opisywał wersję, której już nie ma. Gałąź zdalna zostaje nietknięta |
 | 2 | Przegląd cytowań i przepisów (O-4) | **Potwierdzony** | `przeglad.kto` w 17 plikach niesie jedno zdanie zamiast dwóch faktów o różnym statusie; O-4 zamknięte w całości |
-| 3 | Rozbicie `store.py` (1 466) i `pipeline.py` (971) — O-5 | **Zostaje długiem** | Rozbijanie 2 437 linii tuż przed oddaniem to ryzyko regresu bez zysku dla odbiorcy. Sufit w `test_boundaries.py` pilnuje, że nie urosną, a pozycja idzie na slajd jako **zmierzony dług**, nie jako cisza |
+| 3 | Rozbicie `store.py` (1 466) i `pipeline.py` (971) — O-5 | **Zostaje długiem** — *zastąpione ADR-0009 (2026-09-22)* | Rozbijanie 2 437 linii tuż przed oddaniem to ryzyko regresu bez zysku dla odbiorcy. Sufit w `test_boundaries.py` pilnuje, że nie urosną, a pozycja idzie na slajd jako **zmierzony dług**, nie jako cisza |
 | 4 | Gałąź `feat/odlozone-sygnatury` | **Scalona lokalnie do `master`** | Sześć commitów przewinięte do przodu bez scalenia-commita; **nic nie wysłane** |
 | 5 | Odbiorca prezentacji | **Zarząd**, rejestr jak w `ceidg-tool` | `docs/prezentacja/plan.md` §0 |
 | 6 | Forma prezentacji | Sama wersja **ekranowa**, ekrany jako **makiety HTML** z trybu pokazowego, narzędzie **stoi samo** | `docs/prezentacja/plan.md` §0 |
@@ -1027,7 +1027,8 @@ pierwszej postaci.
 
 Po tej rundzie otwarte zostają **O-1, O-2, O-5 i O-7** — i wszystkie cztery z tego samego powodu:
 trzy wymagają przebiegu z siecią albo decyzji o drugim kanale, a czwarty jest świadomym długiem.
-Żadna z nich nie blokuje przekazania narzędzia.
+Żadna z nich nie blokuje przekazania narzędzia. *Dopisek 2026-09-22: O-5 zamknięte ADR-0009;
+otwarte zostają O-1, O-2 i O-7.*
 
 ---
 
@@ -1206,6 +1207,48 @@ maszyny i nie startował — odtworzony na Pythonie 3.12.10. Zgoda właściciela
 (169 dla 2010, 2 898 dla 2025). Korpus: **443**; raport pokrycia na nim — 16 834 przepisy,
 złoty zbiór zgodny 17 z 17. Kopia bazy sprzed przebiegu leży obok niej
 (`korpus.sqlite.przed-probka-rocznikowa-20260922`).
+
+---
+
+## O-5 zamknięte — `store` i `pipeline` jako pakiety (2026-09-22, ADR-0009)
+
+Właściciel zmienił decyzję 3 z 2026-09-20 i zamknął O-5 przed prezentacją; przed pracą przyjął
+ADR-0009 i plan z punktem kontrolnym (odwrót do stanu sprzed rozbicia, gdyby którykolwiek krok
+nie był zielony). Gałąź `refactor/o5-pakiety`, commity lokalne.
+
+| Moduł | Linii | Moduł | Linii |
+|---|---|---|---|
+| `store/__init__.py` (fasada) | 57 | `pipeline/__init__.py` (fasada) | 65 |
+| `store/magazyn.py` | 277 | `pipeline/pobieranie.py` | 497 |
+| `store/wyszukiwanie.py` | 298 | `pipeline/lokalne.py` | 265 |
+| `store/przebiegi.py` | 273 | `pipeline/zgoda.py` | 127 |
+| `store/zapis.py` | 212 | `pipeline/slad.py` | 93 |
+| `store/model.py` | 192 | | |
+| `store/schemat.py` | 188 | | |
+| `store/polaczenie.py` | 132 | | |
+
+Zmierzone po ruchu, 2026-09-22. Kod przeniesiony dosłownie; mypy strict, ruff i cała suita
+zielone po każdym kroku (1 373 → 1 393 testy; przybyło 20 strażników, żaden nie zniknął).
+
+**Co pokazało samo rozbicie.** Po przeniesieniu kodu bez dotykania testów czerwone były dwa
+testy (sufit i numer ADR), a **reguły 3 i 4 przeszły na zielono, skanując pusty zbiór** — to jest
+dokładnie ta cicha awaria, przed którą ostrzegał ADR (§2). Każda przepięta reguła została
+sprawdzona mutacją:
+
+| Mutacja | Co się zapaliło |
+|---|---|
+| `import httpx` w `store/przebiegi.py` | reguła 3 |
+| `import rich` w `store/zapis.py` | reguła 4 |
+| skan reguł 3 i 4 skierowany na nieistniejący pakiet | reguły 3 i 4 **zielone**, nowy metatest `…nie_wraca_do_stanu_wyzwalacza` czerwony |
+| import `source` w `pipeline/lokalne.py` | reguła 5 (równość z jednym plikiem) |
+| `build_http_client()` w `lokalne.eksportuj` | 7 testów operacji bez sieci |
+| `monkeypatch.setattr(pipeline, "PROG_ZGODY", 3)` w teście | `test_fasady` (podstawienie bez skutku na fasadzie) |
+| punkt kontrolny wyniesiony za blok transakcji | nowy skan Z-5 w sekcji reguły 5 |
+
+Nowe na stałe: reguły 3 i 4 skanują `store/**/*.py`, reguła 5 trzyma równość z
+`pipeline/pobieranie.py`, `WLASCICIELE_OBOWIAZKOWE` (lista obowiązków, nie wyjątków), skan
+punktu kontrolnego w transakcji strony, `tests/test_fasady.py`, pomocnik
+`podstaw_fabryke_klienta`. Na żadnej liście wyjątków nie przybył wpis.
 
 ---
 
