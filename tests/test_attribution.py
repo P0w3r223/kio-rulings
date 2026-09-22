@@ -20,8 +20,8 @@ import pytest
 from kio_tool.docid import SourceName
 from kio_tool.exporter import DATA_NIEZNANA, FORMATY, ORGAN, Wpis, blok_atrybucji, eksportuj
 from kio_tool.parser.details import rekord_z_bajtow, wyczytaj
-from kio_tool.pipeline import mapa_pol
 from kio_tool.source.contract import load_contract
+from kio_tool.wpisy import mapa_pol
 
 ZLOTE = Path(__file__).resolve().parent / "examples" / "atlas"
 DOKUMENT_BAJTY = (ZLOTE / "dokument_20260918T103526Z.json").read_bytes()

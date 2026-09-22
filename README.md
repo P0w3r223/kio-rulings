@@ -240,7 +240,7 @@ pojawia się dopiero w całości.
 | `xlsx` | arkusz `Orzeczenia` (tabela z autofiltrem, 21 kolumn), `Slownik` (opis każdej kolumny), `Metadane` (kryteria, cel pobrania, liczba dokumentów w eksporcie i w korpusie, formaty, czas, wersja narzędzia i odczytu, organ, atrybucja) |
 | `csv` | te same kolumny, separator `;`, UTF-8 z BOM (Excel otwiera poprawnie polskie znaki) |
 | `jsonl` | jeden obiekt na dokument: tożsamość, blok cytowania i **surowy rekord kanału w całości** z pełnym tekstem — format dla własnego potoku |
-| `md` | katalog `<nazwa>_md/` z jednym plikiem na orzeczenie (`atlas_kio-1205-20.md`: nagłówek metadanych, blok atrybucji, pełny tekst) i `INDEX.md` z metadanymi eksportu i tabelą odsyłaczy |
+| `md` | katalog `<nazwa>_md/` z jednym plikiem na orzeczenie (`atlas_kio-1205-20.md`: nagłówek metadanych, blok atrybucji, pełny tekst z nagłówkami sekcji — Sentencja, Uzasadnienie… — i dodatek „Odesłania odczytane z treści” z cytowanymi orzeczeniami i powołanymi przepisami) i `INDEX.md` z metadanymi eksportu i tabelą odsyłaczy |
 
 Kolumny: `sygnatura`, `sygnatury`, `data_wydania`, `data_rozprawy`, `rodzaj`, `rozstrzygniecie`,
 `rozstrzygniecie_surowe`, `przewodniczacy`, `odwolujacy`, `zamawiajacy`, `przepisy`, `koszty`,

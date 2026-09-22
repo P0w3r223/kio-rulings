@@ -12,9 +12,9 @@ import json
 import sqlite3
 from pathlib import Path
 
-from kio_tool import pipeline
+from kio_tool import pipeline, wpisy
 from kio_tool.odczyt import struktura
-from kio_tool.parser.details import PARSE_VERSION
+from kio_tool.parser.details import PARSE_VERSION, MapaPol
 from kio_tool.store import SCHEMA_VERSION, Store
 from tests.test_odpornosc_wspolne import (
     KONTRAKT,
@@ -45,8 +45,8 @@ def _rekord(slug: str) -> dict[str, object]:
     }
 
 
-def _mapa() -> pipeline.MapaPol:
-    return pipeline.mapa_pol(KONTRAKT)
+def _mapa() -> MapaPol:
+    return wpisy.mapa_pol(KONTRAKT)
 
 
 def test_struktura_ma_sekcje_cytowania_i_przepisy_z_obu_zrodel() -> None:

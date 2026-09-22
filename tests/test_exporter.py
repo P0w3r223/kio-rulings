@@ -15,18 +15,23 @@ import csv
 import json
 from collections.abc import Iterator
 from pathlib import Path
+from typing import get_args
 
 import openpyxl
 import pytest
 
 from kio_tool import exporter
-from kio_tool.docid import SourceName
+from kio_tool.docid import RodzajSygnatury, SourceName
 from kio_tool.errors import ExportError
 from kio_tool.exporter import FORMATY, NAZWY_KOLUMN, Wpis, eksportuj, wiersz
+from kio_tool.odczyt import struktura
 from kio_tool.parser.details import rekord_z_bajtow, wyczytaj
-from kio_tool.pipeline import mapa_pol
+from kio_tool.parser.provisions import AKTY
+from kio_tool.progress import NullEvents
 from kio_tool.safetext import FORMULA_PREFIXES, sanitize_text
 from kio_tool.source.contract import load_contract
+from kio_tool.store import Struktura, WierszCytowania, WierszPrzepisu, WierszSekcji
+from kio_tool.wpisy import mapa_pol
 
 ZLOTE = Path(__file__).resolve().parent / "examples" / "atlas"
 DOKUMENT_BAJTY = (ZLOTE / "dokument_20260918T103526Z.json").read_bytes()
@@ -289,3 +294,127 @@ def test_sufiks_doklejany_do_nazwy_z_kropkami_w_rdzeniu(tmp_path: Path) -> None:
 
 def test_nazwa_pliku_md_pochodzi_z_tozsamosci_nie_z_sygnatury() -> None:
     assert exporter.nazwa_pliku_md(wpis()) == "atlas_kio-1205-20.md"
+
+
+# ------------------------------------------------ sekcje i odesłania w `md` (2026-09-22)
+
+
+def _bez_naglowkow(tekst: str, sekcje: tuple[WierszSekcji, ...]) -> str:
+    for rodzaj in {s.rodzaj for s in sekcje}:
+        tekst = tekst.replace(exporter.naglowek_sekcji(rodzaj), "")
+    return tekst
+
+
+def test_tekst_z_sekcjami_bez_naglowkow_jest_tresc_znak_w_znak() -> None:
+    """Nagłówki są dopiskiem do tekstu, nie jego redakcją: plik `md` ma nieść pełne orzeczenie,
+    a sekcja, której granica jest przesunięta, nie ma prawa zjeść ani zdublować znaku."""
+    s = wpis().szczegoly
+    budowa = struktura(s)
+
+    wynik = exporter.tresc_z_sekcjami(s.tresc, budowa.sekcje)
+
+    assert budowa.sekcje, "złoty dokument ma sekcje — bez nich test przechodziłby pusto"
+    assert _bez_naglowkow(wynik, budowa.sekcje) == s.tresc
+    for sekcja in budowa.sekcje:
+        assert exporter.naglowek_sekcji(sekcja.rodzaj) in wynik
+
+
+@pytest.mark.parametrize(
+    "granice",
+    [
+        [(0, 10), (5, 20)],  # nakładanie
+        [(3, 8), (12, 15)],  # luki przed, między i po
+        [(0, 0), (4, 4)],  # sekcje puste
+        [(10, 5)],  # koniec przed początkiem
+        [(0, 999)],  # koniec poza tekstem
+    ],
+)
+def test_granice_sekcji_nie_gubia_ani_nie_dubluja_tekstu(granice: list[tuple[int, int]]) -> None:
+    tresc = "abcdefghijklmnopqrstuvwxyz"
+    sekcje = tuple(
+        WierszSekcji(porzadek=i, rodzaj="uzasadnienie", start=a, koniec=b, sha256="")
+        for i, (a, b) in enumerate(granice)
+    )
+
+    assert _bez_naglowkow(exporter.tresc_z_sekcjami(tresc, sekcje), sekcje) == tresc
+
+
+def test_md_niesie_dodatek_odeslan_zgodny_ze_struktura(eksport: dict[str, Path]) -> None:
+    budowa = struktura(wpis().szczegoly)
+    tekst = next(p for p in eksport["md"].iterdir() if p.name != "INDEX.md" and p.suffix == ".md")
+    tresc = tekst.read_text(encoding="utf-8")
+
+    assert exporter.NAGLOWEK_ODESLAN in tresc
+    z_tresci = [c for c in budowa.cytowania if c.zrodlo == "tresc"]
+    przepisy = [p for p in budowa.przepisy if p.zrodlo == "tresc"]
+    assert f"### Cytowane orzeczenia ({len(z_tresci)})" in tresc
+    assert f"### Powołane przepisy ({len(przepisy)})" in tresc
+    for p in przepisy:
+        assert f"- {p.postac} — " in tresc and f"[{p.akt}]" in tresc
+
+
+def test_dodatek_nie_bierze_opracowania_kanalu() -> None:
+    """Reguła 19: przepis z `zrodlo == "kanal"` to opracowanie Atlasu, nie odczyt z treści."""
+    budowa = Struktura(
+        sekcje=(),
+        cytowania=(),
+        przepisy=(WierszPrzepisu(0, "kanal", "art. 999 Pzp", "pzp2019", "art. 999", None, None),),
+    )
+
+    linie = exporter.dodatek_odeslan(budowa)
+
+    assert not any("art. 999" in linia for linia in linie)
+    assert "- brak powołań w treści" in linie
+
+
+def test_kazdy_kod_rodzaju_i_aktu_ma_etykiete_slowami() -> None:
+    """Nowy rodzaj w `docid` albo nowy akt w `provisions` poszedłby do pliku jako goły kod —
+    czytelny dla bazy, nie dla prawnika. Lista z `Literal`, nie przepisana ręcznie."""
+    kody = set(get_args(RodzajSygnatury)) | set(AKTY)
+
+    assert kody - set(exporter.ETYKIETY_ODESLAN) == set()
+
+
+class _Puls(NullEvents):
+    def __init__(self) -> None:
+        self.eksport: list[int] = []
+
+    def on_export(self, done: int, total: int) -> None:
+        self.eksport.append(done)
+
+
+def test_eksport_md_daje_puls_w_trakcie(tmp_path: Path) -> None:
+    """Plik `md` liczy strukturę przy zapisie (~70 ms na dokument, zmierzone 2026-09-22), więc
+    eksport całego korpusu trwa dziesiątki sekund — bez pulsu wyglądałby na zawieszony."""
+    puls = _Puls()
+    wpisy = [wpis() for _ in range(exporter.MD_REPORT_EVERY * 2)]
+    wpisy = [
+        Wpis(**{**w.__dict__, "doc_id": f"atlas:kio-{i}-20", "source_ref": f"kio-{i}-20"})
+        for i, w in enumerate(wpisy)
+    ]
+
+    eksportuj(tmp_path / "e", zrodlo(*wpisy), formaty=["md"], metadane=METADANE, events=puls)
+
+    assert puls.eksport == [exporter.MD_REPORT_EVERY, exporter.MD_REPORT_EVERY * 2]
+
+
+def test_md_mowi_ze_naglowki_sekcji_wstawil_kio_tool(eksport: dict[str, Path]) -> None:
+    plik = next(p for p in eksport["md"].iterdir() if p.name != "INDEX.md" and p.suffix == ".md")
+
+    assert "wstawił kio-tool" in plik.read_text(encoding="utf-8")
+
+
+def test_zapis_dosłowny_z_lamaniem_wiersza_nie_rozbija_listy_dodatku() -> None:
+    budowa = Struktura(
+        sekcje=(),
+        cytowania=(
+            WierszCytowania(0, "tresc", "inne", None, "sygn. akt: KIO\n\n5\n124/13.", 0, 5),
+        ),
+        przepisy=(),
+    )
+
+    linie = exporter.dodatek_odeslan(budowa)
+
+    assert "- sygn. akt: KIO 5 124/13. — postać nierozpoznana — zapis dosłowny [nierozpoznane]" in (
+        linie
+    )

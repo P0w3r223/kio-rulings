@@ -131,6 +131,8 @@ POMOC_JSON = (
 )
 
 NAGLOWKI_TRAFIEN = ("sygnatura", "data wydania", "rozstrzygnięcie", "fragment")
+NAGLOWKI_TRAFIEN_MASZYNOWE = ("doc_id", "url_zrodla", "cytowanie")
+"""Droga od trafienia do źródła — tylko w `--json`; puste pole = wpisu nie odczytano."""
 
 
 def przebieg_bez_powiazan(run_id: str, zakres: str) -> str:
@@ -426,8 +428,13 @@ def blok_wyszukiwania(
     zaindeksowanych: int,
     trafien: int,
     bez_daty_poza_filtrem: int,
+    zrodla: Sequence[tuple[str, ...]] = (),
 ) -> Block:
-    """Tabela trafień z liczbami **nad** nią — mina 2: wynik mówi, czego nie objął."""
+    """Tabela trafień z liczbami **nad** nią — mina 2: wynik mówi, czego nie objął.
+
+    `zrodla` to wiersze `NAGLOWKI_TRAFIEN_MASZYNOWE`, równoległe do `wiersze`; puste = blok bez
+    kolumn maszynowych (kreator, który ich nie pokazuje, nie musi ich liczyć).
+    """
     uwagi = [
         f"W korpusie: {w_korpusie} dokumentów, zaindeksowanych: {zaindeksowanych}, "
         f"trafień: {trafien}, pokazano: {len(wiersze)}."
@@ -452,6 +459,8 @@ def blok_wyszukiwania(
             ("pokazano", len(wiersze)),
             ("bez_daty_poza_filtrem", bez_daty_poza_filtrem),
         ),
+        kolumny_maszynowe=NAGLOWKI_TRAFIEN_MASZYNOWE if zrodla else (),
+        wiersze_maszynowe=tuple(zrodla),
     )
 
 

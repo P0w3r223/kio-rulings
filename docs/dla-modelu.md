@@ -1,6 +1,6 @@
 # kio-tool — wytyczne dla modelu, który obsługuje to narzędzie
 
-Data: 2026-09-20
+Data: 2026-09-20, aktualizacja 2026-09-22 (źródło przy trafieniu, sekcje i odesłania w `md`)
 Status: obowiązujący
 Dotyczy: agenta (modelu) prowadzącego `kio-tool` w imieniu operatora
 
@@ -104,7 +104,7 @@ maszynowe są z założenia:
 
 ### Najprościej: JSON Lines
 
-`szukaj` i `runy` przyjmują **`--json`** i wtedy mówią **JSON Lines** — jeden dokument na wiersz,
+`szukaj`, `runy`, `przelicz` i `pokrycie` przyjmują **`--json`** i wtedy mówią **JSON Lines** — jeden dokument na wiersz,
 każdy z polem `rodzaj` (`blok`, `komunikat`, `ostrzezenie`, `blad`). Wartości nie są łamane,
 bo nic ich nie rysuje.
 
@@ -114,18 +114,29 @@ kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
 
 ```json
 {"rodzaj": "blok", "tytul": "Trafienia dla „rażąco niska cena”",
- "kolumny": ["sygnatura", "data_wydania", "rozstrzygniecie", "fragment"],
- "wiersze": [{"sygnatura": "KIO 3810/23", "...": "..."}],
+ "kolumny": ["sygnatura", "data_wydania", "rozstrzygniecie", "fragment",
+             "doc_id", "url_zrodla", "cytowanie"],
+ "wiersze": [{"sygnatura": "KIO 3810/23", "doc_id": "atlas:kio-3810-23",
+              "url_zrodla": "https://orzeczenia.uzp.gov.pl/Home/PdfContent/24485?Kind=KIO",
+              "cytowanie": "Wyrok KIO z 2024-01-09, sygn. KIO 3810/23, ...", "...": "..."}],
  "liczby": {"w_korpusie": 443, "zaindeksowanych": 443, "trafien": 39,
              "pokazano": 20, "bez_daty_poza_filtrem": 0},
  "uwagi": ["W korpusie: 443 dokumentów, ..."]}
 ```
 
+**Każde trafienie w `--json` niesie drogę do źródła** (od 2026-09-22): `doc_id`, `url_zrodla`
+(PDF orzeczenia w urzędowej wyszukiwarce UZP) i `cytowanie` — ten sam blok cytowania, który
+trafia do eksportu, zbudowany tą samą funkcją. Przekazuj człowiekowi `cytowanie` w całości albo
+co najmniej `url_zrodla`: to jest adres, pod którym sprawdzi zdanie u źródła. Pusty `url_zrodla`
+znaczy, że kanał adresu nie podał — wtedy `cytowanie` niesie identyfikator kanału; nie zgaduj
+adresu. **Puste `url_zrodla` i `cytowanie` naraz** znaczą, że bieżącej wersji tego dokumentu nie
+dało się odczytać — trafienie jest prawdziwe, ale źródło trzeba ustalić po `doc_id`. W tabeli dla człowieka tych kolumn nie ma — są tylko w `--json`.
+
 **Czytaj `liczby`, nie `uwagi`.** `uwagi` to zdania dla człowieka i wolno im się zmienić;
 `liczby` są kontraktem. Pole `liczby` stoi także przy **zerze trafień** — i tam jest potrzebne
 najbardziej, bo odróżnia „nie ma takich orzeczeń" od „nie ma ich w tym, co pobrano".
 
-Pozostałe polecenia wyjścia maszynowego jeszcze nie mają (sekcja 9); tam tabela jest podglądem
+`eksportuj`, `pobierz`, `wznow` i `demo` wyjścia maszynowego nie mają (sekcja 9); tam tabela jest podglądem
 dla człowieka, a materiał do dalszej pracy bierz z eksportu.
 
 ## 5. Co da się wyszukać
@@ -138,11 +149,11 @@ Te same filtry działają w `szukaj`, `eksportuj` i `pobierz`:
 | `--od`, `--do` | Zakres dat wydania, `RRRR-MM-DD`, włącznie | dokumenty bez daty wypadają poza filtr i wynik to mówi |
 | `--rozstrzygniecie` | `oddalono`, `uwzglednione`, `umorzono`, `odrzucono`, `inne` | można powtórzyć; lista zmierzona na stu rekordach, nieudokumentowana przez kanał |
 | `--rodzaj` | `wyrok` albo `postanowienie` | można powtórzyć |
-| `--przepis` | Powołanie w zapisie kanału, np. `art. 226 ust. 1 pkt 5 Pzp` | dopasowanie po podnapisie — patrz pułapka 2 |
+| `--przepis` | Powołanie **w zapisie kanału** (pole opracowania Atlasu), np. `art. 226 ust. 1 pkt 5 Pzp` | dopasowanie po podnapisie — patrz pułapki 2 i 3 |
 | `--przewodniczacy` | Podnapis nazwiska przewodniczącego składu | dane osobowe; używaj tylko gdy operator o to prosi |
 | `--strona` | Podnapis nazwy odwołującego albo zamawiającego | |
 | `--limit` | Ile wierszy pokazać (domyślnie 20) | nie zmienia liczby trafień, tylko widok |
-| `--json` | Wynik jako JSON Lines zamiast tabeli | `szukaj` i `runy`; patrz sekcja 4b |
+| `--json` | Wynik jako JSON Lines zamiast tabeli | `szukaj`, `runy`, `przelicz`, `pokrycie`; patrz sekcja 4b |
 
 Wynik `szukaj` to tabela `sygnatura · data wydania · rozstrzygnięcie · fragment`, a **nad nią**
 liczby: ile jest w korpusie, ile zaindeksowanych, ile trafień i ile pokazano. Czytaj te liczby
@@ -157,8 +168,13 @@ pobrano".
    do `pobierz` — pobierz zakres dat i przeszukaj lokalnie.
 2. **`--przepis` dopasowuje zapis, nie znaczenie.** Ten sam przepis bywa w tekście zapisany na
    kilka sposobów. Jeżeli wynik wygląda na za mały, spróbuj krótszego podnapisu (`art. 226 ust. 1`).
-3. **31 % powołań na przepisy ma akt „nieustalone".** To nie awaria: tekst nie wskazuje ustawy
-   w sposób rozstrzygalny. Nie interpretuj tego jako „przepis spoza Pzp".
+3. **Dwa różne spisy przepisów — nie mieszaj ich.** `--przepis` filtruje po liście przepisów,
+   którą **podaje kanał** (Atlas). Własny odczyt narzędzia z treści orzeczenia jest osobny:
+   widać go w dodatku „Odesłania odczytane z treści" na końcu każdego pliku eksportu `md`
+   i w raporcie `pokrycie`. W tym własnym odczycie **33,0 % powołań ma akt „nieustalone"**
+   (4 518 z 13 697, raport `pokrycie` z 2026-09-20; w liście kanału — 22,8 %) —
+   to nie awaria: tekst nie wskazuje ustawy w sposób rozstrzygalny. Nie interpretuj tego jako
+   „przepis spoza Pzp" i nie przenoś tej liczby na wynik `--przepis`, bo ten filtr jej nie dotyczy.
 4. **Sygnatury mają wiele postaci.** Narzędzie normalizuje je do `KIO 1234/23`. Część odesłań jest
    w orzeczeniach zapisana bez oznaczenia repertorium (samo `3376/23` za „sygn. akt") i taka
    niesie osobny rodzaj — organ dopisano z kontekstu, nie odczytano z zapisu.
@@ -190,8 +206,9 @@ projektu to 464 żądania.
 
 ## 8. Jak odpowiadać na podstawie tego korpusu
 
-- Podawaj **sygnaturę i datę** przy każdym twierdzeniu o orzeczeniu. Odbiorca musi móc sprawdzić
-  je u źródła.
+- Podawaj **sygnaturę i datę** przy każdym twierdzeniu o orzeczeniu, a najlepiej całe pole
+  `cytowanie` z wyniku `--json`. Odbiorca musi móc sprawdzić je u źródła, a `url_zrodla`
+  prowadzi wprost do PDF-a w wyszukiwarce UZP.
 - Podawaj **liczbę trafień i wielkość korpusu**, nie samo „znalazłem". „7 z 443 pobranych
   orzeczeń" to informacja; „znalazłem 7" to jej połowa.
 - Kiedy filtr nic nie zwrócił, powiedz **który** filtr mógł być za wąski, zamiast odpowiadać
@@ -206,15 +223,26 @@ projektu to 464 żądania.
 
 Zapisane tutaj, żebyś nie szukał czegoś, czego nie ma, i nie zakładał, że źle wołasz polecenie.
 
-- **`--json` ma `szukaj` i `runy`** (od 2026-09-20). Nie mają go jeszcze `przelicz`, `pokrycie`
-  (ale zapisuje `.json` obok raportu), `eksportuj` (zapisuje plik, więc go nie potrzebuje)
-  ani `pobierz`/`wznow` — te ostatnie mówią do człowieka w trakcie długiego przebiegu.
+- **`--json` mają `szukaj`, `runy`, `przelicz` i `pokrycie`.** Nie ma go `eksportuj` (zapisuje
+  plik, więc go nie potrzebuje) ani `pobierz`/`wznow` — te mówią do człowieka w trakcie długiego
+  przebiegu.
 - **Brak serwera, przez który sięgałbyś do korpusu narzędziami zamiast powłoką.** Taki jest
   kształt etapu czwartego (`docs/ARCHITEKTURA_KIO_TOOL.md` §3.8), który stoi za bramką zgodności.
 - **Kolumna `fragment` w wyniku `szukaj` jest przycięta pod ekran** i nie ma flagi, która by ją
-  poszerzyła. Po szerszy kontekst idź eksportem.
-- **Nie ma trybu „tylko policz".** Żeby poznać liczbę trafień, wołasz `szukaj` i czytasz zdanie
-  nad tabelą; przy `--limit 0` tabela i tak się rysuje.
+  poszerzyła. Po szerszy kontekst idź eksportem — `eksportuj --format md` daje od 2026-09-22
+  tekst podzielony nagłówkami sekcji (Nagłówek, Sentencja, Pouczenie, Uzasadnienie, Zdanie
+  odrębne), więc odczyt narzędzia wskazuje, czy zdanie należy do rozstrzygnięcia Izby, czy do
+  jej uzasadnienia. Granice wyznacza heurystyka, a nagłówków **nie ma w orzeczeniu** — cytując,
+  nie przenoś ich do cytatu. Eksport `md` całego korpusu trwa ok. 30 s (struktura liczona przy
+  zapisie).
+- **Fragment nie mówi, z której sekcji pochodzi.** Zdanie w uzasadnieniu bywa przytoczeniem
+  stanowiska strony, nie poglądem Izby. Zanim przypiszesz je Izbie, sprawdź kontekst w `md`.
+- **Nie ma polecenia „pokaż jedno orzeczenie".** Pełny tekst jednego dokumentu daje eksport
+  z frazą, która go wyróżnia (np. jego sygnaturą: `eksportuj --fraza "KIO 3810/23" --format md`).
+  Fraza szuka w treści, więc trafią **także orzeczenia, które tę sygnaturę cytują** — właściwy
+  plik rozpoznasz po sygnaturze w `INDEX.md`.
+- **Nie ma trybu „tylko policz".** Żeby poznać liczbę trafień, wołasz `szukaj --json --limit 1`
+  i czytasz `liczby.trafien`; `--limit 0` kończy się kodem 3 (limit ma być dodatni).
 
 Żadna z tych rzeczy nie blokuje pracy — wszystkie mają obejście opisane wyżej. Ale jeśli operator
 pyta, czy narzędzie jest „gotowe pod agenta", odpowiedź brzmi: **budowa i zasady tak, kanał

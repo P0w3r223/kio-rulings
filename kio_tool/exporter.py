@@ -26,6 +26,7 @@ import csv
 import json
 import os
 import shutil
+from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,9 +39,11 @@ from openpyxl.utils.exceptions import IllegalCharacterError
 
 from .config import safe_filename
 from .errors import ExportError
-from .parser.details import Szczegoly
+from .odczyt import struktura
+from .parser.details import PARSE_VERSION, Szczegoly
 from .progress import Events, NullEvents
 from .safetext import sanitize_text, strip_control
+from .store import Struktura, WierszSekcji
 
 ORGAN = "Krajowa Izba Odwoławcza"
 """Oznaczenie organu — jedno miejsce, z którego biorą je wszystkie formaty (reguła 15)."""
@@ -54,6 +57,10 @@ EXCEL_MAX_ROWS = 1_048_576
 CSV_DELIMITER = ";"
 TEXT_FORMAT = "@"
 EXPORT_REPORT_EVERY = 250
+MD_REPORT_EVERY = 25
+"""Puls eksportu `md` gęstszy niż arkusza: plik `md` niesie strukturę liczoną przy zapisie
+(zmierzone 2026-09-22: ~70 ms na dokument, 443 dokumenty ~30 s), więc 250 dokumentów to kilkanaście
+sekund bez sygnału — a cisza jest usterką."""
 PLIK_INDEKSU = "INDEX.md"
 SUFIKS_KATALOGU_MD = "_md"
 PLIK_ZNACZNIKA = ".kio-tool-eksport"
@@ -224,7 +231,7 @@ def eksportuj(
         elif fmt == "jsonl":
             _zapisz_jsonl(sciezka, zrodlo)
         else:
-            _zapisz_md(sciezka, zrodlo, metadane)
+            _zapisz_md(sciezka, zrodlo, metadane, reporter)
         utworzone.append(sciezka)
     return utworzone
 
@@ -364,7 +371,8 @@ def nazwa_pliku_md(wpis: Wpis) -> str:
 
 def tresc_md(wpis: Wpis) -> str:
     """Nagłówek YAML (wartości jako napisy JSON — poprawne skalary YAML w cudzysłowie), blok
-    atrybucji jako cytat, potem pełny tekst bez znaków sterujących."""
+    atrybucji jako cytat, zdanie o wstawionych nagłówkach, pełny tekst bez znaków sterujących
+    z nagłówkami sekcji, na końcu dodatek odesłań odczytanych z treści."""
     s = wpis.szczegoly
     naglowek = [
         ("sygnatura", s.sygnatura_glowna),
@@ -391,11 +399,137 @@ def tresc_md(wpis: Wpis) -> str:
     linie.append("")
     linie.extend(f"> {strip_control(wiersz_)}" for wiersz_ in blok_atrybucji(wpis).splitlines())
     linie.append("")
-    linie.append(strip_control(s.tresc))
+    linie.append(UWAGA_SEKCJI.format(wersja=PARSE_VERSION))
+    linie.append("")
+    budowa = struktura(s)
+    linie.append(strip_control(tresc_z_sekcjami(s.tresc, budowa.sekcje)))
+    linie.extend(dodatek_odeslan(budowa))
     return "\n".join(linie) + "\n"
 
 
-def _zapisz_md(katalog: Path, zrodlo: Zrodlo, metadane: Metadane) -> None:
+ETYKIETY_SEKCJI = {
+    "naglowek": "Nagłówek",
+    "sentencja": "Sentencja",
+    "pouczenie": "Pouczenie",
+    "uzasadnienie": "Uzasadnienie",
+    "zdanie_odrebne": "Zdanie odrębne",
+    "nieprzypisane": "Fragment bez rozpoznanej sekcji",
+}
+"""Nagłówki `##` wstawiane w tekst eksportu `md` (2026-09-22). Sekcje liczy ten sam
+`odczyt.struktura`, który zapisuje je do bazy, z tych samych bajtów — plik nie ma drugiego
+podziału. Przed tą zmianą tekst szedł płasko i czytelnik nie odróżniał zdania Izby od
+przytoczonego stanowiska strony, choć odczyt znał granicę."""
+
+UWAGA_SEKCJI = (
+    "> Nagłówki `##` w tekście poniżej wstawił kio-tool (wersja odczytu {wersja}) — nie ma ich "
+    "w orzeczeniu. Granice sekcji wyznacza odczyt automatyczny; cytując, kopiuj tekst bez nich."
+)
+"""Nagłówek wstawiony w tekst wygląda jak część orzeczenia, a kto skopiuje fragment do cytatu,
+skopiowałby napis, którego u źródła nie ma (przegląd kodu 2026-09-22; ADR-0006 Z-5)."""
+
+NAGLOWEK_ODESLAN = "## Odesłania odczytane z treści"
+UWAGA_ODESLAN = (
+    "> Wyliczone automatycznie przez kio-tool (wersja odczytu {wersja}) z tekstu powyżej, "
+    "nie przez Izbę ani kanał. Każdą pozycję sprawdź w tekście. Akt „nieustalone” znaczy, "
+    "że tekst nie wskazuje ustawy w sposób rozstrzygalny — nie, że przepis jest spoza Pzp."
+)
+
+
+def tresc_z_sekcjami(tresc: str, sekcje: Sequence[WierszSekcji]) -> str:
+    """Pełny tekst z nagłówkiem przed każdą sekcją. **Nic z tekstu nie ginie**: odcinek między
+    sekcjami idzie bez nagłówka, a sekcja nakładająca się na poprzednią zaczyna od jej końca —
+    usunięcie wstawionych nagłówków oddaje `tresc` znak w znak (strażnik w `test_exporter`)."""
+    kawalki: list[str] = []
+    pozycja = 0
+    for sekcja in sorted(sekcje, key=lambda w: (w.start, w.porzadek)):
+        poczatek = max(sekcja.start, pozycja)
+        koniec = min(max(sekcja.koniec, poczatek), len(tresc))
+        if poczatek >= koniec:
+            continue
+        kawalki.append(tresc[pozycja:poczatek])
+        kawalki.append(naglowek_sekcji(sekcja.rodzaj))
+        kawalki.append(tresc[poczatek:koniec])
+        pozycja = koniec
+    kawalki.append(tresc[pozycja:])
+    return "".join(kawalki)
+
+
+def naglowek_sekcji(rodzaj: str) -> str:
+    return f"\n## {ETYKIETY_SEKCJI.get(rodzaj, rodzaj)}\n\n"
+
+
+def dodatek_odeslan(budowa: Struktura) -> list[str]:
+    """Cytowane orzeczenia i powołane przepisy z treści — zliczone po postaci, nie po wystąpieniu,
+    żeby dodatek dał się przeczytać. Wyłącznie `zrodlo == "tresc"`: opracowanie kanału nie wchodzi
+    do korpusu pochodnego (reguła 19)."""
+    cytowane = Counter(
+        (c.sygnatura or c.surowy, c.rodzaj if c.sygnatura else "nierozpoznane")
+        for c in budowa.cytowania
+        if c.zrodlo == "tresc"
+    )
+    przepisy = Counter((p.postac, p.akt) for p in budowa.przepisy if p.zrodlo == "tresc")
+    linie = ["", NAGLOWEK_ODESLAN, "", UWAGA_ODESLAN.format(wersja=PARSE_VERSION), ""]
+    linie.append(f"### Cytowane orzeczenia ({sum(cytowane.values())})")
+    linie.append("")
+    linie.extend(
+        f"- {_jeden_wiersz(syg)} — {_etykieta(rodzaj)}{_krotnosc(n)}"
+        for (syg, rodzaj), n in cytowane.items()
+    )
+    if not cytowane:
+        linie.append("- brak odesłań w treści")
+    linie.append("")
+    linie.append(f"### Powołane przepisy ({sum(przepisy.values())})")
+    linie.append("")
+    linie.extend(
+        f"- {_jeden_wiersz(postac)} — {_etykieta(akt, akt=True)}{_krotnosc(n)}"
+        for (postac, akt), n in przepisy.items()
+    )
+    if not przepisy:
+        linie.append("- brak powołań w treści")
+    return linie
+
+
+ETYKIETY_ODESLAN = {
+    "kio": "KIO",
+    "kio_bez_repertorium": "KIO, organ dopisany z kontekstu „sygn. akt”",
+    "so": "sąd okręgowy",
+    "sa": "sąd apelacyjny",
+    "sn": "Sąd Najwyższy",
+    "nsa": "NSA",
+    "wsa": "WSA",
+    "uzp_zo": "Zespół Arbitrów UZP",
+    "tsue": "TSUE",
+    "inne": "inny organ",
+    "nierozpoznane": "postać nierozpoznana — zapis dosłowny",
+    "pzp2004": "Pzp z 2004 r.",
+    "pzp2019": "Pzp z 2019 r.",
+    "kc": "Kodeks cywilny",
+    "kpc": "Kodeks postępowania cywilnego",
+    "rozporzadzenie": "rozporządzenie",
+    "inne_akty": "inny akt",
+    "nieustalone": "akt nieustalony",
+}
+"""Kody rodzaju i aktu z bazy (`docid.RodzajSygnatury`, `parser.provisions.Akt`) słowami — plik
+`md` czyta prawnik, nie program. Kod zostaje w nawiasie, żeby wpis dał się dopasować do bazy
+i do raportu pokrycia; kod spoza słownika idzie sam, zamiast zniknąć."""
+
+
+def _etykieta(kod: str, *, akt: bool = False) -> str:
+    slowo = ETYKIETY_ODESLAN.get("inne_akty" if akt and kod == "inne" else kod)
+    return f"{slowo} [{kod}]" if slowo else kod
+
+
+def _jeden_wiersz(napis: str) -> str:
+    """Zapis dosłowny z łamaniem wiersza (sklejka po ekstrakcji z PDF-a) rozbijałby listę dodatku
+    na akapity; dodatek jest wyliczeniem, nie cytatem, więc białe znaki zwijamy do spacji."""
+    return " ".join(strip_control(napis).split())
+
+
+def _krotnosc(n: int) -> str:
+    return f" (×{n})" if n > 1 else ""
+
+
+def _zapisz_md(katalog: Path, zrodlo: Zrodlo, metadane: Metadane, reporter: Events) -> None:
     """Katalog z jednym plikiem na orzeczenie i `INDEX.md` — budowany obok jako tymczasowy
     i podmieniany w całości, więc katalog docelowy jest kompletny albo nie ma go wcale.
 
@@ -414,9 +548,13 @@ def _zapisz_md(katalog: Path, zrodlo: Zrodlo, metadane: Metadane) -> None:
         indeks = ["# Orzeczenia KIO — eksport", "", *(f"- {k}: {v}" for k, v in metadane), ""]
         indeks.append("| plik | sygnatura | data wydania | rozstrzygnięcie |")
         indeks.append("|---|---|---|---|")
+        plikow = 0
         for wpis in zrodlo():
             nazwa = nazwa_pliku_md(wpis)
             _zapisz_tekst(tmp / nazwa, tresc_md(wpis))
+            plikow += 1
+            if plikow % MD_REPORT_EVERY == 0:
+                reporter.on_export(plikow, 0)
             s = wpis.szczegoly
             indeks.append(
                 f"| [{nazwa}]({nazwa}) | {strip_control(s.sygnatura_glowna or '')} "

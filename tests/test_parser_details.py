@@ -17,8 +17,8 @@ import pytest
 from kio_tool.docid import SourceName
 from kio_tool.errors import ParseError
 from kio_tool.parser.details import PARSE_VERSION, MapaPol, Szczegoly, rekord_z_bajtow, wyczytaj
-from kio_tool.pipeline import mapa_pol
 from kio_tool.source.contract import load_contract
+from kio_tool.wpisy import mapa_pol
 
 ZLOTE = Path(__file__).resolve().parent / "examples" / "atlas"
 DOKUMENT_BAJTY = (ZLOTE / "dokument_20260918T103526Z.json").read_bytes()

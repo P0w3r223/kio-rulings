@@ -33,6 +33,12 @@ class Block:
     rows: tuple[tuple[str, ...], ...] = ()
     notes: tuple[str, ...] = ()
     liczby: tuple[tuple[str, int], ...] = ()
+    kolumny_maszynowe: tuple[str, ...] = ()
+    """Kolumny wyłącznie dla wyjścia maszynowego, doklejane do `headers` wiersz po wierszu
+    z `wiersze_maszynowe`. Tabela dla oka ich nie rysuje: blok cytowania i adres źródła przy
+    każdym trafieniu rozsadziłyby szerokość terminala, a agent potrzebuje ich w całości, żeby
+    przejść od trafienia do źródła bez drugiego polecenia (2026-09-22)."""
+    wiersze_maszynowe: tuple[tuple[str, ...], ...] = ()
 
     def as_text(self) -> str:
         """Postać tekstowa — do logu, do trybu cichego i do asercji w testach."""

@@ -37,7 +37,6 @@ from .errors import (
     ConfigError,
     ConsentMissingError,
     NotFoundError,
-    ParseError,
     ResumableError,
     SourceContractBroken,
     StoreError,
@@ -47,7 +46,7 @@ from .exporter import eksportuj as zapisz_eksport
 from .httpclient import build_http_client
 from .logbook import Wynik
 from .odczyt import metryka, odczytaj, struktura
-from .parser.details import PARSE_VERSION, MapaPol, rekord_z_bajtow, wyczytaj
+from .parser.details import PARSE_VERSION
 from .progress import Events, NullEvents
 from .ratelimit import DOBA_S, InMemoryHistory, RateLimiter
 from .source.contract import Contract, Ponowienia, load_contract
@@ -61,6 +60,7 @@ from .store import (
     Store,
     Wyszukanie,
 )
+from .wpisy import MapyPol, mapa_pol, wpis_z_dokumentu
 from .wycena import Wycena, wycen
 
 KANAL_DOMYSLNY = SourceName("atlas")
@@ -276,12 +276,6 @@ def zakres_z_kryteriow(kryteria: Criteria, kontrakt: Contract) -> Scope:
             f"{', '.join(sorted(kontrakt.parametry_listy.filtry)) or '—'})."
         )
     return Scope(kryteria.od, kryteria.do, filtry)
-
-
-def mapa_pol(kontrakt: Contract) -> MapaPol:
-    """Nazwy pól rekordu dokumentu z kontraktu — jedyne miejsce, które je przepisuje do parsera."""
-    dokument = kontrakt.ksztalt.dokument
-    return MapaPol(tresc=dokument.pole_tresci, **dokument.pola_metadanych.model_dump())
 
 
 def pobierz(
@@ -743,7 +737,7 @@ def eksportuj(
         raise ConfigError("Podaj przebiegi (`run_ids`) albo niepuste kryteria eksportu.")
     przebiegi = [store.get_run(r) for r in run_ids]
     filtr = None if kryteria is None else Filtr.z_kryteriow(kryteria)
-    mapy = _MapyPol()
+    mapy = MapyPol()
 
     def dokumenty() -> Iterator[Dokument]:
         if przebiegi:
@@ -762,7 +756,7 @@ def eksportuj(
 
     def zrodlo() -> Iterator[Wpis]:
         for dokument in dokumenty():
-            yield _wpis(dokument, mapy, pokaz=pokaz)
+            yield wpis_z_dokumentu(dokument, mapy, pokaz=pokaz)
 
     # Pierwsze przejście liczy dokumenty **i** ładuje kontrakty kanałów, które w eksporcie
     # wystąpią — atrybucja per kanał ma trafić do `Metadane`, a te powstają przed zapisem.
@@ -801,48 +795,6 @@ def eksportuj(
         rdzen = rdzen.with_name(PRZEDROSTEK_POKAZU + rdzen.name)
     sciezki = zapisz_eksport(rdzen, zrodlo, formaty=formaty, metadane=metadane, events=events)
     return WynikEksportu(tuple(sciezki), dokumentow, tuple(formaty), tuple(run_ids), bez_daty)
-
-
-class _MapyPol:
-    """Mapa pól i atrybucja per kanał, ładowane raz z kontraktu przy pierwszym dokumencie."""
-
-    def __init__(self) -> None:
-        self._mapy: dict[str, MapaPol] = {}
-        self._atrybucje: dict[str, str] = {}
-
-    def dla(self, source: str) -> tuple[MapaPol, str]:
-        if source not in self._mapy:
-            kontrakt = load_contract(SourceName(source))
-            self._mapy[source] = mapa_pol(kontrakt)
-            self._atrybucje[source] = kontrakt.licencja.atrybucja
-        return self._mapy[source], self._atrybucje[source]
-
-    def atrybucje(self) -> dict[str, str]:
-        return dict(self._atrybucje)
-
-
-def _wpis(dokument: Dokument, mapy: _MapyPol, *, pokaz: bool = False) -> Wpis:
-    mapa, atrybucja = mapy.dla(dokument.source)
-    try:
-        rekord = rekord_z_bajtow(dokument.content_bytes)
-    except ParseError as blad:
-        # Reguła 19 każe zapisać surowe bajty także wtedy, gdy nie dają się odczytać, więc taki
-        # wiersz jest w modelu legalny. Eksport, który wywraca się bez nazwy winnego dokumentu,
-        # zostawia operatora z korpusem bez pliku i bez adresu (przegląd kodu 2026-09-18).
-        raise ParseError(
-            f"{dokument.doc_id} (wersja {dokument.current_sha256[:12]}): {blad}"
-        ) from blad
-    return Wpis(
-        doc_id=dokument.doc_id,
-        source=dokument.source,
-        source_ref=dokument.source_ref,
-        sha256=dokument.current_sha256,
-        fetched_at=dokument.fetched_at,
-        szczegoly=wyczytaj(rekord, mapa),
-        rekord=rekord,
-        atrybucja=ATRYBUCJA_POKAZU if pokaz else atrybucja,
-        pokaz=pokaz,
-    )
 
 
 def _nazwa_eksportu(run_ids: Sequence[str], kryteria: Criteria | None, zegar: Clock) -> str:
@@ -932,7 +884,7 @@ def przelicz(
     przemilczany: surowe bajty zostają, wiersz metadanych nie powstaje.
     """
     reporter = events or NullEvents()
-    mapy = _MapyPol()
+    mapy = MapyPol()
     przeliczonych = 0
     bledow = 0
     do_przeliczenia = list(store.versions_to_index(None if wszystko else PARSE_VERSION))

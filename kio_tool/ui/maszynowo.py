@@ -65,9 +65,17 @@ def blok_na_slownik(block: Block) -> dict[str, object]:
     """`Block` na dokument JSON. Wiersze jako obiekty, gdy blok ma nagłówki."""
     dokument: dict[str, object] = {"rodzaj": RODZAJ_BLOK, "tytul": block.title}
     if block.headers:
-        nazwy = klucze(block.headers)
+        nazwy = klucze(block.headers + block.kolumny_maszynowe)
+        dodatki = block.wiersze_maszynowe or tuple(() for _ in block.rows)
+        if block.kolumny_maszynowe and len(dodatki) != len(block.rows):
+            # Dodatek przesunięty o wiersz przypisałby trafieniu cudzy blok cytowania — to jest
+            # błąd programisty, nie stan do pokazania.
+            raise ValueError(f"wierszy {len(block.rows)}, dodatków {len(dodatki)}: {block.title}")
         dokument["kolumny"] = list(nazwy)
-        dokument["wiersze"] = [dict(zip(nazwy, wiersz, strict=False)) for wiersz in block.rows]
+        dokument["wiersze"] = [
+            dict(zip(nazwy, wiersz + dodatek, strict=False))
+            for wiersz, dodatek in zip(block.rows, dodatki, strict=True)
+        ]
     else:
         dokument["wiersze"] = [{"klucz": w[0], "wartosc": w[1]} for w in block.rows if len(w) > 1]
     if block.liczby:

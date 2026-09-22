@@ -1172,6 +1172,43 @@ mówi, że gwarancja bez obserwatora nie jest gwarancją.
 
 ---
 
+## Audyt przed prezentacją — droga od wyniku do źródła (2026-09-22)
+
+Audyt całego przebiegu pod kątem tego, czy wynik da się sprawdzić — przez człowieka i przez
+model. Zmierzone na korpusie operatora, 0 żądań (poza przebiegiem niżej).
+
+**Co audyt znalazł.** Eksport `md` był już weryfikowalny (blok cytowania, `url_zrodla` do PDF-a
+w wyszukiwarce UZP, SHA-256). Słabe były dwie rzeczy: trafienie `szukaj --json` niosło tylko
+sygnaturę i fragment, więc do źródła prowadził wyłącznie eksport, a **praca fazy 2 nie miała
+wyjścia** — sekcje, cytowania i przepisy czytał wyłącznie raport `pokrycie`, a `--przepis`
+filtruje po liście kanału, nie po własnym odczycie. `dla-modelu.md` wiązał przy tym 31 %
+„nieustalonych" z `--przepis`, którego ta liczba nie dotyczy.
+
+**Co zmieniono (decyzja właściciela: pozycje A–E audytu).**
+
+| # | Zmiana | Obserwator |
+|---|---|---|
+| B | Trafienie `szukaj --json` niesie `doc_id`, `url_zrodla` i `cytowanie` — ten sam blok co eksport, z tej samej funkcji; tabela dla oka bez zmian (`Block.kolumny_maszynowe`) | `test_maszynowo` porównuje z JSONL eksportu, nie z wzorcem napisu |
+| B | Budowa `Wpis` wydzielona z `pipeline.py` do `wpisy.py`; `pipeline.py` 971 → 921, granica w `PONAD_SUFITEM` obniżona za pomiarem | `test_boundaries` (reguła 5 zapaliła się na pierwszej wersji — `wpisy.py` znał i kanał, i bazę) |
+| C | Eksport `md`: nagłówki sekcji w tekście (z zaznaczeniem, że wstawił je kio-tool) i dodatek „Odesłania odczytane z treści" — wyłącznie `zrodlo = tresc`, kody słowami | tekst bez nagłówków = `tresc` znak w znak (sprawdzone mutacją; przegląd kodu: 0 rozbieżności na 443 dokumentach) |
+| D | `dla-modelu.md`: 33,0 % „nieustalonych" przypisane własnemu odczytowi (22,8 % w liście kanału), `--json` przy czterech poleceniach, `--limit 0` = kod 3 | — |
+
+**Cena, zapisana, nie ukryta.** Eksport `md` liczy strukturę przy zapisie: ~70 ms na dokument,
+443 dokumenty ~30 s (przegląd kodu, zmierzone 2026-09-22) — dostał puls co 25 plików
+(`MD_REPORT_EVERY`). Struktura z bazy zamiast liczenia od nowa wymagałaby przeniesienia jej
+przez `Wpis`; odłożone, bo korzyść jest wyłącznie czasowa.
+
+**Przebieg 4 — odtworzenie próbki rocznikowej na maszynie prezentacji (2026-09-22, 119 żądań).**
+Korpus tej maszyny miał 341 dokumentów (styczeń i 1–5 lutego 2024); `.venv` był skopiowany z innej
+maszyny i nie startował — odtworzony na Pythonie 3.12.10. Zgoda właściciela udzielona w sesji
+(do 1 400 żądań). 17 przebiegów `--maks 6` w oknach `RRRR-06-01..RRRR-12-31`, roczniki 2010–2026:
+102 dokumenty, 119 żądań, wszystkie przebiegi `zakonczony`. `total` okien zgadza się z Przebiegiem 3
+(169 dla 2010, 2 898 dla 2025). Korpus: **443**; raport pokrycia na nim — 16 834 przepisy,
+złoty zbiór zgodny 17 z 17. Kopia bazy sprzed przebiegu leży obok niej
+(`korpus.sqlite.przed-probka-rocznikowa-20260922`).
+
+---
+
 ## Status pomiarów
 
 **Ta sekcja zastępuje `docs/pomiary.md`** (istniał od 2026-09-17 do 2026-09-18; ADR-0005, Z-8).

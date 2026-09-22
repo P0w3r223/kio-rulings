@@ -561,7 +561,7 @@ def szukaj(
         limit = _limit(limit)
         sciezka = baza or default_db_path()
         with _otworz_baze(sciezka, SystemClock(), wy) as store:
-            obsluga.pokaz_wyszukanie(wy, store, kryteria, limit=limit)
+            obsluga.pokaz_wyszukanie(wy, store, kryteria, limit=limit, ze_zrodlami=maszynowo)
 
 
 if __name__ == "__main__":

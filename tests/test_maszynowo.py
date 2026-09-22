@@ -13,15 +13,17 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
 from typer import rich_utils
 from typer.testing import CliRunner
 
-from kio_tool import cli
+from kio_tool import cli, obsluga
 from kio_tool.cli import app
 from kio_tool.config import CONTACT_ENV
+from kio_tool.store import Dokument, Filtr
 from kio_tool.ui import texts
 from kio_tool.ui.maszynowo import JsonView, blok_na_slownik, klucz, klucze
 from tests.test_cli import Serwer, podstaw
@@ -220,10 +222,66 @@ def test_szukaj_json_niesie_mianownik_i_klucze_kolumn(
 
     assert wynik.exit_code == 0
     blok = _wiersze_json(wynik.output)[-1]
-    assert blok["kolumny"] == ["sygnatura", "data_wydania", "rozstrzygniecie", "fragment"]
+    assert blok["kolumny"] == [
+        "sygnatura",
+        "data_wydania",
+        "rozstrzygniecie",
+        "fragment",
+        "doc_id",
+        "url_zrodla",
+        "cytowanie",
+    ]
     liczby = blok["liczby"]
     assert isinstance(liczby, dict) and liczby["trafien"] > 0
     assert liczby["w_korpusie"] == liczby["zaindeksowanych"] > 0
+
+
+def test_trafienie_json_niesie_ten_sam_blok_cytowania_co_eksport(
+    baza_z_przebiegiem: tuple[Path, str], tmp_path: Path
+) -> None:
+    """Slajd obiecuje „blok cytowania, ten sam w pliku i w wyniku dla programu" (2026-09-22).
+    Porównanie z JSONL eksportu, nie z wzorcem napisu: dwa niezależne wzorce zgadzałyby się
+    ze sobą także wtedy, gdy oba wyjścia rozjechały się z blokiem, który trafia do pliku."""
+    baza, _ = baza_z_przebiegiem
+    fraza = ["--fraza", "tresc wymyslona", "--baza", str(baza)]
+
+    wynik = runner.invoke(app, ["szukaj", *fraza, "--json"])
+    eksport = runner.invoke(
+        app, ["eksportuj", *fraza, "--format", "jsonl", "--out", str(tmp_path / "e")]
+    )
+
+    assert wynik.exit_code == 0 and eksport.exit_code == 0, eksport.output
+    z_pliku = {
+        (d := json.loads(w))["doc_id"]: d["cytowanie"]
+        for w in (tmp_path / "e.jsonl").read_text(encoding="utf-8").splitlines()
+    }
+    trafienia = _wiersze_json(wynik.output)[-1]["wiersze"]
+    assert isinstance(trafienia, list) and trafienia
+    for trafienie in trafienia:
+        assert trafienie["cytowanie"] == z_pliku[trafienie["doc_id"]]
+
+
+def test_tabela_nie_rysuje_kolumn_maszynowych(baza_z_przebiegiem: tuple[Path, str]) -> None:
+    """Blok cytowania przy każdym wierszu rozsadziłby tabelę dla oka — idzie tylko do `--json`."""
+    baza, _ = baza_z_przebiegiem
+
+    wynik = runner.invoke(app, ["szukaj", "--fraza", "tresc wymyslona", "--baza", str(baza)])
+
+    assert wynik.exit_code == 0
+    assert "cytowanie" not in wynik.output and "url_zrodla" not in wynik.output
+
+
+def test_dodatek_przesuniety_o_wiersz_jest_bledem_nie_wynikiem() -> None:
+    blok = texts.Block(
+        title="t",
+        headers=("a",),
+        rows=(("1",), ("2",)),
+        kolumny_maszynowe=("b",),
+        wiersze_maszynowe=(("x",),),
+    )
+
+    with pytest.raises(ValueError, match="dodatków"):
+        blok_na_slownik(blok)
 
 
 def test_zero_trafien_tez_niesie_mianownik(baza_z_przebiegiem: tuple[Path, str]) -> None:
@@ -241,3 +299,29 @@ def test_zero_trafien_tez_niesie_mianownik(baza_z_przebiegiem: tuple[Path, str])
     liczby = blok["liczby"]
     assert isinstance(liczby, dict)
     assert liczby["trafien"] == 0 and liczby["w_korpusie"] > 0
+
+
+class _MagazynZNieczytelnym:
+    """Atrapa `Store` na jedną metodę: bieżąca wersja `zly` nie jest JSON-em, `dobry` jest."""
+
+    pokazowa = False
+
+    def __init__(self) -> None:
+        dobry = (Path(__file__).parent / "examples" / "atlas").glob("dokument_*.json")
+        self._dobry = next(iter(sorted(dobry))).read_bytes()
+
+    def iter_documents(self, filtr: object) -> Iterator[Dokument]:
+        for doc_id, bajty in (("atlas:zly", b"{urwany"), ("atlas:dobry", self._dobry)):
+            yield Dokument(doc_id, "atlas", doc_id[6:], (), None, "a" * 64, "2026", bajty)
+
+
+def test_nieczytelna_wersja_zostawia_trafienie_bez_zrodla_zamiast_wywracac_wynik() -> None:
+    """Wersja, której nie da się odczytać, jest w modelu legalna (reguła 19), a jej stary wiersz
+    FTS zostaje trafieniem. Wywrócenie całego `szukaj --json` z jej powodu odebrałoby agentowi
+    pozostałe trafienia; puste pola mówią to samo głośno i są opisane w `dla-modelu.md`."""
+    magazyn = _MagazynZNieczytelnym()
+
+    wpisy = obsluga.wpisy_trafien(magazyn, Filtr(), ["atlas:zly", "atlas:dobry"])  # type: ignore[arg-type]
+
+    assert set(wpisy) == {"atlas:dobry"}
+    assert obsluga._zrodlo_wpisu(wpisy.get("atlas:zly")) == ("", "")

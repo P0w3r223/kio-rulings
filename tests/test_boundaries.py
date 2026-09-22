@@ -2448,9 +2448,11 @@ SUFIT_LINII = 800
 
 PONAD_SUFITEM: dict[str, int] = {
     "store.py": 1466,
-    "pipeline.py": 971,
+    "pipeline.py": 921,
 }
-"""Moduły, które sufit przekraczają dziś, z **pomiarem** z 2026-09-20 jako granicą.
+"""Moduły, które sufit przekraczają dziś, z **pomiarem** jako granicą: `store.py` z 2026-09-20,
+`pipeline.py` z 2026-09-22 (971 → 921 po wydzieleniu `wpisy.py` — granica idzie za pomiarem
+w dół, żeby odzyskane linie nie wróciły po cichu).
 
 Do przeglądu kodu fazy 3 sufit żył wyłącznie w prozie: docstring `obsluga.py` powoływał się
 na niego jako na powód własnego wydzielenia, a dwa moduły stały ponad nim i nic tego nie

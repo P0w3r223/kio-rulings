@@ -47,3 +47,6 @@ build/
 # --- ide ---
 .idea/
 .vscode/
+
+# --- venv skopiowany z innej maszyny (2026-09-22), niedziałający, odłożony zamiast skasowany ---
+.venv-stary-z-innej-maszyny/

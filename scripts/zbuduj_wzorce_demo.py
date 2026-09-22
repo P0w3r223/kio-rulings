@@ -32,9 +32,9 @@ from kio_tool.config import default_db_path
 from kio_tool.docid import SourceName
 from kio_tool.odczyt import odczytaj
 from kio_tool.parser.provisions import akt_pzp_dokumentu
-from kio_tool.pipeline import mapa_pol
 from kio_tool.source.contract import load_contract
 from kio_tool.store import Store
+from kio_tool.wpisy import mapa_pol
 
 CEL = Path(__file__).resolve().parent.parent / "kio_tool" / "demo" / "wzorce.yaml"
 ETYKIET = 40
