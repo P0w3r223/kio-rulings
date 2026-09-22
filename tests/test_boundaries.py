@@ -212,7 +212,10 @@ def test_regula_1_moduly_czyste_nie_znaja_wejscia_wyjscia_ani_systemu() -> None:
 
 def test_regula_6_moduly_czyste_i_teksty_nie_znaja_warstwy_uzytkownika() -> None:
     """Reguła 6: ta sama granica z drugiej strony — bibliotek ekranu i SDK modelu."""
-    objete = (*pliki_czyste(), *istniejace("kio_tool/ui/texts.py"))
+    objete = (
+        *pliki_czyste(),
+        *istniejace("kio_tool/ui/texts.py", "kio_tool/ui/texts_pomoc.py", "kio_tool/ui/modele.py"),
+    )
     naruszenia = {
         path.relative_to(ROOT).as_posix(): sorted(imported_roots(path) & ZAKAZANE_REGULA_6)
         for path in objete
