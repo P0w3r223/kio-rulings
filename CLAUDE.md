@@ -78,7 +78,8 @@ przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 |---|---|
 | `docs/decisions.md` | pomiary z datami i liczbą żądań, przebiegi, decyzje właściciela |
 | `docs/adr/` | ADR 0001–0009, wszystkie przyjęte |
-| `docs/dla-modelu.md` | instrukcja dla modelu obsługującego narzędzie |
+| `docs/ideas/` | pomysły 0001–0004 (szkice, nieprzyjęte): sekcje w FTS, zapytanie, graf cytowań, kontrakt JSON |
+| `docs/dla-modelu.md` | instrukcja dla modelu obsługującego narzędzie; zgodność z CLI pilnuje `tests/test_zgodnosc_instrukcji.py` |
 | `docs/AUDYT_KIO_ORZECZENIA.md` | źródło, dopuszczalność, doktryna (7), reguły granic (8.3) |
 | `docs/ARCHITEKTURA_KIO_TOOL.md` | architektura (4), reguły 17–23 (4.1), decyzje właściciela (8) |
 | `tests/test_boundaries.py`, `tests/test_bramki_faz.py` | strażnicy reguł granic i bramek faz |

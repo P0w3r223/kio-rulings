@@ -115,7 +115,7 @@ pośrednik — bywa błędna albo pusta.
 
 ```
 set PYTHONUTF8=1
-.venv\Scripts\python.exe -m pytest        # 1 397 testów (2026-09-22), sieć zablokowana
+.venv\Scripts\python.exe -m pytest        # 1 441 testów (2026-09-22), sieć zablokowana
 .venv\Scripts\ruff.exe check .
 .venv\Scripts\ruff.exe format --check .
 .venv\Scripts\mypy.exe kio_tool scripts   # strict
