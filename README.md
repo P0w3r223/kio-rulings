@@ -44,6 +44,7 @@ Z aktywnym `.venv` (`.venv\Scripts\activate`), inaczej `.venv\Scripts\kio-tool.e
 kio-tool pobierz --od 2024-02-01 --do 2024-02-29 --zgoda
 kio-tool wznow
 kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
+kio-tool czytaj "KIO 3810/23" --sekcja sentencja --json
 kio-tool eksportuj --od 2024-01-01 --do 2024-01-31 --format xlsx,md
 kio-tool runy
 kio-tool przelicz
@@ -55,6 +56,7 @@ kio-tool pokrycie --zloty tests/gold
 | `pobierz` | lista z Atlasu + jeden rekord z pełnym tekstem za każdy nowy dokument; na końcu eksport | tak |
 | `wznow` | dokończenie przerwanego przebiegu bez duplikatów | tak |
 | `szukaj` | fraza dosłownie w pełnym tekście z filtrami; zawsze z liczbą dokumentów w korpusie i trafień | nie |
+| `czytaj` | jedno orzeczenie po sygnaturze albo `doc_id`: metadane, cytowanie, mapa sekcji, treść całości albo wybranych sekcji | nie |
 | `eksportuj` | dokumenty przebiegu (`--run-id`) albo pasujące do kryteriów | nie |
 | `runy` | historia przebiegów | nie |
 | `przelicz` | ponowny odczyt z zapisanych bajtów, bez pobierania | nie |
@@ -63,7 +65,7 @@ kio-tool pokrycie --zloty tests/gold
 Filtry wspólne dla `pobierz`, `szukaj` i `eksportuj`: `--od`, `--do`, `--fraza`,
 `--rozstrzygniecie`, `--rodzaj`, `--przepis`, `--przewodniczacy`, `--strona`. W `pobierz`
 `--fraza` trafia do wyszukiwarki Atlasu, która dopasowuje sygnaturę, nie treść — treść
-przeszukuje lokalnie `szukaj`. `szukaj`, `runy`, `przelicz` i `pokrycie` przyjmują `--json`.
+przeszukuje lokalnie `szukaj`. `szukaj`, `czytaj`, `runy`, `przelicz` i `pokrycie` przyjmują `--json`.
 
 Kody wyjścia: 0 — wykonane, 1 — błąd, 2 — przebieg do wznowienia (albo błąd składni polecenia),
 3 — konfiguracja, brak zgody albo zły parametr, 130 — Ctrl+C.

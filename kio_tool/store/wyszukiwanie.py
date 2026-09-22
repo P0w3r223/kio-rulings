@@ -47,24 +47,28 @@ class _Wyszukiwanie(_Rdzen):
             argumenty = [run_id, *argumenty]
             porzadek = "ORDER BY rd.position"
         kursor = self._conn.execute(
-            "SELECT d.doc_id, d.source, d.source_ref, d.sygnatury, d.data_wydania, "
-            "d.current_sha256, v.fetched_at, v.content_bytes FROM documents d "
-            "JOIN raw_versions v ON v.doc_id = d.doc_id AND v.content_sha256 = d.current_sha256 "
+            f"{_WYBOR_DOKUMENTU} "
             "LEFT JOIN metadata m ON m.doc_id = d.doc_id AND m.content_sha256 = d.current_sha256 "
             f"{zlaczenie} {gdzie} {porzadek}",
             argumenty,
         )
         for w in kursor:
-            yield Dokument(
-                doc_id=str(w["doc_id"]),
-                source=str(w["source"]),
-                source_ref=str(w["source_ref"]),
-                sygnatury=tuple(json.loads(str(w["sygnatury"]))),
-                data_wydania=None if w["data_wydania"] is None else str(w["data_wydania"]),
-                current_sha256=str(w["current_sha256"]),
-                fetched_at=str(w["fetched_at"]),
-                content_bytes=bytes(w["content_bytes"]),
-            )
+            yield _dokument(w)
+
+    def znajdz_dokumenty(self, *, doc_id: str, sygnatura: str) -> tuple[Dokument, ...]:
+        """Dokumenty o tym `doc_id` albo niosące tę sygnaturę — do `czytaj` (2026-09-22).
+
+        Sygnatura porównywana dosłownie z listą `documents.sygnatury`, więc wołający podaje ją
+        już znormalizowaną. Wynik bywa dłuższy niż jeden: wyrok i postanowienie w tej samej
+        sprawie mają jedną sygnaturę i dwa dokumenty — wybór należy do wołającego, nie do bazy.
+        """
+        wiersze = self._conn.execute(
+            f"{_WYBOR_DOKUMENTU} WHERE d.doc_id = ? OR EXISTS "
+            "(SELECT 1 FROM json_each(d.sygnatury) j WHERE j.value = ?) "
+            "ORDER BY d.data_wydania, d.doc_id",
+            [doc_id, sygnatura],
+        ).fetchall()
+        return tuple(_dokument(w) for w in wiersze)
 
     def count_documents(self, filtr: Filtr | None = None) -> int:
         gdzie, argumenty = _warunki(filtr or Filtr())
@@ -87,24 +91,13 @@ class _Wyszukiwanie(_Rdzen):
         warunek = "" if parse_version is None else "WHERE m.doc_id IS NULL OR m.parse_version < ?"
         argumenty: list[object] = [] if parse_version is None else [parse_version]
         wiersze = self._conn.execute(
-            "SELECT d.doc_id, d.source, d.source_ref, d.sygnatury, d.data_wydania, "
-            "d.current_sha256, v.fetched_at, v.content_bytes FROM documents d "
-            "JOIN raw_versions v ON v.doc_id = d.doc_id AND v.content_sha256 = d.current_sha256 "
+            f"{_WYBOR_DOKUMENTU} "
             "LEFT JOIN metadata m ON m.doc_id = d.doc_id AND m.content_sha256 = d.current_sha256 "
             f"{warunek} ORDER BY d.doc_id",
             argumenty,
         ).fetchall()
         for w in wiersze:
-            yield Dokument(
-                doc_id=str(w["doc_id"]),
-                source=str(w["source"]),
-                source_ref=str(w["source_ref"]),
-                sygnatury=tuple(json.loads(str(w["sygnatury"]))),
-                data_wydania=None if w["data_wydania"] is None else str(w["data_wydania"]),
-                current_sha256=str(w["current_sha256"]),
-                fetched_at=str(w["fetched_at"]),
-                content_bytes=bytes(w["content_bytes"]),
-            )
+            yield _dokument(w)
 
     def count_indexed(self) -> int:
         """Dokumenty, których **bieżąca** wersja ma metadane — a nie wierszy `metadata` w ogóle."""
@@ -247,6 +240,27 @@ class _Wyszukiwanie(_Rdzen):
         for w in self._conn.execute(sql).fetchall():
             wynik.setdefault((str(w["doc_id"]), str(w["content_sha256"])), []).append(wiersz(w))
         return wynik
+
+
+_WYBOR_DOKUMENTU = (
+    "SELECT d.doc_id, d.source, d.source_ref, d.sygnatury, d.data_wydania, d.current_sha256, "
+    "v.fetched_at, v.content_bytes FROM documents d "
+    "JOIN raw_versions v ON v.doc_id = d.doc_id AND v.content_sha256 = d.current_sha256"
+)
+"""Dokument z bieżącą wersją — wspólny początek zapytań, które oddają `Dokument`."""
+
+
+def _dokument(w: sqlite3.Row) -> Dokument:
+    return Dokument(
+        doc_id=str(w["doc_id"]),
+        source=str(w["source"]),
+        source_ref=str(w["source_ref"]),
+        sygnatury=tuple(json.loads(str(w["sygnatury"]))),
+        data_wydania=None if w["data_wydania"] is None else str(w["data_wydania"]),
+        current_sha256=str(w["current_sha256"]),
+        fetched_at=str(w["fetched_at"]),
+        content_bytes=bytes(w["content_bytes"]),
+    )
 
 
 def _warunki(filtr: Filtr, *, fraza_osobno: bool = False) -> tuple[str, list[object]]:

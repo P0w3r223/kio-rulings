@@ -26,7 +26,7 @@ from .progress import Events
 from .store import STATUSY_WZNAWIALNE, Filtr, Store
 from .ui import texts
 from .ui.flow import DecyzjaKreatora, WynikPobrania
-from .ui.texts import Block
+from .ui.texts import Block, Odcinek
 from .wpisy import MapyPol, wpis_z_dokumentu
 
 LIMIT_WZNAWIALNYCH = 10
@@ -163,6 +163,38 @@ def pokaz_wyszukanie(
         )
     )
     return wynik.trafien
+
+
+def czytaj_orzeczenie(
+    view: Widok, store: Store, klucz: str, *, sekcje: Sequence[str], z_trescia: bool
+) -> None:
+    """Jedno orzeczenie (`czytaj`): mapa wszystkich odcinków, treść tylko wybranych.
+
+    Bez `sekcje` wybrane są wszystkie odcinki; `z_trescia=False` zostawia samą mapę — agent
+    widzi długości sekcji, zanim zdecyduje, ile tekstu wziąć do kontekstu.
+    """
+    orzeczenie = pipeline.czytaj(store, klucz)
+    wpis = orzeczenie.wpis
+    s = wpis.szczegoly
+    wybrane = set(sekcje)
+
+    def tresc(rodzaj: str, start: int, koniec: int) -> str | None:
+        return s.tresc[start:koniec] if z_trescia and (not wybrane or rodzaj in wybrane) else None
+
+    odcinki = tuple(Odcinek(r, a, b, tresc(r, a, b)) for r, a, b in orzeczenie.odcinki)
+    view.block(
+        texts.blok_orzeczenia(
+            wiersz=(
+                s.sygnatura_glowna or wpis.source_ref,
+                s.data_wydania or "",
+                s.rodzaj or "",
+                s.rozstrzygniecie or "",
+            ),
+            zrodlo=(wpis.doc_id, s.url_zrodla or "", wpis.sha256[:12], blok_atrybucji(wpis)),
+            odcinki=odcinki,
+            znakow_calosci=len(s.tresc),
+        )
+    )
 
 
 def wpisy_trafien(store: Store, filtr: Filtr, doc_ids: Iterable[str]) -> dict[str, Wpis]:

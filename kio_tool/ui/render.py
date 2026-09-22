@@ -47,6 +47,11 @@ class ConsoleView:
             self.console.print(tabela)
         elif block.title:
             self.console.print(safe(block.title), style=STYL_TYTULU, soft_wrap=True)
+        for odcinek in block.odcinki:
+            if odcinek.tresc is None:
+                continue
+            self.console.print(safe(f"── {odcinek.rodzaj} ──"), style=STYL_TYTULU, soft_wrap=True)
+            self.console.print(safe(odcinek.tresc), soft_wrap=True)
         for uwaga in block.notes:
             self.console.print(safe(uwaga), soft_wrap=True)
 

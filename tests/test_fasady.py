@@ -82,9 +82,13 @@ POWIERZCHNIA_PIPELINE = frozenset(
         "build_metadata",
         "przelicz",
         "szukaj",
+        "czytaj",
+        "Orzeczenie",
+        "ODCINEK_BEZ_SEKCJI",
     }
 )
-"""Każda publiczna nazwa dawnego `pipeline.py` plus `Wycena`, czytana jako `pipeline.Wycena`."""
+"""Każda publiczna nazwa dawnego `pipeline.py` plus `Wycena`, czytana jako `pipeline.Wycena`,
+plus `czytaj` z `Orzeczenie` i `ODCINEK_BEZ_SEKCJI` (2026-09-22)."""
 
 SZWY_PODSTAWIANE = ("build_http_client", "default_output_dir")
 

@@ -435,22 +435,40 @@ UWAGA_ODESLAN = (
 )
 
 
-def tresc_z_sekcjami(tresc: str, sekcje: Sequence[WierszSekcji]) -> str:
-    """Pełny tekst z nagłówkiem przed każdą sekcją. **Nic z tekstu nie ginie**: odcinek między
-    sekcjami idzie bez nagłówka, a sekcja nakładająca się na poprzednią zaczyna od jej końca —
-    usunięcie wstawionych nagłówków oddaje `tresc` znak w znak (strażnik w `test_exporter`)."""
-    kawalki: list[str] = []
+def podzial_tekstu(
+    tresc: str, sekcje: Sequence[WierszSekcji]
+) -> tuple[tuple[str | None, int, int], ...]:
+    """Tekst pocięty na rozłączne odcinki `(rodzaj, start, koniec)`, które pokrywają go w całości.
+
+    `rodzaj` to sekcja z odczytu albo `None` dla odstępu między sekcjami. Sekcja nakładająca się
+    na poprzednią zaczyna od jej końca. Wspólna podstawa pliku `md` i polecenia `czytaj`
+    (2026-09-22): oba pokazują ten sam podział, a sklejenie odcinków oddaje `tresc` znak w znak.
+    """
+    odcinki: list[tuple[str | None, int, int]] = []
     pozycja = 0
     for sekcja in sorted(sekcje, key=lambda w: (w.start, w.porzadek)):
         poczatek = max(sekcja.start, pozycja)
         koniec = min(max(sekcja.koniec, poczatek), len(tresc))
         if poczatek >= koniec:
             continue
-        kawalki.append(tresc[pozycja:poczatek])
-        kawalki.append(naglowek_sekcji(sekcja.rodzaj))
-        kawalki.append(tresc[poczatek:koniec])
+        if pozycja < poczatek:
+            odcinki.append((None, pozycja, poczatek))
+        odcinki.append((sekcja.rodzaj, poczatek, koniec))
         pozycja = koniec
-    kawalki.append(tresc[pozycja:])
+    if pozycja < len(tresc):
+        odcinki.append((None, pozycja, len(tresc)))
+    return tuple(odcinki)
+
+
+def tresc_z_sekcjami(tresc: str, sekcje: Sequence[WierszSekcji]) -> str:
+    """Pełny tekst z nagłówkiem przed każdą sekcją. **Nic z tekstu nie ginie**: odcinek między
+    sekcjami idzie bez nagłówka — usunięcie wstawionych nagłówków oddaje `tresc` znak w znak
+    (strażnik w `test_exporter`)."""
+    kawalki: list[str] = []
+    for rodzaj, poczatek, koniec in podzial_tekstu(tresc, sekcje):
+        if rodzaj is not None:
+            kawalki.append(naglowek_sekcji(rodzaj))
+        kawalki.append(tresc[poczatek:koniec])
     return "".join(kawalki)
 
 

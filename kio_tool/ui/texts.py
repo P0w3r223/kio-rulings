@@ -18,11 +18,12 @@ from collections.abc import Sequence
 from ..criteria import ETYKIETY, Criteria
 from ..wycena import Wycena
 from . import texts_pomoc
-from .modele import Block, Opcja, Pytanie, RodzajPytania, StanKorpusu
+from .modele import Block, Odcinek, Opcja, Pytanie, RodzajPytania, StanKorpusu
 from .texts_pomoc import *  # noqa: F403 — re-eksport pomocy, `help=texts.POMOC_…` (reguła 9)
 
 __all__ = [  # re-eksport: jedno publiczne wejście do warstwy widoku zostaje w `texts`
     "Block",
+    "Odcinek",
     "Opcja",
     "Pytanie",
     "RodzajPytania",
@@ -56,6 +57,54 @@ NAGLOWKI_RUNOW = ("przebieg", "status", "kanał", "zakres", "start", "dokumentó
 NAGLOWKI_TRAFIEN = ("sygnatura", "data wydania", "rozstrzygnięcie", "fragment")
 NAGLOWKI_TRAFIEN_MASZYNOWE = ("doc_id", "url_zrodla", "cytowanie")
 """Droga od trafienia do źródła — tylko w `--json`; puste pole = wpisu nie odczytano."""
+
+
+NAGLOWKI_ORZECZENIA = ("sygnatura", "data wydania", "rodzaj", "rozstrzygnięcie")
+NAGLOWKI_ORZECZENIA_MASZYNOWE = ("doc_id", "url_zrodla", "wersja", "cytowanie")
+UWAGA_GRANIC_SEKCJI = (
+    "Granice i nazwy sekcji wyznacza odczyt automatyczny kio-tool — w orzeczeniu ich nie ma. "
+    "Cytując, kopiuj tekst, nie nazwę sekcji; zdanie z uzasadnienia bywa stanowiskiem strony."
+)
+TRESC_POMINIETA = (
+    "Treść pominięta: poproś o wybrane sekcje (--sekcja sentencja) albo o całość bez --bez-tresci."
+)
+
+
+def blok_orzeczenia(
+    *,
+    wiersz: tuple[str, str, str, str],
+    zrodlo: tuple[str, str, str, str],
+    odcinki: Sequence[Odcinek],
+    znakow_calosci: int,
+) -> Block:
+    """Jedno orzeczenie (`czytaj`): metadane, droga do źródła, mapa sekcji i wybrana treść."""
+    pokazane = [o for o in odcinki if o.tresc is not None]
+    spis = ", ".join(f"{o.rodzaj} {o.znakow} zn." for o in odcinki)
+    uwagi = [
+        f"Sekcje ({len(odcinki)}, razem {znakow_calosci} znaków): {spis}",
+        UWAGA_GRANIC_SEKCJI,
+    ]
+    if not pokazane:
+        uwagi.append(TRESC_POMINIETA)
+    return Block(
+        title=f"Orzeczenie {wiersz[0]}",
+        headers=NAGLOWKI_ORZECZENIA,
+        rows=(wiersz,),
+        kolumny_maszynowe=NAGLOWKI_ORZECZENIA_MASZYNOWE,
+        wiersze_maszynowe=(zrodlo,),
+        odcinki=tuple(odcinki),
+        notes=tuple(uwagi),
+        liczby=(
+            ("znakow_calosci", znakow_calosci),
+            ("znakow", sum(o.znakow for o in pokazane)),
+            ("odcinkow", len(odcinki)),
+            ("pokazano", len(pokazane)),
+        ),
+    )
+
+
+def zla_sekcja(wartosc: str, dozwolone: Sequence[str]) -> str:
+    return f"Nieznana sekcja „{wartosc}”. Dozwolone: {', '.join(dozwolone)}."
 
 
 def przebieg_bez_powiazan(run_id: str, zakres: str) -> str:

@@ -18,6 +18,25 @@ from typing import Literal
 
 
 @dataclass(frozen=True)
+class Odcinek:
+    """Odcinek tekstu orzeczenia: rodzaj sekcji, przedział `[start, koniec)` w treści i sam tekst.
+
+    `tresc` jest `None`, gdy odcinek nie został wybrany — wtedy blok niesie tylko jego miejsce
+    i długość, żeby agent zobaczył mapę dokumentu, zanim poprosi o 28 tysięcy znaków
+    uzasadnienia (`czytaj`, 2026-09-22).
+    """
+
+    rodzaj: str
+    start: int
+    koniec: int
+    tresc: str | None = None
+
+    @property
+    def znakow(self) -> int:
+        return self.koniec - self.start
+
+
+@dataclass(frozen=True)
 class Block:
     """Jeden ekran albo jedna tabela. `headers` puste = blok klucz-wartość.
 
@@ -39,6 +58,9 @@ class Block:
     każdym trafieniu rozsadziłyby szerokość terminala, a agent potrzebuje ich w całości, żeby
     przejść od trafienia do źródła bez drugiego polecenia (2026-09-22)."""
     wiersze_maszynowe: tuple[tuple[str, ...], ...] = ()
+    odcinki: tuple[Odcinek, ...] = ()
+    """Tekst ciągły pod tabelą — odcinki orzeczenia w `czytaj`. Konsola drukuje te z treścią,
+    wyjście maszynowe oddaje wszystkie (z treścią albo samą długością)."""
 
     def as_text(self) -> str:
         """Postać tekstowa — do logu, do trybu cichego i do asercji w testach."""
@@ -46,6 +68,7 @@ class Block:
         if self.headers:
             lines.append(" | ".join(self.headers))
         lines.extend(" | ".join(row) for row in self.rows)
+        lines.extend(o.tresc for o in self.odcinki if o.tresc is not None)
         lines.extend(self.notes)
         return "\n".join(lines)
 

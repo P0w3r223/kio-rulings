@@ -24,7 +24,7 @@ import json
 import sys
 from typing import IO
 
-from .texts import Block
+from .texts import Block, Odcinek
 
 RODZAJ_BLOK = "blok"
 RODZAJ_KOMUNIKAT = "komunikat"
@@ -78,11 +78,27 @@ def blok_na_slownik(block: Block) -> dict[str, object]:
         ]
     else:
         dokument["wiersze"] = [{"klucz": w[0], "wartosc": w[1]} for w in block.rows if len(w) > 1]
+    if block.odcinki:
+        dokument["odcinki"] = [odcinek_na_slownik(o) for o in block.odcinki]
     if block.liczby:
         dokument["liczby"] = dict(block.liczby)
     if block.notes:
         dokument["uwagi"] = list(block.notes)
     return dokument
+
+
+def odcinek_na_slownik(odcinek: Odcinek) -> dict[str, object]:
+    """Odcinek z miejscem i długością zawsze, z treścią tylko wtedy, gdy ją wybrano — brak klucza
+    `tresc` znaczy „nie proszono", pusty napis znaczyłby „sekcja jest pusta"."""
+    wynik: dict[str, object] = {
+        "rodzaj": odcinek.rodzaj,
+        "start": odcinek.start,
+        "koniec": odcinek.koniec,
+        "znakow": odcinek.znakow,
+    }
+    if odcinek.tresc is not None:
+        wynik["tresc"] = odcinek.tresc
+    return wynik
 
 
 class JsonView:

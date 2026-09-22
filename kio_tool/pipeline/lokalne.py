@@ -17,10 +17,18 @@ from .. import __version__
 from ..clock import Clock, SystemClock, utc_iso
 from ..config import default_output_dir, safe_filename
 from ..criteria import Criteria
+from ..docid import normalize_signature
 from ..errors import (
     ConfigError,
 )
-from ..exporter import ATRYBUCJA_POKAZU, FORMATY, ORGAN_POKAZU, PRZEDROSTEK_POKAZU, Wpis
+from ..exporter import (
+    ATRYBUCJA_POKAZU,
+    FORMATY,
+    ORGAN_POKAZU,
+    PRZEDROSTEK_POKAZU,
+    Wpis,
+    podzial_tekstu,
+)
 from ..exporter import eksportuj as zapisz_eksport
 from ..odczyt import metryka, odczytaj, struktura
 from ..parser.details import PARSE_VERSION
@@ -263,3 +271,54 @@ def szukaj(store: Store, kryteria: Criteria, *, limit: int) -> Wyszukanie:
     if not kryteria.fraza:
         raise ConfigError("Wyszukiwanie wymaga frazy (`--fraza`).")
     return store.szukaj(kryteria.fraza, Filtr.z_kryteriow(kryteria), limit=limit)
+
+
+# ------------------------------------------------------------------------ jedno orzeczenie
+
+ODCINEK_BEZ_SEKCJI = "nieprzypisane"
+"""Rodzaj odstępu między sekcjami w `czytaj` — ta sama nazwa co w `parser.sections`, żeby agent
+filtrował jednym słownikiem (`--sekcja nieprzypisane`)."""
+
+
+@dataclass(frozen=True)
+class Orzeczenie:
+    """Jedno orzeczenie do czytania: wpis (metadane, cytowanie, treść) i podział treści."""
+
+    wpis: Wpis
+    odcinki: tuple[tuple[str, int, int], ...]
+    """Rozłączne odcinki `(rodzaj, start, koniec)` pokrywające `wpis.szczegoly.tresc` w całości."""
+
+
+def czytaj(store: Store, klucz: str) -> Orzeczenie:
+    """Orzeczenie po `doc_id` albo sygnaturze — zero żądań (2026-09-22).
+
+    Powstało, bo pełny tekst jednego orzeczenia dawał dotąd tylko eksport `md` do katalogu,
+    a fraza z sygnaturą łapała też orzeczenia **cytujące** tę sygnaturę. Tu sygnatura jest
+    porównywana z listą sygnatur dokumentu, nie szukana w treści. Sekcje liczone w locie z tych
+    samych bajtów tym samym `odczyt.struktura` co eksport — jeden dokument to ułamek sekundy.
+    """
+    klucz = klucz.strip()
+    if not klucz:
+        raise ConfigError("Podaj sygnaturę (np. „KIO 3810/23”) albo `doc_id` z wyniku `szukaj`.")
+    dokumenty = store.znajdz_dokumenty(doc_id=klucz, sygnatura=normalize_signature(klucz) or klucz)
+    if not dokumenty:
+        raise ConfigError(
+            f"W korpusie ({store.count('documents')} dokumentów) nie ma „{klucz}”. Sprawdź "
+            "`szukaj --fraza`; orzeczenia spoza korpusu wymagają pobrania (wycena i zgoda)."
+        )
+    if len(dokumenty) > 1:
+        kandydaci = "; ".join(
+            f"{d.doc_id} ({', '.join(d.sygnatury)}, {d.data_wydania or 'bez daty'})"
+            for d in dokumenty
+        )
+        raise ConfigError(
+            f"„{klucz}” pasuje do {len(dokumenty)} dokumentów: {kandydaci}. Podaj `doc_id`."
+        )
+    wpis = wpis_z_dokumentu(dokumenty[0], MapyPol(), pokaz=store.pokazowa)
+    odcinki = tuple(
+        (rodzaj or ODCINEK_BEZ_SEKCJI, poczatek, koniec)
+        for rodzaj, poczatek, koniec in podzial_tekstu(
+            wpis.szczegoly.tresc, struktura(wpis.szczegoly).sekcje
+        )
+    )
+    return Orzeczenie(wpis=wpis, odcinki=odcinki)

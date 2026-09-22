@@ -82,6 +82,18 @@ POMOC_RUN_ID_JEDEN = "identyfikator przebiegu z `runy`; bez niego — ostatni pr
 POMOC_LIMIT = "ile wierszy pokazać"
 POMOC_STATUS = "tylko przebiegi w tym stanie: w_toku, zakonczony, przerwany, blad (można powtórzyć)"
 POMOC_WSZYSTKO = "przelicz także wersje już przeliczone bieżącą wersją odczytu"
+POMOC_CZYTAJ = (
+    "Pokazuje jedno orzeczenie z korpusu lokalnego po sygnaturze albo `doc_id`: metadane, blok "
+    "cytowania, mapę sekcji z długościami i treść — całą albo wybranych sekcji. Zero żądań."
+)
+POMOC_KLUCZ = (
+    "sygnatura (np. „KIO 3810/23”) albo `doc_id` z wyniku `szukaj` (np. atlas:kio-3810-23)"
+)
+POMOC_SEKCJA = (
+    "tylko te sekcje (można powtórzyć): naglowek, sentencja, pouczenie, uzasadnienie, "
+    "zdanie_odrebne, nieprzypisane"
+)
+POMOC_BEZ_TRESCI = "bez treści — same metadane i mapa sekcji z długościami"
 POMOC_JSON = (
     "wynik jako JSON Lines na standardowe wyjście, jeden dokument na wiersz — dla programu, "
     "nie dla oka; tabela dla człowieka bez terminala łamie wartości na 80 znakach"
@@ -121,5 +133,9 @@ __all__ = [
     "POMOC_LIMIT",
     "POMOC_STATUS",
     "POMOC_WSZYSTKO",
+    "POMOC_CZYTAJ",
+    "POMOC_KLUCZ",
+    "POMOC_SEKCJA",
+    "POMOC_BEZ_TRESCI",
     "POMOC_JSON",
 ]

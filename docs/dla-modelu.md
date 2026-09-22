@@ -36,6 +36,7 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 | Polecenie | Po co | Sieć | `--json` |
 |---|---|---|---|
 | `szukaj --fraza "…"` | fraza dosłownie w pełnym tekście, z filtrami | nie | tak |
+| `czytaj <sygnatura\|doc_id>` | jedno orzeczenie: metadane, cytowanie, mapa sekcji, treść (`--sekcja`, `--bez-tresci`) | nie | tak |
 | `eksportuj` | pliki `xlsx`, `csv`, `jsonl`, `md` (`--format`, `--out`) | nie | — |
 | `runy` | ostatnie przebiegi: status, zakres, liczby (`--status`, `--limit`) | nie | tak |
 | `przelicz` | ponowny odczyt z zapisanych bajtów (`--wszystko`) | nie | tak |
@@ -70,10 +71,28 @@ kio-tool szukaj --fraza "rażąco niska cena" --od 2023-01-01 --json
 - Liczbę trafień bez listy daje `szukaj … --json --limit 1`.
 - Bez `--json` tabela w potoku łamie wartości na 80 znakach — nie parsuj jej.
 
-Pełny tekst jednego orzeczenia: `eksportuj --fraza "KIO 3810/23" --format md --out <katalog>`.
-Fraza trafia też w orzeczenia **cytujące** tę sygnaturę — właściwy plik wskazuje `INDEX.md`.
-Plik `md` ma nagłówki sekcji (Sentencja, Uzasadnienie…) wstawione przez narzędzie — nie
-przenoś ich do cytatu — i na końcu spis cytowanych orzeczeń i powołanych przepisów.
+### Jedno orzeczenie: `czytaj`
+
+```
+kio-tool czytaj "KIO 3810/23" --bez-tresci --json        # mapa sekcji z długościami
+kio-tool czytaj "KIO 3810/23" --sekcja sentencja --json  # tylko rozstrzygnięcie
+kio-tool czytaj atlas:kio-3810-23 --json                 # całość
+```
+
+Najpierw `--bez-tresci`: uzasadnienie ma średnio ok. 29 tys. znaków, sentencja ok. 800 —
+bierz do kontekstu tylko to, czego potrzebujesz. Sekcje: `naglowek`, `sentencja`, `pouczenie`,
+`uzasadnienie`, `zdanie_odrebne`, `nieprzypisane` (tekst między rozpoznanymi sekcjami);
+`--sekcja` można powtórzyć.
+
+- Wynik: `wiersze[0]` (`sygnatura`, `data_wydania`, `rodzaj`, `rozstrzygniecie`, `doc_id`,
+  `url_zrodla`, `wersja`, `cytowanie`) i `odcinki[]` — każdy z `rodzaj`, `start`, `koniec`,
+  `znakow`, a `tresc` tylko przy wybranych. Odcinki pokrywają treść w całości i po kolei.
+- `liczby`: `znakow_calosci`, `znakow` (oddanych), `odcinkow`, `pokazano`.
+- Sygnaturę podaj w dowolnej pisowni („kio 3810 / 23”); porównywana jest z sygnaturami
+  dokumentu, nie szukana w treści. Kilka dokumentów pod jedną sygnaturą (wyrok i postanowienie)
+  → kod 3 z listą `doc_id`; wybierz jeden i wywołaj ponownie.
+- Nazwy sekcji wyznacza odczyt automatyczny — nie ma ich w orzeczeniu, nie przenoś ich do
+  cytatu. Spis cytowanych orzeczeń i przepisów jest w eksporcie `md`.
 
 ## Kody wyjścia (czytaj przed komunikatem; błędy idą na stderr)
 
@@ -93,7 +112,7 @@ przenoś ich do cytatu — i na końcu spis cytowanych orzeczeń i powołanych p
    (`art. 226 ust. 1`). Własny odczyt przepisów z treści jest w pliku `md`; 33 % powołań ma tam
    akt „nieustalone” — to nie znaczy „spoza Pzp”.
 3. **Fragment nie mówi, z której części orzeczenia pochodzi.** Zdanie w uzasadnieniu bywa
-   stanowiskiem strony, nie Izby — sprawdź kontekst w `md`, zanim przypiszesz je Izbie.
+   stanowiskiem strony, nie Izby — sprawdź kontekst przez `czytaj`, zanim przypiszesz je Izbie.
 4. **`zaindeksowanych` < `w_korpusie`** → uruchom `przelicz`, inaczej część korpusu jest
    niewidoczna.
 5. **Filtr dat pomija dokumenty bez daty wydania**; ich liczba to `bez_daty_poza_filtrem`.

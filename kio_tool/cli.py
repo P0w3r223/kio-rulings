@@ -38,6 +38,7 @@ from .demo import Pokaz, zbuduj_pokaz
 from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, KioError
 from .exporter import FORMATY
 from .parser.details import PARSE_VERSION
+from .parser.sections import RODZAJE_SEKCJI
 from .pipeline import KANAL_DOMYSLNY
 from .store import STATUSY_PRZEBIEGU, Store
 from .ui import texts, wizard
@@ -84,6 +85,9 @@ OpcjaJedenRunId = Annotated[str | None, typer.Option("--run-id", help=texts.POMO
 OpcjaLimit = Annotated[int, typer.Option("--limit", help=texts.POMOC_LIMIT)]
 OpcjaStatus = Annotated[list[str] | None, typer.Option("--status", help=texts.POMOC_STATUS)]
 OpcjaWszystko = Annotated[bool, typer.Option("--wszystko", help=texts.POMOC_WSZYSTKO)]
+ArgumentKlucz = Annotated[str, typer.Argument(help=texts.POMOC_KLUCZ, show_default=False)]
+OpcjaSekcja = Annotated[list[str] | None, typer.Option("--sekcja", help=texts.POMOC_SEKCJA)]
+OpcjaBezTresci = Annotated[bool, typer.Option("--bez-tresci", help=texts.POMOC_BEZ_TRESCI)]
 
 FORMAT_DOMYSLNY = ",".join(pipeline.FORMATY_DOMYSLNE)
 LIMIT_RUNOW = 20
@@ -562,6 +566,30 @@ def szukaj(
         sciezka = baza or default_db_path()
         with _otworz_baze(sciezka, SystemClock(), wy) as store:
             obsluga.pokaz_wyszukanie(wy, store, kryteria, limit=limit, ze_zrodlami=maszynowo)
+
+
+@app.command(help=texts.POMOC_CZYTAJ)
+def czytaj(
+    klucz: ArgumentKlucz,
+    sekcja: OpcjaSekcja = None,
+    bez_tresci: OpcjaBezTresci = False,
+    baza: OpcjaBaza = None,
+    maszynowo: OpcjaJson = False,
+) -> None:
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
+        sekcje = _sekcje(sekcja)
+        sciezka = baza or default_db_path()
+        with _otworz_baze(sciezka, SystemClock(), wy) as store:
+            obsluga.czytaj_orzeczenie(wy, store, klucz, sekcje=sekcje, z_trescia=not bez_tresci)
+
+
+def _sekcje(podane: Sequence[str] | None) -> tuple[str, ...]:
+    dozwolone = tuple(dict.fromkeys((*RODZAJE_SEKCJI, pipeline.ODCINEK_BEZ_SEKCJI)))
+    for wartosc in podane or ():
+        if wartosc not in dozwolone:
+            raise ConfigError(texts.zla_sekcja(wartosc, dozwolone))
+    return tuple(podane or ())
 
 
 if __name__ == "__main__":
