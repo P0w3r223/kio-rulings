@@ -410,6 +410,108 @@ def test_regula_5_tylko_pipeline_widzi_naraz_siec_i_baze() -> None:
     )
 
 
+ZAPISY_W_TRANSAKCJI_STRONY = ("upsert_document", "add_raw_version", "link_run_document")
+"""Co musi stać w tym samym bloku `with …transakcja():` co punkt kontrolny (ADR-0009 Z-5)."""
+
+
+def _wolane_metody(wezel: ast.AST) -> set[str]:
+    return {
+        w.func.attr
+        for w in ast.walk(wezel)
+        if isinstance(w, ast.Call) and isinstance(w.func, ast.Attribute)
+    }
+
+
+def _jest_transakcja(blok: ast.With) -> bool:
+    return any(
+        isinstance(el.context_expr, ast.Call)
+        and isinstance(el.context_expr.func, ast.Attribute)
+        and el.context_expr.func.attr == "transakcja"
+        for el in blok.items
+    )
+
+
+def punkty_kontrolne_poza_transakcja(wzgledna: str, zrodlo: str) -> list[str]:
+    """Naruszenia niezmiennika „rekordy strony i punkt kontrolny jedną transakcją".
+
+    `.checkpoint(` wolno wywołać wyłącznie w `PLIK_SIEC_Z_BAZA`, leksykalnie wewnątrz bloku
+    `with <x>.transakcja():`, który woła też `ZAPISY_W_TRANSAKCJI_STRONY`. Do 2026-09-22
+    niezmiennik niosła reguła 5 (jedna ścieżka) i testy zachowania; druga połowa komunikatu
+    reguły 5 staje się tu mechaniczna — punkt kontrolny wyniesiony za blok transakcji przeszedłby
+    przez regułę 5 i przez każdy test, w którym awaria nie trafia akurat między te dwa zapisy.
+    """
+    drzewo = ast.parse(zrodlo)
+    rodzice: dict[ast.AST, ast.AST] = {}
+    for wezel in ast.walk(drzewo):
+        for dziecko in ast.iter_child_nodes(wezel):
+            rodzice[dziecko] = wezel
+    naruszenia: list[str] = []
+    for wezel in ast.walk(drzewo):
+        if not (
+            isinstance(wezel, ast.Call)
+            and isinstance(wezel.func, ast.Attribute)
+            and wezel.func.attr == "checkpoint"
+        ):
+            continue
+        miejsce = f"{wzgledna}:{wezel.lineno}"
+        if wzgledna != PLIK_SIEC_Z_BAZA:
+            naruszenia.append(f"{miejsce} — punkt kontrolny poza {PLIK_SIEC_Z_BAZA}")
+            continue
+        przodek = rodzice.get(wezel)
+        while przodek is not None and not (
+            isinstance(przodek, ast.With) and _jest_transakcja(przodek)
+        ):
+            przodek = rodzice.get(przodek)
+        if przodek is None:
+            naruszenia.append(f"{miejsce} — punkt kontrolny poza blokiem transakcji")
+            continue
+        brak = set(ZAPISY_W_TRANSAKCJI_STRONY) - _wolane_metody(przodek)
+        if brak:
+            naruszenia.append(f"{miejsce} — w bloku transakcji brak {sorted(brak)}")
+    return naruszenia
+
+
+def test_regula_5_punkt_kontrolny_tylko_w_transakcji_strony() -> None:
+    naruszenia = [
+        n
+        for path in pliki_pakietu()
+        for n in punkty_kontrolne_poza_transakcja(
+            path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8")
+        )
+    ]
+    wlasciciel = (ROOT / PLIK_SIEC_Z_BAZA).read_text(encoding="utf-8")
+
+    assert naruszenia == [], "\n".join(naruszenia)
+    assert ".checkpoint(" in wlasciciel, (
+        f"{PLIK_SIEC_Z_BAZA} nie woła już punktu kontrolnego — skan nie ma żywego właściciela"
+    )
+
+
+_ZAPISY_STRONY = "    s.upsert_document(d)\n    s.add_raw_version(v)\n    s.link_run_document(r)\n"
+_W_BLOKU = "with s.transakcja():\n" + _ZAPISY_STRONY + "    s.checkpoint(r, 1)\n"
+
+
+@pytest.mark.parametrize(
+    ("wzgledna", "zrodlo", "oczekiwane"),
+    [
+        (PLIK_SIEC_Z_BAZA, _W_BLOKU, 0),
+        (PLIK_SIEC_Z_BAZA, "with s.transakcja():\n" + _ZAPISY_STRONY + "s.checkpoint(r, 1)\n", 1),
+        (
+            PLIK_SIEC_Z_BAZA,
+            "with s.transakcja():\n    s.upsert_document(d)\n    s.link_run_document(r)\n"
+            "    s.checkpoint(r, 1)\n",
+            1,
+        ),
+        ("kio_tool/pipeline/lokalne.py", _W_BLOKU, 1),
+    ],
+    ids=["w-bloku", "za-blokiem", "bez-wersji", "drugi-plik"],
+)
+def test_samosprawdzenie_skanu_punktu_kontrolnego(
+    wzgledna: str, zrodlo: str, oczekiwane: int
+) -> None:
+    assert len(punkty_kontrolne_poza_transakcja(wzgledna, zrodlo)) == oczekiwane
+
+
 def test_regula_8_warstwa_uzytkownika_nie_siega_po_kanal_ani_baze() -> None:
     """Reguła 8: `ui/*` chodzi przez `pipeline`, nigdy wprost do źródła ani do bazy."""
     naruszenia = {
