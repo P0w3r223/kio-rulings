@@ -5,15 +5,16 @@ pobiera orzeczenia z pełnym tekstem z publicznego API Atlasu Przetargów, zapis
 SQLite tak, jak przyszły, wyciąga z nich metadane, indeksuje pełny tekst i eksportuje wynik
 do skoroszytu Excel, CSV, JSONL albo katalogu Markdown — zawsze z atrybucją źródła.
 
-**Status na 2026-09-18 (wieczór): faza 1 zamknięta, narzędzie pracuje.** Bramka fazy 0 padła
-po pomiarach 3a i 23 (ADR-0004 i ADR-0001 przyjęte, kanał `atlas`), a bramka fazy 1 tego samego
-dnia: pierwszy korpus — styczeń 2024, 295 orzeczeń z pełnym tekstem, 302 żądania, przebieg
-przerwany na progu zgody i wznowiony tym samym poleceniem, trzecie wywołanie bez jednego żądania
-za dokument (`docs/decisions.md`, „Przebieg 1"). Nie ma jeszcze wykrywania zmian u źródła
-(`aktualizuj`), drugiego kanału ani warstwy modelu — sekcja „Czego narzędzie nie robi" niżej.
+**Status na 2026-09-22: fazy 0–3 przyjęte przez właściciela, narzędzie pracuje.** Pobiera
+z kanału `atlas`, rozkłada każde orzeczenie na sekcje, cytowane wyroki i powołane przepisy,
+szuka bez sieci, prowadzi operatora kreatorem, ma tryb pokazowy i wyjście maszynowe dla modelu
+(`--json`, `docs/dla-modelu.md`). Korpus operatora: 443 orzeczenia z roczników 2010–2026.
+Wykrywania zmian u źródła (`aktualizuj`) i drugiego kanału nie ma — sekcja „Czego narzędzie nie
+robi" niżej.
 
 Dokumenty: `docs/decisions.md` (wyniki i status pomiarów, decyzje właściciela),
-`docs/adr/` (decyzje architektoniczne), `docs/AUDYT_KIO_ORZECZENIA.md` (stan źródła,
+`docs/adr/` (decyzje architektoniczne), `docs/dla-modelu.md` (instrukcja dla modelu obsługującego
+narzędzie), `docs/AUDYT_KIO_ORZECZENIA.md` (stan źródła,
 dopuszczalność, doktryna), `docs/ARCHITEKTURA_KIO_TOOL.md` (architektura, reguły granic,
 polecenia), `docs/raport_przekazania.md` (raport dla nowej osoby), `CLAUDE.md` (fakty
 o projekcie dla Claude Code).
@@ -89,7 +90,7 @@ przy odmowie serwisu (CAPTCHA, blokada, wykrycie bota) zatrzymuje się i mówi o
 poleceń. Pierwszy ekran pokazuje, co masz w bazie i jak się tym steruje; każda pozycja menu mówi,
 co zrobi i czy kosztuje żądania; każde pytanie tekstowe niesie podpowiedź — format daty, przykład
 sygnatury, znaczenie pustej odpowiedzi. Przed każdym pobraniem pokazuje **tabelę kosztów** — ile dokumentów, stron listy i żądań
-najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to około trzech dób, nie godzina) —
+najwyżej, ile to potrwa przy tempie z kontraktu (rocznik to kilka dób, nie godzina) —
 i pyta o zgodę. Przy przebiegu masowym Enter znaczy „nie”. Zgoda dotyczy **tej liczby**:
 przebieg, który wyszedłby poza wycenę (kanał pomylił się co do rozmiaru zakresu albo zakres
 urósł), zatrzymuje się ze zdaniem wymieniającym obie liczby i czeka na wznowienie, które policzy
@@ -125,10 +126,10 @@ udaje orzeczenia KIO.
 | `pobierz` | według kryteriów pobiera listę z Atlasu, a za każdy dokument, którego nie ma w bazie, jeden rekord z pełnym tekstem; zapisuje surowe bajty, metadane i indeks; na końcu eksportuje i drukuje podsumowanie | strony listy + 1 na nowy dokument |
 | `wznow` | wznawia przerwany przebieg (`--run-id` albo ostatni) od zapisanej strony listy; kryteria bierze z bazy; dokumenty już zapisane pomija bez żądania | tylko brakujące |
 | `eksportuj` | z bazy, bez sieci: dokumenty objęte przebiegiem (`--run-id`, można powtórzyć) **albo** pasujące do kryteriów; obu naraz odmawia | zero |
-| `runy` | ostatnie przebiegi: status, zakres, liczba dokumentów i żądań (`--status`, `--limit`) | zero |
-| `przelicz` | przelicza metadane i indeks pełnotekstowy z surowych wersji (`--wszystko` także już przeliczone) — po zmianie odczytu, bez ponownego pobierania | zero |
-| `szukaj` | fraza dosłownie w pełnym tekście (FTS5) z filtrami; nad tabelą zawsze: dokumentów w korpusie, zaindeksowanych, trafień | zero |
-| `pokrycie` | raport pokrycia parsera (sekcje, cytowania, przepisy z ustawą, po roczniku z sygnatury) do `docs/raporty/`; z `--zloty tests/gold` sprawdza złoty zbiór i kończy się kodem 1 przy rozbieżności | zero |
+| `runy` | ostatnie przebiegi: status, zakres, liczba dokumentów i żądań (`--status`, `--limit`, `--json`) | zero |
+| `przelicz` | przelicza metadane i indeks pełnotekstowy z surowych wersji (`--wszystko` także już przeliczone) — po zmianie odczytu, bez ponownego pobierania; `--json` | zero |
+| `szukaj` | fraza dosłownie w pełnym tekście (FTS5) z filtrami; nad tabelą zawsze: dokumentów w korpusie, zaindeksowanych, trafień; z `--json` każde trafienie niesie `doc_id`, adres źródła (PDF w wyszukiwarce UZP) i blok cytowania | zero |
+| `pokrycie` | raport pokrycia parsera (sekcje, cytowania, przepisy z ustawą, po roczniku z sygnatury) do `docs/raporty/`; z `--zloty tests/gold` sprawdza złoty zbiór i kończy się kodem 1 przy rozbieżności; `--json` | zero |
 | `kreator`, `demo` | kreator nad bazą operatora albo nad bazą pokazową (wyżej) | jak `pobierz` / zero |
 
 `pobierz` i `wznow` drukują przed pierwszym dokumentem tę samą tabelę kosztów co kreator; bez
@@ -165,8 +166,9 @@ Przebieg przerwany przez Ctrl+C, brak zgody, błąd sieci albo odmowę serwisu z
 statusem `przerwany`, zapisaną ostatnią stroną listy i powodem. Wznawia go `wznow` albo to samo
 polecenie `pobierz` z tymi samymi kryteriami (rozpoznane po odcisku kryteriów). Dokument, który
 już jest w bazie, nie idzie drugi raz — klucz `(doc_id, sha256)` nie pozwala na duplikat nawet
-przy nieaktualnym punkcie kontrolnym. Prośba serwisu o odczekanie (`Retry-After`) jest zapisana
-w dzienniku żądań i przeżywa przerwanie: wznowienie odczekuje ją, zanim wyśle pierwsze żądanie.
+przy nieaktualnym punkcie kontrolnym. Prośba serwisu o odczekanie po odpowiedzi 429
+(`Retry-After`) jest zapisana w dzienniku żądań i przeżywa przerwanie: wznowienie odczekuje ją,
+zanim wyśle pierwsze żądanie.
 
 **Zanik zasilania, ubicie procesu, pełny dysk.** Proces, który zginął bez sprzątania, nie zdąża
 zapisać statusu — przebieg zostaje w bazie jako pracujący (`w_toku`) bez procesu, czyli
@@ -188,9 +190,8 @@ eksport Markdown pod to samo `--out` zastępuje poprzedni wynik, ale wyłącznie
 znacznikiem `.kio-tool-eksport` — cudzy katalog pod tą nazwą zostaje nietknięty i eksport
 odmawia zdaniem.
 
-Czego tu **nie ma**: automatycznych ponowień przy 429 i 5xx (przebieg staje właściwym wyjątkiem,
-wznowienie jest świadome) oraz blokady między dwoma procesami na tej samej bazie — jedno
-pobranie naraz jest obowiązkiem operatora, nie narzędzia; dlatego przebieg `w_toku` przy
+Czego tu **nie ma**: blokady między dwoma procesami na tej samej bazie — jedno pobranie naraz
+jest obowiązkiem operatora, nie narzędzia; dlatego przebieg `w_toku` przy
 wznawianiu znaczy „osierocony", a nie „inny proces pracuje".
 
 ## Gdzie są dane
@@ -206,8 +207,8 @@ Wszystko poza repozytorium, w katalogu danych użytkownika — na Windowsie
 | `scripts/out/` (poza historią) | surowe odpowiedzi sondy | zawierają dane osobowe z rekordów |
 | `tests/examples/atlas/` | złote pliki z pomiaru 3a z `ZRODLO.md` (licencja, SHA-256) | reguła 17: adapter jest testowany na prawdziwej odpowiedzi, nie na atrapie |
 
-Po pierwszym korpusie (2026-09-18) baza ma 24,5 MB przy 295 dokumentach, z czego 11,5 MB to
-surowe bajty odpowiedzi.
+Po pierwszym korpusie (2026-09-18) baza miała 24,5 MB przy 295 dokumentach, z czego 11,5 MB to
+surowe bajty odpowiedzi; przy 443 dokumentach (2026-09-22) — 52,7 MB, z czego 19,8 MB treści.
 
 ### Co jest w bazie i dlaczego
 
@@ -216,12 +217,13 @@ surowe bajty odpowiedzi.
 | `raw_versions` | surowa odpowiedź kanału **w całości** (bajty, SHA-256, moment pobrania, nagłówki); klucz `(doc_id, sha256)` | reguła 19: łańcuch dowodowy — każdy wiersz pochodny da się przeliczyć z bajtów, które naprawdę przyszły; wersja nigdy nie jest nadpisywana |
 | `documents` | tożsamość dokumentu `atlas:<slug>`, wszystkie sygnatury, data wydania, pierwsze i ostatnie widzenie, bieżąca wersja | ADR-0001: dokument jest jednostką, sygnatura etykietą (sprawy połączone mają kilka); slug małymi literami, żeby dwie pisownie nie dały dwóch dokumentów |
 | `metadata` | pola odczytane z surowej wersji przez mapę z `contract.yaml`: sygnatura, daty, rodzaj, rozstrzygnięcie, przewodniczący, strony, przepisy, koszty, adres u źródła, długość tekstu; z numerem wersji odczytu | filtry i eksport bez czytania blobów; `przelicz` odtwarza tabelę po zmianie odczytu |
+| `sections`, `citations`, `provisions` | struktura bieżącej wersji: granice sekcji (nagłówek, sentencja, pouczenie, uzasadnienie, zdanie odrębne) z offsetami w oryginale, cytowane sygnatury z rodzajem organu, powołane przepisy z ustawą ustaloną z treści albo „nieustalone"; z numerem wersji odczytu | raport `pokrycie`, złoty zbiór i dodatek „Odesłania odczytane z treści" w eksporcie `md`; przeliczalne z bajtów |
 | `fts` | indeks FTS5 po pełnym tekście i sygnaturach | `szukaj` bez sieci; `remove_diacritics 2` składa `ó`→`o`, ale `ł` nie ma rozkładu w Unicode, więc „lodz" nie trafia „Łódź" |
 | `runs` | przebieg: kanał, zakres, kryteria i ich odcisk, status (`w_toku`, `zakonczony`, `przerwany`, `blad`), ostatnia strona, powód | wznowienie i rozliczenie: `runy` mówi, co, kiedy i za ile żądań |
 | `run_documents` | które dokumenty objął przebieg i czy były nowe | `eksportuj --run-id` bez zgadywania; przebieg sprzed migracji schematu nie ma tych wierszy i eksportuje się po kryteriach |
-| `requests_log` | każde żądanie: czas, metoda, adres bez parametrów i sekretów, status, milisekundy, bajty, SHA-256 odpowiedzi, ocena kształtu, `Retry-After` | „cisza jest usterką": to, co poszło do cudzego serwera, ma ślad; limiter czyta stąd historię po wznowieniu |
+| `requests_log` | każde żądanie: czas, metoda, adres bez parametrów i sekretów, status, milisekundy, bajty, SHA-256 odpowiedzi, ocena kształtu, `Retry-After`, numer próby | „cisza jest usterką": to, co poszło do cudzego serwera, ma ślad; limiter czyta stąd historię po wznowieniu |
 
-Schemat ma numer (`PRAGMA user_version`, dziś 3) i migruje się sam przy pierwszym poleceniu,
+Schemat ma numer (`PRAGMA user_version`, dziś 6) i migruje się sam przy pierwszym poleceniu,
 bez utraty danych.
 
 Pola, których pochodzenia nie znamy (`thesis`, `thesis_snippet` — teza może być tekstem od
@@ -268,9 +270,11 @@ i zgubić własne. To jest cena zapisana, nie ukryta.
   dokument). Treść przeszukuje lokalnie `szukaj` po pobraniu zakresu dat. `--rozstrzygniecie`
   u kanału jest zgodne z lokalnym (6 na 6 sygnatur). `--przepis`, `--przewodniczacy` i `--strona`
   u kanału nie miały jeszcze własnego wywołania.
-- **Nie ma kreatora, warstwy modelu, parsera sekcji ani grafu cytowań** — plan faz 2–4
-  w `docs/AUDYT_KIO_ORZECZENIA.md`.
-- **Nie ponawia żądań i nie pilnuje dwóch procesów naraz** (sekcja „Po przerwaniu").
+- **Nie ma modelu językowego w środku** — decyzja właściciela z 2026-09-20: narzędzie prowadzi
+  model z zewnątrz, przez polecenia i `--json` (`docs/dla-modelu.md`); nie ma też serwera MCP
+  ani polecenia `cytowania`.
+- **Nie ocenia sprawy prawnie** — wyszukuje i cytuje; wniosek należy do człowieka.
+- **Nie pilnuje dwóch procesów naraz** (sekcja „Po przerwaniu").
 - **Nie usuwa danych** — nie ma retencji ani `wyczysc`; bazę i `wyniki/` kasuje operator.
 
 ## Pierwszy korpus
@@ -287,10 +291,14 @@ Drugi przebieg tego samego dnia sprawdził odporność na żywym serwisie: 1–5
 osierocony (24 nowe, 22 pominięte bez żądania, 48 żądań łącznie). Korpus po obu przebiegach:
 341 orzeczeń, każde z wersją surową, metadanymi i indeksem. Zapis w „Przebieg 2".
 
+Dziś korpus operatora ma **443 orzeczenia**: styczeń i 1–5 lutego 2024 oraz próbka po sześć
+orzeczeń z każdego rocznika 2010–2026 (`docs/decisions.md`, „Przebieg 3" i „Audyt przed
+prezentacją"). Z nich: 1 772 sekcje, 1 708 cytowań, 16 834 powołania na przepisy.
+
 ## Co już zmierzono
 
 Wyniki z datami i liczbą żądań oraz status każdego pomiaru stoją w `docs/decisions.md`
-(sekcja „Status pomiarów"). Siedem pomiarów własnych:
+(sekcja „Status pomiarów"). Najważniejsze pomiary własne:
 
 - **FTP UZP nie odpowiada** (pomiar 1, 2026-09-15) — port 21 milczy przy kontroli na cudzym
   serwerze FTP z tej samej maszyny w tej samej minucie.
@@ -308,10 +316,11 @@ Wyniki z datami i liczbą żądań oraz status każdego pomiaru stoją w `docs/d
   fraza z 11 orzeczeń stycznia daje u kanału zero, sygnatura daje dokładnie jeden dokument.
 - **Przebieg ubity w trakcie na żywym serwisie dokończył się tym samym poleceniem** (przebieg 2,
   2026-09-18, 48 żądań): 1–5 lutego 2024, 46 orzeczeń, proces ubity po 22 dokumentach.
-
-Wszystko pozostałe o źródłach pochodzi z lektury cudzych repozytoriów i dokumentacji. Kontrakt
-`POST /Home/GetResults` wyszukiwarki UZP stoi na dwóch cudzych kolektorach — własnego POST-a nikt
-tu nie wysłał. Dostęp do Dump API SAOS jest nieprzetestowany.
+- **Kształt tekstu, anonimizacja, cytowania** (pomiary 5, 10, 22, 25; 2026-09-19 i 20, zero
+  żądań): segmentacja na całym korpusie, skład i protokolant nieanonimizowani, 98,7 % cytowań
+  rozpoznanych.
+- **Spis rocznikowy zbioru** (pomiar 26, 2026-09-20, 20 żądań): 29 580 orzeczeń u pośrednika,
+  roczniki 2007–2009 puste.
 
 ## Ścieżka bez korespondencji
 
@@ -319,7 +328,7 @@ Właściciel rozstrzygnął 2026-09-17, że **projekt nie prowadzi korespondencj
 wniosek do UZP z art. 39 ustawy o otwartych danych, nie idą pytania do prawnika, nie idzie mail
 do pośrednika. Projekty pism zostają gotowe w `docs/pisma/`, niewysłane. Konsekwencja jest jedna:
 **pobranie całości zbioru idzie wyłącznie z kanału, który ponowne wykorzystywanie licencjonuje
-wprost.** Dla UZP zostają dwie role: weryfikacja na próbce i dopływ bieżący. To nie jest opinia
+wprost.** Wyszukiwarka UZP nie pełni roli kanału masowego. To nie jest opinia
 prawna i nie udaje jej — ryzyko resztkowe przyjął właściciel, zapis w `docs/decisions.md`.
 
 ## Trzy reguły, które obowiązują od pierwszego commita
@@ -341,27 +350,28 @@ istnienia każdej — w audycie 8.3 i architekturze 4.1.
 
 ```
 set PYTHONUTF8=1                          # polskie znaki na konsoli Windows
-.venv\Scripts\python.exe -m pytest        # 1066 testów w 34 plikach, sieć zablokowana
+.venv\Scripts\python.exe -m pytest        # 1 397 testów w 50 plikach, sieć zablokowana
 .venv\Scripts\ruff.exe check .
 .venv\Scripts\ruff.exe format --check .
 .venv\Scripts\mypy.exe kio_tool scripts   # strict
 ```
 
-Liczby zmierzone 2026-09-18 wieczorem, po testach odpornościowych; wszystkie cztery bramki
-zielone. Testy odporności (`tests/test_odpornosc_*.py`) mierzą zanik sieci na dokumencie i na
+Liczby zmierzone 2026-09-22; wszystkie cztery bramki zielone. Testy odporności (`tests/test_odpornosc_*.py`) mierzą zanik sieci na dokumencie i na
 stronie listy, 429 i 5xx, 404, 200 o złym kształcie i urwane, ubicie procesu `TerminateProcess`
 w trakcie zapisu do bazy i w trakcie eksportu, pełny dysk w połowie dokumentu i w `finally`,
 cel zajęty i katalog nie do założenia. Testy ścieżki użytkownika (`tests/test_uzytkownik_*.py`)
 przechodzą każde polecenie na ścieżce szczęśliwej i w każdej przewidywalnej pomyłce laika,
-z brzmieniem zdań odczytanym z `ui/texts.py`, nie z ekranu. Osiemnaście znalezisk testerów
+z brzmieniem zdań odczytanym z `ui/texts.py`, nie z ekranu. 2026-09-18 osiemnaście znalezisk testerów
 i osiem z przeglądu kodu naprawiono tego samego dnia; dwadzieścia jeden zabezpieczeń sprawdzono
 mutacją (psując produkcję i patrząc, czy test się zapala). Pakiet
-`kio_tool/` ma 29 plików i 6 861 linii: warstwę infrastruktury (`httpclient` — jedyne miejsce budujące
+`kio_tool/` ma 57 plików i 11 669 linii (2026-09-22), żaden moduł ponad 800: warstwę infrastruktury (`httpclient` — jedyne miejsce budujące
 klienta HTTP, bramka wyjścia odmawia wszystkiemu poza `https` i hostami kanału; `ratelimit`;
 `docid` — jedyny producent tożsamości; `safetext`, `richtext`, `config`, `logbook`, `console`,
 `ksztalt`), kanał `source/atlas/` z `contract.yaml` (jedyne miejsce z adresami i nazwami pól
-pośrednika), pakiety `store/` i `pipeline/` (od 2026-09-22, ADR-0009), `criteria.py`, `parser/details.py`, `exporter.py`,
-`cli.py` i `ui/`. Sonda fazy 0 w `scripts/` (dyspozytor, środowisko żądania, pomiary per kanał,
+pośrednika), pakiety `store/` (magazyn SQLite) i `pipeline/` (`pobieranie` — jedyny moduł
+łączący sieć z bazą, `lokalne`, `zgoda`, `slad`; ADR-0009), `criteria.py`, `parser/` (metadane,
+sekcje, cytowania, przepisy), `odczyt.py`, `wpisy.py`, `exporter.py`, `pokrycie.py`, `wycena.py`,
+`obsluga.py`, `cli.py`, `ui/` (kreator, widok konsolowy i maszynowy) i `demo/` (tryb pokazowy). Sonda fazy 0 w `scripts/` (dyspozytor, środowisko żądania, pomiary per kanał,
 oczekiwania kształtu):
 
 ```
@@ -384,9 +394,11 @@ czy test się zapala. Kilka luk przeszło przez zieloną suitę i pokazała je d
 |---|---|
 | `docs/AUDYT_KIO_ORZECZENIA.md` | stan źródła, dopuszczalność w sześciu reżimach, rachunek build-vs-buy, doktryna, reguły granic, plan faz |
 | `docs/ARCHITEKTURA_KIO_TOOL.md` | przegląd istniejących narzędzi, architektura, model danych, reguły 17–23, decyzje właściciela |
-| `docs/decisions.md` | wyniki pomiarów z datami, decyzje właściciela, przebiegi i **status każdego pomiaru**; wpis nigdy nie jest usuwany |
+| `docs/decisions.md` | wyniki pomiarów z datami, decyzje właściciela, przebiegi i status pomiarów |
+| `docs/dla-modelu.md` | instrukcja dla modelu, który prowadzi narzędzie: polecenia, filtry, pułapki, kody wyjścia, `--json` |
+| `docs/anatomia-bazy.md`, `docs/raporty/` | co jest w bazie; raporty pokrycia parsera |
 | `docs/dziennik_zadan.md` | ślad po każdym żądaniu sondy |
-| `docs/adr/` | decyzje architektoniczne wraz z odrzuconymi wariantami (0001 tożsamość, 0003 kształt `source/`, 0004 wybór kanału, 0005 bramka per kanał) |
+| `docs/adr/` | decyzje architektoniczne wraz z odrzuconymi wariantami (0001 tożsamość, 0003 kształt `source/`, 0004 wybór kanału, 0005 bramka per kanał, 0006 parser i struktura, 0007 ponowienia, 0008 kreator i tryb pokazowy, 0009 `store` i `pipeline` jako pakiety) |
 | `docs/pisma/` | projekty pism **gotowych i niewysłanych** |
 | `docs/raport_przekazania.md` | raport dla nowej osoby z recenzją 2026-09-18 |
 | `CLAUDE.md` | konfiguracja projektu dla sesji z Claude Code |

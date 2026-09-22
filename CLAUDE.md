@@ -3,70 +3,50 @@
 Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej. Nowe repozytorium,
 wzorce przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 
-## Stan na 2026-09-20 — fazy 2 i 3 przyjęte, ruszyła lista odłożonych
+## Stan na 2026-09-22 — fazy 0–3 przyjęte, pozycji otwartych nie ma (`master`)
 
-PR #1 scalony do `master`. Praca idzie dalej z listy „Świadomie odłożone" w `docs/decisions.md`
-(O-1…O-7) — **przeczytaj ją, zanim cokolwiek zaczniesz**; pozycja stamtąd nie jest do zrobienia
-przy okazji.
+Właściciel przyjął fazy 2 i 3 i potwierdził złoty zbiór (2026-09-20, `docs/decisions.md`,
+„Przyjęcie faz 2 i 3"). Lista pozycji odłożonych przy tym przyjęciu jest **zamknięta w całości**
+(2026-09-22) — nie odtwarzaj jej z historii commitów, briefów ani ADR-ów i nie proponuj jej
+pozycji ponownie. Faza 4 nie jest w toku.
 
-**2026-09-22 — audyt przed prezentacją (`decisions.md`, „Audyt przed prezentacją").** Trafienie
-`szukaj --json` niesie `doc_id`, `url_zrodla` i ten sam blok `cytowanie` co eksport; eksport `md`
-ma nagłówki sekcji i dodatek odesłań z treści; budowa `Wpis` mieszka w `wpisy.py`. Korpus tej
-maszyny odtworzony do 443 (Przebieg 4, 119 żądań). **O-5 zamknięte (ADR-0009):** `store/`
-i `pipeline/` są pakietami z fasadą — importuj jak dawniej (`from .store import Store`), ale
-**w testach podstawiaj we wszystkich modułach pakietu naraz** (`wsparcie_sondy.podstaw_w_pakiecie`;
-fabrykę klienta — `podstaw_fabryke_klienta`), bo moduł definicji nie zawsze czyta nazwę;
-podstawienie w jednym z wielu miejsc zapala `tests/test_fasady.py`. Sieć z bazą łączy
-wyłącznie `pipeline/pobieranie.py`. Adres `KIO_TOOL_CONTACT` ustawiony tu jako
-zmienna użytkownika na prośbę właściciela.
+**Praca lokalna: bez `push` i bez PR-ów** (decyzja właściciela z 2026-09-20). Zdalne
+`P0w3r223/Kio` istnieje, ale **nic nie wysyłamy bez wyraźnej prośby właściciela** — to zasada,
+nie stan przejściowy.
 
-**O-4 zamknięte — złoty zbiór niesie cytowania i przepisy.** Adnotacja ma trzy granulacje
-i każda odpowiada temu, co objął przegląd okiem: sekcje i cytowania **per wystąpienie**, przepisy
-**per postać z liczbą**. Przegląd znalazł dwie usterki oznaczania ustawy, których automat nie
-mógł zapalić, bo dawały wartości poprawne co do typu (`rozporzadzenie` zamiast Pzp, `inne`
-zamiast `pzp2004`) — wersja odczytu **6**, 260 przepisów przeniesionych na właściwą ustawę.
-**Właściciel potwierdził ten przegląd 2026-09-20**, więc `przeglad.kto` niesie jedno zdanie
-i cała adnotacja jest potwierdzona, nie tylko granice sekcji.
+Co jest dziś prawdą o drzewie i o tej maszynie:
 
-**O-3 zamknięte — pomiar 25 (`decisions.md`).** Wersja odczytu **5**; nierozpoznanych
-cytowań 78 → 23 (4,6 % → 1,3 %). Wdrożone sześć rodzin postaci: `KIO/KD`, `KIO/W`, `KIO/582/11`,
-rok czterocyfrowy przy KIO, sądy administracyjne z kodem siedziby i Zespół Arbitrów UZP. Doszły
-rodzaje `wsa` i `uzp_zo`. Trzy rzeczy, które ten pomiar ustalił na przyszłość: repertorium
-**zostaje** w sygnaturze (`KIO/KD 3/10` ≠ `KIO 3/10`), rok czterocyfrowy jest skracany, a nie
-odrzucany, i **tolerancja składni wymaga przeliczenia całego korpusu** — myślnik w sygnaturze
-TSUE wyglądał na zbędny, a jego zdjęcie dało 3 trafienia poprawne i 12 fałszywych (klasy betonu
-`C30/37`, numery Dz.U. UE serii C). Największa rodzina, „sam numer bez repertorium" (29 trafień), dostała
-**własny rodzaj** `kio_bez_repertorium` (decyzja właściciela): sygnatura kanoniczna jest pełna,
-a to, że organ dopisaliśmy z kontekstu, niesie rodzaj. Wzorzec sam numer wolno wołać **wyłącznie
-zza zapowiedzi** `sygn. akt` — puszczony po tekście łapie numery stron i kwoty.
-
-### Stan na 2026-09-20 — fazy 2 i 3 przyjęte, projekt domknięty przed prezentacją (`master`)
-
-Właściciel przyjął fazy 2 i 3 i potwierdził złoty zbiór (`docs/decisions.md`, „Przyjęcie faz 2
-i 3"). Przejście operatora na pokazie wykonane, trzy zgłoszone usterki interfejsu naprawione
-przed przyjęciem (ADR-0008 §13). **Faza 4 stoi za bramką warunkową i jest nietknięta.**
-
-Sześć commitów z pracy nad odłożonymi pozycjami jest **scalonych lokalnie do `master`**; PR #2
-zamknięty bez scalania, bo niósł stan sprzed nich (`decisions.md`, „Domknięcie projektu przed
-prezentacją"). **Nic nie wysyłamy bez wyraźnej prośby właściciela** — to zasada, nie stan
-przejściowy. Otwarte zostają O-1, O-2, O-5 i O-7; żadna z nich nie blokuje przekazania.
-
-**Zanim cokolwiek dopiszesz: `docs/decisions.md`, sekcja „Świadomie odłożone"** — siedem pozycji
-(O-1…O-7) z powodem odłożenia i z tym, co każdą odblokuje. Pozycja stamtąd nie jest do zrobienia
-przy okazji.
+- **`store/` i `pipeline/` są pakietami z fasadą** (ADR-0009, 2026-09-22). Importuj jak dawniej
+  (`from .store import Store`, `from . import pipeline`). **W testach podstawiaj we wszystkich
+  modułach pakietu naraz** (`wsparcie_sondy.podstaw_w_pakiecie`; fabrykę klienta —
+  `podstaw_fabryke_klienta`), bo moduł definicji nie zawsze czyta nazwę; podstawienie w jednym
+  z wielu miejsc zapala `tests/test_fasady.py`. Sieć z bazą łączy wyłącznie
+  `pipeline/pobieranie.py` (reguła 5), a punkt kontrolny stoi tam w transakcji strony (skan
+  w `test_boundaries.py`). `PONAD_SUFITEM` jest pusty — żaden moduł nie przekracza 800 linii.
+- **Wynik da się sprawdzić u źródła** (`decisions.md`, „Audyt przed prezentacją"): trafienie
+  `szukaj --json` niesie `doc_id`, `url_zrodla` (PDF w wyszukiwarce UZP) i ten sam blok
+  `cytowanie` co eksport — budowa `Wpis` mieszka w `wpisy.py`; eksport `md` ma nagłówki sekcji
+  (z zastrzeżeniem, że wstawił je kio-tool) i dodatek „Odesłania odczytane z treści".
+- **Korpus operatora na tej maszynie: 443 orzeczenia**, schemat 6, wersja odczytu 6 — styczeń
+  i 1–5 lutego 2024 plus po sześć z każdego rocznika 2010–2026 (Przebieg 4, 2026-09-22, 119
+  żądań). Kopia sprzed Przebiegu 4 leży obok bazy
+  (`korpus.sqlite.przed-probka-rocznikowa-20260922`).
+- **`.venv` odtworzony 2026-09-22** na Pythonie 3.12.10 — poprzedni był skopiowany z innej
+  maszyny i nie startował. Adres `KIO_TOOL_CONTACT` jest tu zmienną **użytkownika** Windows,
+  ustawioną na prośbę właściciela; nie pytaj o niego i nie zapisuj go w repozytorium.
+- Bramki na 2026-09-22: 1 397 testów, ruff, ruff format, `mypy kio_tool scripts` — zielone
+  (liczbę testów przelicz, nie przepisuj).
 
 **Instrukcja dla modelu obsługującego narzędzie: `docs/dla-modelu.md`.** Odbiorcą jest agent,
 nie programista i nie operator. Trzyma polecenia, filtry, pułapki i limity; **zmiana flagi albo
 nazwy polecenia jest zmianą tego pliku** — instrukcja, która rozjedzie się z narzędziem, jest
 gorsza niż jej brak, bo model zaufa jej bez sprawdzenia.
 
-**Asystenta językowego nie będzie — decyzja właściciela z 2026-09-20, nie odłożenie.** O-6 jest
-zamknięte odmownie, więc **nie proponuj go ponownie i nie wprowadzaj SDK modelu do tego drzewa**;
-konsekwencją jest brak drugiego właściciela klienta HTTP, drugiego wyjścia z procesu i łańcucha
-poświadczeń, a przez to zdanie „narzędzie nie wysyła żądań poza kanał, z którego pobiera" bez
-wyjątku i bez flagi. Bramka AI Act przed fazą 4 stoi mimo to, bo serwer MCP (`ARCHITEKTURA` §3.8 —
-taki jest kształt fazy 4, nie asystent w procesie) oddaje tekst modelowi po drugiej stronie.
-Pozycjonowanie jest przy tym **pozytywne, nie „brakujące"**: `ceidg-tool` ma asystenta w pudełku,
+**Asystenta językowego nie będzie — decyzja właściciela z 2026-09-20, nie odłożenie.** **Nie
+proponuj go ponownie i nie wprowadzaj SDK modelu do tego drzewa**; konsekwencją jest brak
+drugiego właściciela klienta HTTP, drugiego wyjścia z procesu i łańcucha poświadczeń, a przez to
+zdanie „narzędzie nie wysyła żądań poza kanał, z którego pobiera" bez wyjątku i bez flagi.
+Pozycjonowanie jest **pozytywne, nie „brakujące"**: `ceidg-tool` ma asystenta w pudełku,
 `kio-tool` jest pudełkiem, które asystent prowadzi (`decisions.md`, „Narzędzie prowadzone przez
 model").
 
@@ -78,57 +58,52 @@ domyślna opcja na czele, jawny styl `reverse bold`; pytania tak/nie **nie** prz
 `questionary.confirm`. Powody w docstringu `ui/prompts.py` — oba defekty kosztowały już raz
 w `ceidg-tool`.
 
-### Stan na 2026-09-20 (przegląd kodu fazy 3)
+**Złoty zbiór niesie sekcje, cytowania i przepisy** (`tests/gold/`, 17 dokumentów, potwierdzony
+przez właściciela 2026-09-20). Adnotacja ma trzy granulacje: sekcje i cytowania **per
+wystąpienie**, przepisy **per postać z liczbą**. Przegląd okiem znalazł dwie usterki oznaczania
+ustawy, których automat nie mógł zapalić, bo dawały wartości poprawne co do typu
+(`rozporzadzenie` zamiast Pzp, `inne` zamiast `pzp2004`).
 
-**Przegląd kodu fazy 3 wykonany** (`decisions.md`, „Przegląd kodu fazy 3"); wszystkie znaleziska
-naniesione. Co zmienia zastane odruchy:
+**Sygnatury w cytowaniach — ustalenia pomiaru 25** (`decisions.md`): repertorium **zostaje**
+w sygnaturze (`KIO/KD 3/10` ≠ `KIO 3/10`), rok czterocyfrowy jest skracany, a nie odrzucany,
+a **tolerancja składni wymaga przeliczenia całego korpusu** — myślnik w sygnaturze TSUE wyglądał
+na zbędny, a jego zdjęcie dało 3 trafienia poprawne i 12 fałszywych (klasy betonu `C30/37`,
+numery Dz.U. UE serii C). Numer bez repertorium ma **własny rodzaj** `kio_bez_repertorium`
+(organ dopisany z kontekstu), a jego wzorzec wolno wołać **wyłącznie zza zapowiedzi** `sygn. akt`
+— puszczony po tekście łapie numery stron i kwoty.
+
+### Co zmienia zastane odruchy (przegląd kodu fazy 3, 2026-09-20)
 
 - **Zgoda ma sufit, nie wyłącznik** (ADR-0008 §12.1). Werdykt `zgoda` wiąże przebieg z liczbą
   z tabeli kosztów: `(wycena + już wysłane) × proby` z bloku `ponowienia`. Dotyczy **także**
   `--zgoda` na ścieżce flag. Przekroczenie = przebieg `przerwany` ze zdaniem, wznowienie liczy
   koszt od nowa. Zmierzone przed naprawą: 103 żądania po Enterze pod tabelą mówiącą „5".
-- **`PARSE_VERSION` ma 3 i ma obserwatora.** `tests/test_wersja_odczytu.py` trzyma odcisk
+- **`PARSE_VERSION` (dziś 6) ma obserwatora.** `tests/test_wersja_odczytu.py` trzyma odcisk
   SHA-256 źródeł odczytu (`parser/`, `docid.py`, `odczyt.py`); zmiana bez podniesienia wersji
-  zapala test. Korpus operatora przeliczony (443 wersje, 0 żądań), raport
-  `docs/raporty/pokrycie_2026-09-20.*`.
-- **Sufit 800 linii ma strażnika** (`test_boundaries.py`), a `PONAD_SUFITEM` jest **pusty** od
-  2026-09-22: `store.py` i `pipeline.py` rozbite na pakiety `store/` i `pipeline/` (ADR-0009,
-  O-5 zamknięte). Nowy moduł ponad sufitem zapala test.
-- Arkusz `Metadane` eksportu pokazowego nie przypisuje już rekordów KIO ani Atlasowi; numer
-  sprawy połączonej w korpusie pokazowym pochodzi z puli wolnych numerów.
+  zapala test, a po podniesieniu korpus trzeba przeliczyć (`przelicz`, zero żądań).
+- **Sufit 800 linii ma strażnika** (`test_boundaries.py`); nowy moduł ponad sufitem zapala test.
+- Arkusz `Metadane` eksportu pokazowego nie przypisuje rekordów KIO ani Atlasowi; numer sprawy
+  połączonej w korpusie pokazowym pochodzi z puli wolnych numerów.
 
-Bramka fazy 3 §10 pkt 4 dostała obserwatora dopiero teraz — `pobierz` z flag drukował tabelę
-kosztów, ale żaden test tego nie oglądał.
+### Historia 2026-09-19 (gałąź `feat/finalizacja-faz-2-3`, scalona)
 
-### Stan na 2026-09-19 (gałąź `feat/finalizacja-faz-2-3`)
-
-**ADR-0006, ADR-0007 i ADR-0008 przyjęte 2026-09-19; fazy 2 i 3 zbudowane, czekają na przyjęcie
-właściciela** (fazę kończy przyjęcie, nie zielona suita). Co jest nowe, w kolejności warstw:
+**ADR-0006, ADR-0007 i ADR-0008 przyjęte 2026-09-19.** Co wtedy powstało, w kolejności warstw:
 
 - **ADR-0007 (ponowienia):** pętla prób w `AtlasChannel._zadanie`, liczby w bloku `ponowienia`
   kontraktu (z `retry_after_max_s`), zgoda liczona w żądaniach **wysłanych** i sprawdzana przed
   każdym ponowieniem, `requests_log.proba` (schemat 5).
 - **Faza 2 (ADR-0006):** `parser/{clean,sections,cite,provisions}.py`, `odczyt.py` (parser →
   wiersze magazynu), schemat 6 (`sections`, `citations`, `provisions` — offsety w oryginale,
-  `zrodlo` `tresc|kanal`, przepis z ustawą z treści, nigdy z daty), `PARSE_VERSION` 2 (dziś 3),
-  `pokrycie.py` + polecenie `pokrycie` (raport w `docs/raporty/`, `--zloty` z kodem 1 przy
-  rozbieżności), złoty zbiór `tests/gold/` — **wyłącznie sekcje**, 17 dokumentów (ADR-0006 §10.1).
+  `zrodlo` `tresc|kanal`, przepis z ustawą z treści, nigdy z daty), `pokrycie.py` + polecenie
+  `pokrycie` (raport w `docs/raporty/`, `--zloty` z kodem 1 przy rozbieżności), złoty zbiór
+  `tests/gold/`.
 - **Faza 3 (ADR-0008):** `wycena.py` + `Decyzja` w punkcie zgody (tabela kosztów bez dodatkowego
   żądania), `ui/{prompts,flow,wizard}.py`, `obsluga.py` (`AkcjeKreatora`, wydruki wspólne; objęty
   skanem reguły 9), `kio-tool` bez polecenia na terminalu = kreator; `demo/` (korpus generowany,
   atrapa Atlasu jako transport, `ZegarDemo`), `kio-tool demo`, znacznik bazy pokazowej
   (`PRAGMA application_id`) i znaczniki eksportu (`DEMO_`, `tryb`, `ATRYBUCJA_POKAZU`).
 
-**Korpus operatora na tej maszynie** (odtworzony 2026-09-19, Przebieg 3): 443 dokumenty —
-styczeń i 1–5 lutego 2024 plus próbka po 6 z każdego rocznika 2010–2026; schemat 6. Kopia sprzed
-schematu 6 leży obok bazy (`korpus.sqlite.przed-schematem-6-20260919`).
-
-**Otwarte, do decyzji albo ręki właściciela:** przyjęcie faz 2 i 3; potwierdzenie złotego zbioru
-(przejrzał Claude, pole `przeglad.kto`); przejście operatora na pokazie (ADR-0008 §10 pkt 5 —
-właściciel sam); luka „`Retry-After` przy 5xx nie przeżywa `wznow`" (ADR-0007 §8.1); postaci
-sygnatur nierozpoznane w pomiarze 22 (`KIO/KD`, rok czterocyfrowy przy KIO, sam numer).
-
-#### Stan na 2026-09-18 (historia)
+### Historia 2026-09-18
 
 **Bramka fazy 0 zamknięta 2026-09-18: pomiary 3a i 23 wykonane (5 żądań), ADR-0004 i ADR-0001
 przyjęte, pierwszym adapterem jest `atlas`. Bramka fazy 1 spełniona tego samego dnia:
@@ -185,11 +160,9 @@ kanały `uzp` i `saos`. Katalog `tests/cassettes` stoi pusty z `.gitkeep`;
 Bramka fazy 0 mówi od 2026-09-18: kanał obecny w `source/` musi mieć wiersz zmierzony
 w ADR-0004, a wejściem bramki są pomiary z pola `pomiary:` jego `contract.yaml`.
 
-Repozytorium **ma zdalne**: prywatne `P0w3r223/Kio` na GitHubie; praca idzie na gałęziach z PR-em
-(wybór właściciela 2026-09-19). Decyzja C („bez zdalnego") opisuje dziś historię — dopisek w
-`docs/decisions.md`. Korpus nadal leży poza repozytorium i na innej maszynie trzeba go odtworzyć.
+Korpus leży poza repozytorium i na innej maszynie trzeba go odtworzyć (tak powstał Przebieg 4).
 Adres kontaktowy dla `KIO_TOOL_CONTACT` jest zmienną środowiskową **użytkownika** Windows — poza
-repozytorium, zgodnie z regułą; nie pytaj o niego.
+repozytorium, zgodnie z regułą.
 
 ## Ścieżka bez korespondencji — trzy decyzje z 2026-09-17
 
@@ -202,8 +175,8 @@ w `docs/pisma/` nienaruszone — są gotowe, gdyby decyzja się zmieniła — al
 nie wisi. Pomiar 15 jest zamknięty, pomiar 3b mierzy się wyłącznie obserwacją w czasie.
 
 **UZP nigdy nie pełni roli kanału masowego** (reguła 23, strażnik w `test_boundaries.py`).
-Pobranie całości idzie wyłącznie z kanału, który ponowne wykorzystywanie licencjonuje wprost —
-dla UZP zostają weryfikacja na próbce i dopływ bieżący. Ta reguła **zastępuje pytanie 2 do
+Pobranie całości idzie wyłącznie z kanału, który ponowne wykorzystywanie licencjonuje wprost.
+Ta reguła **zastępuje pytanie 2 do
 prawnika**, którego nikt nie zada: pytanie brzmiało „czy wolno pobrać istotną część cudzej
 bazy", a odpowiedź brzmi „nie pobieramy istotnej części tej bazy".
 
@@ -219,21 +192,23 @@ u dostawcy z datą i SHA-256 jest mocniejszą podstawą niż cudza interpretacja
 | `docs/AUDYT_KIO_ORZECZENIA.md` | stan źródła, dopuszczalność, build-vs-buy, doktryna (7), reguły granic (8.3), miny (11), pomiary fazy 0 (10) |
 | `docs/ARCHITEKTURA_KIO_TOOL.md` | przegląd cudzych narzędzi (3), architektura (4), polecenia (5), pomiary (6), decyzje właściciela (8) |
 | `docs/decisions.md` | **wyniki pomiarów z datami** — zbiorczy zapis tego, co ten projekt sam zmierzył |
-| `docs/decisions.md`, sekcja „Status pomiarów" | **status każdego pomiaru** (wykonany / niewykonany / zamknięty / odłożony) i do czego jest wejściem — od 2026-09-18 w tym samym pliku co wyniki (ADR-0005 scalił `pomiary.md`, bo dwie listy wymagały strażnika symetrii) |
+| `docs/decisions.md`, sekcja „Status pomiarów" | **status pomiarów** (wykonany / w toku / zamknięty) i do czego były wejściem — od 2026-09-18 w tym samym pliku co wyniki (ADR-0005 scalił `pomiary.md`, bo dwie listy wymagały strażnika symetrii) |
 | `docs/adr/0005_bramka_per_kanal.md` | **przyjęty 2026-09-18**: bramka fazy 0 per kanał (wejście z `contract.yaml`), trzecia postać domknięcia wiersza, `atlas` pierwszy bezwarunkowo, reguła 19 na wyjściu z kanału, ADR-0001 bez pomiaru 19 |
 | `docs/dziennik_zadan.md` | ślad po każdym żądaniu, w kolumnach `requests_log`; dwie sekcje — wpisy ręczne i maszynowe; powstaje przy pierwszym przebiegu sondy |
 | `tests/test_bramki_faz.py` | **mechaniczni strażnicy bramek planu faz**: kod, który wolno napisać dopiero po ADR-ze, nie powstaje przed nim; ADR ogłoszony jako przyjęty ma wypełnione to, czego od siebie wymaga |
-| `docs/adr/` | ADR-0003 (kształt `source/`, bramka wyjścia) — przyjęty; ADR-0004 (wybór kanału) — **artefakt bramki fazy 0**, od 2026-09-18 w brzmieniu per kanał: wejście z `contract.yaml` (3), trzy postaci domknięcia wiersza (4.2), `atlas` pierwszy bezwarunkowo (6), status `draft` do pomiarów 3a i 23; ADR-0001 (tożsamość dokumentu) — szkic z dwoma nawiasami do wypełnienia po pomiarze 3a, blokuje `store.py` |
+| `docs/adr/` | wszystkie przyjęte: 0001 tożsamość dokumentu, 0003 kształt `source/` i bramka wyjścia, 0004 wybór kanału (`atlas`), 0005 bramka per kanał, 0006 parser i struktura, 0007 ponowienia, 0008 kreator i tryb pokazowy, 0009 `store` i `pipeline` jako pakiety |
 | `docs/pisma/` | projekty pism do wysłania przez właściciela: wniosek do UZP, mail do Atlasu, pytania do prawnika |
-| `tests/queries/` | szkielet zestawu zapytań operatora — praca domenowa właściciela, zero żądań; od 2026-09-18 poza ścieżką krytyczną (ADR-0005 Z-9), wraca w fazie 3 jako miara wyszukiwania |
+| `tests/queries/` | szkielet zestawu zapytań operatora — praca domenowa właściciela, zero żądań; poza ścieżką krytyczną (ADR-0005 Z-9) |
+| `docs/dla-modelu.md` | instrukcja dla modelu prowadzącego narzędzie — zmienia się razem z każdą flagą |
 
-Kolejność czytania dla nowej sesji: `docs/decisions.md` (wyniki i status pomiarów) → ADR-0005
-(co zmieniło bramkę 2026-09-18) → ADR-0004 (co ją domyka) → audyt 14 (status dowodowy) →
-audyt 13 (decyzje) → architektura 8 (decyzje właściciela).
+Kolejność czytania dla nowej sesji: ten plik → `docs/decisions.md` (wyniki, decyzje, najnowsze
+sekcje na końcu) → ADR-0009 i ADR-0008 (kształt kodu dziś) → audyt 14 (status dowodowy) →
+architektura 8 (decyzje właściciela).
 
 ## Co zmierzono, a co jest wciąż przypuszczeniem
 
-Siedem pomiarów własnych, wszystkie w `docs/decisions.md` z datą i liczbą żądań:
+Najważniejsze pomiary własne; wszystkie — także późniejsze (5, 10, 22, 25, 26, przebiegi 3 i 4)
+— stoją w `docs/decisions.md` z datą i liczbą żądań:
 
 - **pomiar 21** — blokada sieci w testach działa i sięga gniazda, nie tylko transportu `httpx`;
 - **pomiar 1** — FTP UZP nie odpowiada (kontrola: `ftp.gnu.org` z tej samej maszyny działa);
@@ -254,10 +229,7 @@ Siedem pomiarów własnych, wszystkie w `docs/decisions.md` z datą i liczbą ż
   (`docs/decisions.md`, „Przebieg 2"). Korpus: 341 orzeczeń.
 
 Złote pliki z pomiaru 3a leżą w `tests/examples/atlas/` z `.compare.json` i `ZRODLO.md`.
-Wszystko pozostałe o źródłach pochodzi z lektury cudzych repozytoriów i dokumentacji. Kontrakt
-`POST /Home/GetResults` stoi na dwóch niezależnych cudzych kolektorach — **własnego POST-a nikt
-tu jeszcze nie wysłał**. Dostęp do Dump API SAOS jest nieprzetestowany; korzeń SAOS nie
-odpowiedział w pomiarze 23.
+Wszystko pozostałe o źródłach pochodzi z lektury cudzych repozytoriów i dokumentacji.
 
 ## Doktryna — cztery zasady, które nadpisują odruchy
 

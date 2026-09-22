@@ -989,20 +989,17 @@ pozycji z listy niżej.
 
 ---
 
-## Świadomie odłożone — lista otwarta, nie zapomniana (2026-09-20)
+## Pozycje odłożone przy przyjęciu faz 2 i 3 — wszystkie zamknięte (2026-09-20 … 2026-09-22)
 
-Decyzja właściciela: te pytania **nie** blokują przyjęcia faz 2 i 3 i wracają później. Zapisane
-tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej.
+Lista powstała 2026-09-20, żeby pozycja odłożona nie była nie do odróżnienia od przeoczonej.
+Od 2026-09-22 nie ma na niej pozycji otwartej.
 
 | # | Pytanie | Dlaczego odłożone | Co je odblokuje |
 |---|---|---|---|
-| O-1 | `Retry-After` przy 5xx nie przeżywa `wznow` — historia żądań odtwarza go tylko dla 429, więc natychmiastowy `wznow` po wyczerpaniu prób nie czeka na prośbę serwisu (ADR-0007 §8.1) | Z-4 domyka lukę w obrębie procesu; poza nim kosztowałaby zmianę schematu dziennika | Pomiar 24 — dopiero on powie, jak często 5xx w ogóle wyczerpuje próby |
-| O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
 | O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
 | O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte w całości 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów, dwie usterki parsera znalezione i naprawione, **przegląd potwierdzony przez właściciela** tego samego dnia | — |
 | O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | **zamknięte 2026-09-22 (ADR-0009)**: oba pliki są pakietami, największy moduł po rozbiciu ma 497 linii, `PONAD_SUFITEM` pusty; decyzja właściciela zmieniła decyzję 3 niżej | — (sekcja „O-5 zamknięte — `store` i `pipeline` jako pakiety”) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | **zamknięte odmownie 2026-09-20**: właściciel zrezygnował — pozycja schodzi z listy jako „nie", nie jako „później" (sekcja „Asystent językowy — rezygnacja, nie odłożenie") | — (wraca wyłącznie z nowym ADR-em; bramka AI Act przed fazą 4 stoi niezależnie, bo serwer MCP też oddaje tekst modelowi) |
-| O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma; **co każdy z nich dałby projektowi — sekcja „Co dałyby pomiary kanałów `uzp` i `saos`" (2026-09-20)** | Decyzja o drugim kanale albo wejście w fazę 4 |
 
 ---
 
@@ -1025,10 +1022,6 @@ ma **wpis z pomiarem, zakaz wzrostu i strażnika w suicie**, jest czymś innym n
 pierwszy jest stanem wybranym, drugi — stanem odkrytym po czasie. Na slajdzie ma paść w tej
 pierwszej postaci.
 
-Po tej rundzie otwarte zostają **O-1, O-2, O-5 i O-7** — i wszystkie cztery z tego samego powodu:
-trzy wymagają przebiegu z siecią albo decyzji o drugim kanale, a czwarty jest świadomym długiem.
-Żadna z nich nie blokuje przekazania narzędzia. *Dopisek 2026-09-22: O-5 zamknięte ADR-0009;
-otwarte zostają O-1, O-2 i O-7.*
 
 ---
 
@@ -1086,90 +1079,6 @@ na sieć, osiem poleceń z zaznaczeniem, które dotykają sieci, osiem filtrów,
 (z `--fraza` w `pobierz` na czele, bo u Atlasu dopasowuje sygnaturę, a nie treść) oraz limity
 kanału wraz z podniesieniem ich kluczem. Plik jest wersjonowany razem z kodem — instrukcja dla
 modelu trzymana poza drzewem rozjeżdża się z narzędziem przy pierwszej zmianie flagi.
-
----
-
-## Co dałyby pomiary kanałów `uzp` i `saos` — wyjaśnienie O-7 (2026-09-20)
-
-O-7 wygląda na worek z dziewięcioma numerami. Nie jest workiem: te dziewięć pomiarów odpowiada na
-**trzy** pytania, a każde z nich rozszerza projekt w inną stronę i za inną cenę.
-
-### Pytanie 1: czy korpus może sięgnąć przed rok 2010 (`saos`, pomiary 2a i 2b)
-
-Zmierzone, nie przypuszczane: najstarszy dokument w korpusie operatora ma rocznik **2010**
-(443 dokumenty, roczniki 2010–2026, raport pokrycia 2026-09-20, 0 żądań), a pomiar 3a odczytał
-u pośrednika to samo — zbiór Atlasu sięga rocznika 2010. KIO orzeka od **grudnia 2007**. Odcinek
-**2007-12 – 2009** nie jest więc w tym narzędziu niedostępny przez błąd ani przez limit: on po
-prostu **nie istnieje w kanale, którego używamy**, i żadna liczba żądań tego nie zmieni.
-
-SAOS deklaruje 22 168 rekordów za okres 2007-12 – 2018-09. Pomiar **2a** pyta o jedną rzecz: czy
-**Dump API** odpowiada naszemu własnemu klientowi — bo API **wyszukiwania** SAOS zablokowało dwa
-niezależne klienty, w tym na przykładzie z własnej dokumentacji SAOS („bot detection"), a korzeń
-`www.saos.org.pl` nie odpowiedział w 45 s przy pomiarze 23. Pomiar **2b** pyta, czy Dump API
-filtruje po `courtType`, czyli czy da się wziąć samo KIO zamiast całego orzecznictwa Polski.
-
-**Co by to dało projektowi.** Trzy brakujące roczniki — i **drugi kanał**, co znaczy dużo więcej
-niż „więcej danych". Drugi kanał jest jedyną drogą do polecenia `porownaj`, czyli do zobaczenia
-tego samego orzeczenia z dwóch niezależnych źródeł; do pomiaru 3b w brzmieniu pierwotnym
-(opóźnienie publikacji jako różnica między kanałami, a nie obserwacja kalendarzowa); i do
-odpowiedzi na pytanie, którego dziś nie umiemy zadać: **czy pośrednik czegoś nie zgubił**.
-Archiwum SAOS jest przy tym zamrożone na 2018-09, więc przebieg po nim jest deterministyczny
-i powtarzalny — bramka fazy 1 („przerwany i wznowiony bez duplikatów") dostałaby stabilne
-wejście, czego żywy kanał nie daje.
-
-**Cena.** Dwa żądania na sam pomiar, ale potem osobny ADR (ADR-0004 §4.2 zostawił wiersz `saos`
-jako „nierozstrzygnięty"), adapter `source/saos.py`, własna polityka wersji i — to najważniejsze —
-**warunki ponownego wykorzystywania odczytane u źródła**, których przy pomiarze 23 nikt nie
-odczytał, bo host nie odpowiedział. Kanał bez licencji nie dostaje roli masowej; tak zamknęliśmy
-UZP (decyzja B) i ta sama reguła obowiązuje SAOS.
-
-### Pytanie 2: czy źródło urzędowe może weryfikować pośrednika (`uzp`: 4b, 16, 7, 19, 9)
-
-`orzeczenia.uzp.gov.pl` to **źródło**, a Atlas — pośrednik. Decyzja B zabrania UZP roli masowej
-i ma na to pomiar: pomiar 14 ustalił 2026-09-15, że warunków ponownego wykorzystywania tam **nie
-ma, a informacji o ich braku też nie**. Zostają dwie role, które licencji masowej nie wymagają:
-**weryfikacja** (czy to, co mamy z pośrednika, zgadza się ze źródłem) i **dopływ** (pojedyncze
-dokumenty, których pośrednik nie ma).
-
-- **4b i 16** — własny `POST /Home/GetResults` oraz liczniki `#resultCounts` przy pustej frazie.
-  Razem odpowiadają, ile wpisów urząd w ogóle publikuje, czyli dają **mianownik**, którego dziś
-  nie mamy. Bez niego zdanie „korpus jest kompletny" jest niesprawdzalne w obie strony: nie da
-  się go ani potwierdzić, ani obalić.
-- **7** — czy sprostowanie orzeczenia jest nowym rekordem, czy nadpisaniem. To nie ciekawostka:
-  od tego zależy polityka wersji kanału (ADR-0005 Z-4), a więc to, czy `przelicz --wszystko` ma
-  prawo nadpisać wersję, którą ktoś już zacytował w piśmie.
-- **19** — czy `ContentHtml` jest bitowo stabilny między pobraniami odległymi o dobę. Jeżeli nie,
-  `content_sha256` przestaje znaczyć „inna treść" i zaczyna znaczyć „inne pobranie", co uderza
-  w tożsamość wersji dokumentu — a na niej stoi cały złoty zbiór.
-- **9** — tolerancja serwisu na tempo. Jako jedyny z dziewięciu **wymaga zgody właściciela**, bo
-  polega na ostrożnym narastaniu obciążenia cudzego serwisu, i jako jedyny jest dziś zbędny:
-  Atlas publikuje limity i raportuje je nagłówkami. Wraca tylko wtedy, gdyby UZP dostało rolę
-  masową, czego decyzja B zabrania.
-
-**Co by to dało projektowi.** Polecenie `porownaj` z prawdziwym drugim zdaniem i odpowiedź na
-pytanie „czy ufamy pośrednikowi", dziś przyjęte na wiarę wraz z ryzykiem resztkowym (decyzja A).
-
-### Pytanie 3: pomiary czekające na fazę 4 albo na zmianę prawa (18, 20)
-
-- **18** — czy nowelizacja Pzp z 13.03.2026 zmieniła słownik przepisów. Dwa wywołania słownika,
-  zero ryzyka, a waży dokładnie tyle, ile tabela `provisions`: w korpusie **16 834 przepisy**,
-  z czego `pzp2019` 7 849, `pzp2004` 2 529, `kc` 591, a `nieustalone` **5 233, czyli 31,1 %**
-  (stan 2026-09-20, wersja odczytu 6). Jeżeli nowelizacja przenumerowała artykuły, część tych
-  „ustalonych" wskazuje dziś na inny przepis niż w dniu orzeczenia — a tego automat nie zapali,
-  bo wartość pola pozostaje poprawna. To ta sama klasa usterki, którą znalazł przegląd O-4.
-- **20** — co zwracają `/AiSearch/*` w wyszukiwarce UZP. Pomiar czysto rozpoznawczy; po
-  rezygnacji z asystenta jego jedynym możliwym skutkiem jest wiedza, **czym** urząd wyszukuje,
-  a nie zapożyczenie tego do narzędzia.
-
-### Odpowiedź krótka
-
-Żaden z tych dziewięciu pomiarów nie jest potrzebny do tego, żeby narzędzie działało — to jest
-ich wspólna cecha i dlatego wszystkie leżą w O-7, a nie w bramce. Każdy z nich odpowiada
-natomiast na pytanie, którego dziś **nie umiemy zadać**: czy korpus jest kompletny (4b, 16), czy
-sięga tak daleko jak orzecznictwo (2a, 2b), czy pośrednik jest wierny (`porownaj`, 19) i czy
-wersja, którą ktoś zacytował, ma prawo się zmienić (7). Rozszerzenie, które z nich wynika, nie
-jest „więcej funkcji", tylko **drugie zdanie o tych samych danych** — a doktryna tego projektu
-mówi, że gwarancja bez obserwatora nie jest gwarancją.
 
 ---
 
@@ -1264,38 +1173,27 @@ tego, **po co** pomiar powstał i jak go wykonać najtaniej.
 Legenda kolumny „wejście do": **bramka** = wejście bramki wyboru kanału w brzmieniu ADR-0005
 (pomiary kanału, który powstaje — dla `atlas` z pola `pomiary:` jego `contract.yaml`);
 **ADR-0001** = wejście rozstrzygnięcia o tożsamości dokumentu w brzmieniu ADR-0005 Z-4;
-**faza 1 / 2** = potrzebny później; **zamknięty** = nie wraca; **odłożony** = poza ścieżką
-rekomendowaną 2026-09-18, wraca z kanałem, którego dotyczy.
+**faza 1 / 2** = potrzebny później; **zamknięty** = nie wraca.
 
 | # | Pomiar | Status | Wejście do | Czym wykonać |
 |---|---|---|---|---|
 | 1 | Czy `ftp.uzp.gov.pl` nadal odpowiada | **wykonany 2026-09-15 — negatywny** (`## Pomiar 1`) | zamknięty | — |
-| 2a | Własny klient do Dump API SAOS | niewykonany | odłożony (kanał `saos`, po bramce fazy 1) | `sonda.py saos-dump` |
-| 2b | Czy Dump API filtruje po `courtType` | niewykonany | odłożony (jak 2a) | `sonda.py saos-dump` |
 | 3a | Czy Atlas zwraca pełny tekst (lista + dokument `/api/kio/{slug}`); od kiedy sięga zbiór | **wykonany 2026-09-18 — pozytywny: `full_text`, zbiór ≥ rocznik 2010, `ruling_date` bywa błędne** (`## Pomiar 3a`) | **bramka** (`atlas`) — spełnione | `sonda.py atlas` — 2 żądania |
 | 3b | Opóźnienie publikacji u pośrednika | **w toku od 2026-09-19 — procedura ustalona, zero odczytów** (`## Pomiar 3b`) | faza 1 | obserwacja **jednokanałowa**, 1 żądanie dziennie; brzmienie pierwotne (ta sama sprawa z dwóch kanałów) jest niewykonalne bez kanału `uzp` — powód i nowa definicja w `## Pomiar 3b` |
 | 4 | Kontrakt wyszukiwarki UZP | **wykonany strukturalnie** (`Move` → `Details` własnym odczytem; `GetResults` z dwóch cudzych kolektorów) | — | — |
-| 4b | Własny `POST /Home/GetResults` i pierwsza kaseta | niewykonany | odłożony (kanał `uzp` w rolach weryfikacji i dopływu, faza 2) | `sonda.py uzp-getresults` |
 | 5 | Warstwa tekstowa w próbce ~50 dokumentów | **wykonany 2026-09-19**: część lokalna na 341 dokumentach (0 żądań), część rocznikowa na 443 po Przebiegu 3 (119 żądań próbki; `## Pomiar 5, część rocznikowa`) | faza 2 (ADR-0006 Z-3, etapy I–II) | część rocznikowa: próbka stratyfikowana 2010–2026, ~119 żądań, zgoda w sesji; próbka staje się zalążkiem `tests/gold/` |
 | 6 | Granice przestrzeni identyfikatorów | z drugiej ręki (~33 366 w kwietniu 2026) | faza 1 | dwa odczyty `Details` + pomiar 16 |
-| 7 | Sprostowania: nowy rekord czy nadpisanie | niewykonany | polityka wersji kanału `uzp` (ADR-0005 Z-4) | `GetResults` dla sprawy ze znanym sprostowaniem |
 | 8 | Dokumenty wielosygnaturowe w wyszukiwarce | potwierdzone strukturalnie | ADR-0001 | jeden odczyt `Details` sprawy z listingu FTP |
-| 9 | Tolerancja serwisu na tempo | niewykonany; **wymaga zgody właściciela** | odłożony — zbędny dla Atlasu (limity publikowane i raportowane nagłówkami); tylko jeśli UZP dostanie rolę masową, czego decyzja B zabrania | ostrożne narastanie ze stopem |
 | 10 | Anonimizacja na większej próbce | **wykonany 2026-09-19, 0 żądań**, 443 dokumenty — skład i protokolant nieanonimizowani (`## Pomiar 10`) | faza 2 | 30–50 dokumentów, w tym z protokołem rozprawy |
 | 11 | Co indeksuje „Hasło", co dokłada „w treści" | wykonany strukturalnie (`SCnt`, `Fle`) | faza 3 | jedno zapytanie o frazę z uzasadnienia |
 | 12 | Zbiór KIO w `dane.gov.pl` | **zamknięty — negatywny** | zamknięty | — |
 | 13 | Jak często data wydania jest pusta | klasa, nie wyjątek | faza 1 | próbka 200 identyfikatorów |
 | 14 | Warunki ponownego wykorzystywania dla `orzeczenia.uzp.gov.pl` | **wykonany 2026-09-15 — warunków nie ma, informacji o ich braku też nie** (`## Pomiar 14`) | **decyzja B**: brak licencji jest powodem, dla którego UZP nie pełni roli masowej | — |
 | 15 | Warunki feedu dziennego Atlasu | **zamknięty 2026-09-17 — decyzja A, projekt nie prowadzi korespondencji** | zamknięty; pytanie o świeżość przejmuje 3b | mail zostaje gotowy w `docs/pisma/`, niewysłany |
-| 16 | Liczniki `#resultCounts` przy pustej frazie | niewykonany | odłożony (idzie razem z 4b) | — |
 | 17 | Postaci sygnatur w zbiorze | **częściowo wykonany 2026-09-18** na stu rekordach listy (`## Pomiar 17`); dopełnienie po pierwszym przebiegu | ADR-0001 (przyjęty 2026-09-18) — uzupełnienie, nie warunek (ADR-0005 Z-4) | z odpowiedzi pomiaru 3a; docelowo z `citations` |
-| 18 | Czy zmiana Pzp z 13.03.2026 zmieniła słownik przepisów | niewykonany | faza 2 | dwa wywołania słownika |
-| 19 | Czy `ContentHtml` jest bitowo stabilny między pobraniami | niewykonany; **wymaga doby odstępu** | polityka wersji kanału `uzp` (ADR-0005 Z-4) — **nie jest już warunkiem `store.py`** | `sonda.py uzp-stabilnosc`, dwa przebiegi ≥24 h |
-| 20 | Co zwracają `/AiSearch/*` | niewykonany | faza 4 | narzędzia deweloperskie przeglądarki |
 | 21 | Blokada sieci w testach wobec wstrzykniętego transportu i wobec gniazda | **wykonany 2026-09-15 w obu połowach — pozytywny** (`## Pomiar 21`) | zamknięty w części „blokada"; odtwarzanie kaset rozstrzyga test dymny adaptera Atlasu (ADR-0005 Z-10) | — |
 | 22 | Gęstość cytowań i udział nieznormalizowanych | **wykonany 2026-09-19, 0 żądań** — 1 695 cytowań, 4,6 % nierozpoznanych (`## Pomiar 22`, raport pokrycia) | faza 2 | `parser/cite.py` na próbce z pomiaru 5, zero żądań |
 | 23 | Warunki ponownego wykorzystywania SAOS i Atlasu, odczytane **u źródła** | **wykonany 2026-09-18 — Atlas: CC BY 4.0 z atrybucją u źródła; SAOS: brak odpowiedzi w 45 s** (`## Pomiar 23`) | **bramka** (`atlas`) — spełnione dla Atlasu; SAOS nieodczytany | `sonda.py licencje` — 3 żądania; SHA-256 każdej strony w `## Pomiar 23` |
-| 24 | Awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | niewykonany — wymaga pierwszego przebiegu kwartalnego po wdrożeniu ponowień | korekta progów bloku `ponowienia` w `contract.yaml` | `requests_log.proba` (schemat 5): ponowienia per klasa i ile skończyło się 200, zero żądań dodatkowych |
 
 ### Dlaczego pomiar 3 jest rozbity na 3a i 3b
 

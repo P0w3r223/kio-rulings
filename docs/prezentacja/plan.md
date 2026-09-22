@@ -89,7 +89,7 @@ tamta już powiedziała, dostaje wiersz, a nie slajd; miejsce należy się temu,
 | 10 | Przepisy: 16 834, a 31,1 % **nieustalonych** — narzędzie mówi, czego nie wie | tabela `provisions`, 2026-09-20 |
 | 11 | Sześć zabezpieczeń; o te dwa zapytacie pierwsi (dane zostają lokalnie; zero żądań poza kanałem) | reguły granic 10–14, `test_boundaries.py` |
 | 12 | Złoty zbiór: 17 dokumentów przejrzanych okiem **i potwierdzonych przez właściciela**; automat nie widzi wszystkiego | O-4, dwie usterki znalezione okiem, potwierdzenie 2026-09-20 |
-| 13 | Czego to nie zrobi. Lepiej wiedzieć teraz | O-1, O-2, O-5, O-7; brak oceny prawnej; asystenta nie będzie (decyzja, nie brak) |
+| 13 | Czego to nie zrobi. Lepiej wiedzieć teraz | brak oceny prawnej; roczniki 2007–2009; kompletność wobec urzędu niesprawdzalna; asystenta nie będzie (decyzja, nie brak) |
 | 14 | Jawność orzeczeń nie zwalnia z obowiązków wobec danych osobowych | pomiar 10, CC BY 4.0 Atlasu |
 | 15 | Stan przekazania: fazy 0–3 przyjęte, faza 4 za bramką warunkową | `decisions.md`, ADR-0008 §13 |
 | 16 | Siedem zdań do zapamiętania | — |
@@ -142,7 +142,7 @@ już pobranych.
 
 ## 4. Czego na slajdach twierdzić nie wolno
 
-- **Że korpus jest kompletny.** Mianownika nie mamy; dałby go pomiar 4b/16 (O-7). Wolno
+- **Że korpus jest kompletny.** Mianownika nie mamy. Wolno
   powiedzieć: „443 dokumenty pobrane i przeczytane w całości", nie „wszystkie orzeczenia".
 - **Że narzędzie ocenia prawnie.** Zakres to wspomaganie wyszukiwania i cytowania (audyt 4.3).
 - **Że 31,1 % nieustalonych przepisów to defekt parsera.** Część z nich to zapisy, które nie
