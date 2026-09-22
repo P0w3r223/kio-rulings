@@ -37,6 +37,7 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 
 | Polecenie | Po co | Sieć | `--json` |
 |---|---|---|---|
+| `opis` | polecenia, flagi z typem, wartości dozwolone, kody wyjścia — prosto z narzędzia | nie | tak |
 | `szukaj --fraza "…"` | fraza dosłownie w pełnym tekście, z filtrami | nie | tak |
 | `czytaj <sygnatura\|doc_id>` | jedno orzeczenie: metadane, cytowanie, mapa sekcji, treść (`--sekcja`, `--bez-tresci`) | nie | tak |
 | `eksportuj` | pliki `xlsx`, `csv`, `jsonl`, `md` (`--format`, `--out`) | nie | tak |
@@ -47,7 +48,9 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 | `wznow` | dokończenie przerwanego przebiegu (`--run-id`, `--zgoda`) | **tak** | tak |
 
 Wywołuj polecenia z flagami; `kio-tool` bez polecenia to kreator dla człowieka. `--baza`
-wskazuje inny plik bazy.
+wskazuje inny plik bazy, `--kanal` w `pobierz` wybiera kanał (dziś tylko `atlas`). Niepewny
+flagi albo wartości — `kio-tool opis --json`; ten opis powstaje z narzędzia, a test pilnuje,
+że ten plik się z nim zgadza.
 
 **Filtry** (te same w `szukaj`, `eksportuj`, `pobierz`): `--od`/`--do` (RRRR-MM-DD,
 włącznie), `--rozstrzygniecie` (oddalono, uwzglednione, umorzono, odrzucono, inne; można

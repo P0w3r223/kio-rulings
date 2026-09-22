@@ -4,10 +4,15 @@ Wydzielone, gdy `texts.py` doszedł do 763 linii przy suficie 800, a polecenia `
 i flaga `--wycena` dokładały zdań. Szew jest prawdziwy: pomoc to zdania o **narzędziu**, pisane
 raz dla `--help` i dla `opis --json`, a reszta `texts` to zdania o **wyniku**. Moduł czysty jak
 `texts` (reguła 6); `texts` re-eksportuje wszystkie nazwy, więc `help=texts.POMOC_…` w `cli.py`
-(reguła 9) działa bez zmian.
+(reguła 9) działa bez zmian. Tu też bloki `opis --json` — opis narzędzia z drzewa poleceń,
+przeniesiony, gdy `texts.py` przekroczył sufit (816 linii, 2026-09-22).
 """
 
 from __future__ import annotations
+
+from collections.abc import Sequence
+
+from .modele import Block
 
 POMOC_PROGRAMU = "kio-tool — lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej."
 POMOC_POBIERZ = (
@@ -98,10 +103,59 @@ POMOC_WYCENA = (
     "tylko koszt: jedna strona listy, zero żądań o dokument; przebieg zostaje przerwany do "
     "dokończenia tym samym poleceniem z --zgoda"
 )
+POMOC_OPIS = (
+    "Opis narzędzia dla programu: polecenia (sieć, --json), flagi z typem i wartością domyślną, "
+    "wartości dozwolone i kody wyjścia — z drzewa poleceń, więc zawsze zgodny z narzędziem."
+)
+KODY_WYJSCIA: tuple[tuple[int, str], ...] = (
+    (0, "wykonane"),
+    (1, "błąd zwykły — przeczytaj stderr"),
+    (2, "przebieg do wznowienia (użyj `wznow`) albo błąd składni polecenia"),
+    (3, "konfiguracja, brak zgody, zła ścieżka lub parametr — nie ponawiaj, zapytaj operatora"),
+    (130, "przerwane przez Ctrl+C"),
+)
+"""Jedyna lista kodów wyjścia ze znaczeniem — źródło `opis --json`; strażnik porównuje ją
+z `exit_code` klas w `errors.py` i z tabelą w `docs/dla-modelu.md`."""
 POMOC_JSON = (
     "wynik jako JSON Lines na standardowe wyjście, jeden dokument na wiersz — dla programu, "
     "nie dla oka; tabela dla człowieka bez terminala łamie wartości na 80 znakach"
 )
+
+
+NAGLOWKI_POLECEN = ("polecenie", "sieć", "json", "dla człowieka", "opis")
+NAGLOWKI_FLAG = ("polecenie", "flaga", "typ", "powtarzalna", "domyślna", "opis")
+NAGLOWKI_WARTOSCI = ("flaga", "wartości")
+NAGLOWKI_KODOW = ("kod", "znaczenie")
+
+
+def bloki_opisu(
+    *,
+    polecenia: Sequence[tuple[str, ...]],
+    flagi: Sequence[tuple[str, ...]],
+    wartosci: Sequence[tuple[str, ...]],
+    prog_zgody: int,
+) -> tuple[Block, ...]:
+    """`opis --json`: cztery tabele — polecenia, flagi, wartości dozwolone, kody wyjścia."""
+    return (
+        Block(
+            title="Polecenia",
+            headers=NAGLOWKI_POLECEN,
+            rows=tuple(polecenia),
+            liczby=(("polecen", len(polecenia)), ("prog_zgody", prog_zgody)),
+            notes=(
+                f"Polecenia z siecią wymagają zgody operatora powyżej {prog_zgody} żądań; "
+                "koszt podaje `pobierz … --wycena`.",
+            ),
+        ),
+        Block(title="Flagi", headers=NAGLOWKI_FLAG, rows=tuple(flagi)),
+        Block(title="Wartości dozwolone", headers=NAGLOWKI_WARTOSCI, rows=tuple(wartosci)),
+        Block(
+            title="Kody wyjścia",
+            headers=NAGLOWKI_KODOW,
+            rows=tuple((str(kod), znaczenie) for kod, znaczenie in KODY_WYJSCIA),
+        ),
+    )
+
 
 __all__ = [
     "POMOC_PROGRAMU",
@@ -142,5 +196,12 @@ __all__ = [
     "POMOC_SEKCJA",
     "POMOC_BEZ_TRESCI",
     "POMOC_WYCENA",
+    "POMOC_OPIS",
+    "KODY_WYJSCIA",
+    "NAGLOWKI_POLECEN",
+    "NAGLOWKI_FLAG",
+    "NAGLOWKI_WARTOSCI",
+    "NAGLOWKI_KODOW",
+    "bloki_opisu",
     "POMOC_JSON",
 ]

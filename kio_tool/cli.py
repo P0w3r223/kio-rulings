@@ -20,9 +20,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import typer.main
 from pydantic import ValidationError
+from typer.core import TyperGroup
 
 from . import obsluga, pipeline
+from . import opis as opis_narzedzia
 from . import pokrycie as raport_pokrycia
 from .clock import SystemClock, utc_iso
 from .config import (
@@ -33,7 +36,12 @@ from .config import (
     user_agent,
 )
 from .console import PulsKonsoli, puls_dla
-from .criteria import Criteria, bledy_po_polsku
+from .criteria import (
+    RODZAJE_ZMIERZONE,
+    ROZSTRZYGNIECIA_ZMIERZONE,
+    Criteria,
+    bledy_po_polsku,
+)
 from .demo import Pokaz, zbuduj_pokaz
 from .errors import KOD_WYJSCIA_PRZERWANIE, ConfigError, ConsentMissingError, KioError
 from .exporter import FORMATY
@@ -604,6 +612,43 @@ def czytaj(
         sciezka = baza or default_db_path()
         with _otworz_baze(sciezka, SystemClock(), wy) as store:
             obsluga.czytaj_orzeczenie(wy, store, klucz, sekcje=sekcje, z_trescia=not bez_tresci)
+
+
+POLECENIA_SIECIOWE = frozenset({"pobierz", "wznow"})
+"""Polecenia, które wysyłają żądania do cudzego serwisu — dla `opis`; `test_zgodnosc_instrukcji`
+sprawdza, że to dokładnie te, które wołają `user_agent()`."""
+POLECENIA_DLA_CZLOWIEKA = frozenset({"kreator", "demo"})
+
+
+@app.command(help=texts.POMOC_OPIS)
+def opis(maszynowo: OpcjaJson = False) -> None:
+    wy = _widok(maszynowo)
+    with _obsluga_bledow(wy):
+        grupa = typer.main.get_command(app)
+        assert isinstance(grupa, TyperGroup)  # `app` ma polecenia, więc typer daje grupę
+        bloki = texts.bloki_opisu(
+            polecenia=opis_narzedzia.wiersze_polecen(
+                opis_narzedzia.polecenia(
+                    grupa, sieciowe=POLECENIA_SIECIOWE, dla_czlowieka=POLECENIA_DLA_CZLOWIEKA
+                )
+            ),
+            flagi=opis_narzedzia.wiersze_flag(opis_narzedzia.flagi(grupa)),
+            wartosci=opis_narzedzia.wiersze_wartosci(_wartosci_dozwolone()),
+            prog_zgody=pipeline.PROG_ZGODY,
+        )
+        for blok in bloki:
+            wy.block(blok)
+
+
+def _wartosci_dozwolone() -> dict[str, tuple[str, ...]]:
+    return {
+        "--rozstrzygniecie": ROZSTRZYGNIECIA_ZMIERZONE,
+        "--rodzaj": RODZAJE_ZMIERZONE,
+        "--sekcja": tuple(dict.fromkeys((*RODZAJE_SEKCJI, pipeline.ODCINEK_BEZ_SEKCJI))),
+        "--status": STATUSY_PRZEBIEGU,
+        "--format": FORMATY,
+        "--kanal": tuple(pipeline.kanaly()),
+    }
 
 
 def _sekcje(podane: Sequence[str] | None) -> tuple[str, ...]:

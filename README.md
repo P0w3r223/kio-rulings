@@ -60,6 +60,7 @@ kio-tool pokrycie --zloty tests/gold
 | `czytaj` | jedno orzeczenie po sygnaturze albo `doc_id`: metadane, cytowanie, mapa sekcji, treść całości albo wybranych sekcji | nie |
 | `eksportuj` | dokumenty przebiegu (`--run-id`) albo pasujące do kryteriów | nie |
 | `runy` | historia przebiegów | nie |
+| `opis` | polecenia, flagi, wartości dozwolone i kody wyjścia — z drzewa poleceń, dla programu | nie |
 | `przelicz` | ponowny odczyt z zapisanych bajtów, bez pobierania | nie |
 | `pokrycie` | raport jakości odczytu; `--zloty` sprawdza złoty zbiór | nie |
 
