@@ -9,7 +9,8 @@ więc podstawienie przechodzi bez skutku i bez słowa. Ten plik pilnuje trzech r
    „`__init__.py` zachowuje API" w postaci mechanicznej);
 2. szwy podstawiane w testach (`build_http_client`, `default_output_dir`) **nie** są atrybutami
    fasady — to przypina mechanizm, który czyni stare podstawienie głośnym (`AttributeError`);
-3. żaden test nie podstawia na fasadzie atrybutu, który nie jest podmodułem.
+3. żaden test nie podstawia nazwy w jednym module pakietu, gdy ten sam obiekt trzyma też inny —
+   moduł definicji nie zawsze jest modułem, który czyta (`SCHEMA_VERSION`: `schemat` → `magazyn`).
 
 Osobny plik, nie `test_boundaries.py`: tamten obiecuje nie importować modułów produkcyjnych.
 """
@@ -17,7 +18,10 @@ Osobny plik, nie `test_boundaries.py`: tamten obiecuje nie importować modułów
 from __future__ import annotations
 
 import ast
+import importlib
+import pkgutil
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -106,71 +110,105 @@ def test_powierzchnia_fasady_jest_dawna_powierzchnia_modulu(
 def test_szew_podstawiany_w_testach_nie_mieszka_w_fasadzie(szew: str) -> None:
     """Fasada z tą nazwą zamieniłaby podstawienie w testach w podstawienie bez skutku."""
     for nazwa, fasada in FASADY.items():
-        assert not hasattr(fasada, szew), f"{nazwa}.{szew} — szew musi mieszkać w module definicji"
+        assert not hasattr(fasada, szew), f"{nazwa}.{szew} — szew nie ma prawa mieszkać w fasadzie"
 
 
-def _nazwy_fasad(drzewo: ast.Module) -> dict[str, str]:
-    """Nazwy w pliku związane z fasadą przez import: `from kio_tool import pipeline` itd."""
+def _moduly_pakietu(pakiet: str) -> dict[str, ModuleType]:
+    korzen = FASADY[pakiet]
+    moduly: dict[str, ModuleType] = {pakiet: korzen}
+    for info in pkgutil.walk_packages(korzen.__path__, prefix=f"{pakiet}."):
+        moduly[info.name] = importlib.import_module(info.name)
+    return moduly
+
+
+MODULY = {nazwa: modul for pakiet in FASADY for nazwa, modul in _moduly_pakietu(pakiet).items()}
+"""Fasady i wszystkie ich podmoduły — tylko w nich podstawienie może trafić obok czytelnika."""
+
+
+def trzymajacy(modul: str, atrybut: str) -> list[str]:
+    """Moduły tego samego pakietu, które trzymają **ten sam obiekt** pod tą nazwą.
+
+    Podstawienie w jednym z nich zostawia pozostałe przy starym obiekcie — a czytać może właśnie
+    któryś z pozostałych. Tożsamość, nie składnia: tak samo rozpoznaje miejsca piaskownica
+    domyślnych ścieżek (`wsparcie_sondy.przekieruj_domyslne_sciezki`).
+    """
+    obiekt = getattr(MODULY[modul], atrybut)
+    pakiet = next(f for f in FASADY if modul == f or modul.startswith(f"{f}."))
+    return sorted(
+        nazwa
+        for nazwa, m in MODULY.items()
+        if (nazwa == pakiet or nazwa.startswith(f"{pakiet}."))
+        and getattr(m, atrybut, None) is obiekt
+    )
+
+
+def _zwiazane(drzewo: ast.Module) -> dict[str, str]:
+    """Nazwy w pliku związane importem z modułem fasady albo jej podmodułem."""
     zwiazane: dict[str, str] = {}
     for wezel in ast.walk(drzewo):
-        if isinstance(wezel, ast.ImportFrom) and wezel.module == "kio_tool" and wezel.level == 0:
+        if isinstance(wezel, ast.ImportFrom) and wezel.level == 0 and wezel.module:
             for alias in wezel.names:
-                pelna = f"kio_tool.{alias.name}"
-                if pelna in FASADY:
+                pelna = f"{wezel.module}.{alias.name}"
+                if pelna in MODULY:
                     zwiazane[alias.asname or alias.name] = pelna
         elif isinstance(wezel, ast.Import):
             for alias in wezel.names:
-                if alias.name in FASADY and alias.asname:
+                if alias.name in MODULY and alias.asname:
                     zwiazane[alias.asname] = alias.name
     return zwiazane
 
 
-def _podmoduly(pelna: str) -> frozenset[str]:
-    katalog = Path(FASADY[pelna].__file__ or "").parent
-    return frozenset(p.stem for p in katalog.glob("*.py") if p.stem != "__init__")
+def _cel(wezel: ast.Call, zwiazane: dict[str, str]) -> tuple[str, str] | None:
+    """(moduł, atrybut) podstawienia albo `None`, gdy cel nie jest modułem fasady."""
+    pierwszy = wezel.args[0]
+    drugi = wezel.args[1] if len(wezel.args) > 1 else None
+    atrybut = (
+        drugi.value if isinstance(drugi, ast.Constant) and isinstance(drugi.value, str) else None
+    )
+    if isinstance(pierwszy, ast.Name) and pierwszy.id in zwiazane and atrybut:
+        return zwiazane[pierwszy.id], atrybut
+    if isinstance(pierwszy, ast.Attribute) and ast.unparse(pierwszy) in MODULY and atrybut:
+        return ast.unparse(pierwszy), atrybut
+    if isinstance(pierwszy, ast.Constant) and isinstance(pierwszy.value, str):
+        modul, _, reszta = pierwszy.value.rpartition(".")
+        if modul in MODULY:
+            return modul, reszta
+    return None
 
 
-def podstawienia_na_fasadzie(zrodlo: str) -> list[str]:
-    """`monkeypatch.setattr(<fasada>, "<atrybut>", …)` i cel napisowy `"kio_tool.<fasada>.<atr>"`
-    w `setattr`/`patch`, gdzie atrybut nie jest podmodułem — każde to podstawienie bez skutku."""
+def podstawienia_bez_skutku(zrodlo: str) -> list[str]:
+    """`setattr`/`patch` na module fasady lub podmodule, gdy ten sam obiekt trzyma też inny moduł
+    pakietu — podstawienie trafia w jedno miejsce, a czytać może drugie. Atrybut nieistniejący
+    pomijamy: `monkeypatch.setattr` i `mock.patch` rzucają wtedy głośno."""
     drzewo = ast.parse(zrodlo)
-    zwiazane = _nazwy_fasad(drzewo)
+    zwiazane = _zwiazane(drzewo)
     naruszenia: list[str] = []
     for wezel in ast.walk(drzewo):
         if not (isinstance(wezel, ast.Call) and isinstance(wezel.func, ast.Attribute)):
             continue
         if wezel.func.attr not in {"setattr", "patch", "object"} or not wezel.args:
             continue
-        pierwszy = wezel.args[0]
-        if (
-            isinstance(pierwszy, ast.Name)
-            and pierwszy.id in zwiazane
-            and len(wezel.args) > 1
-            and isinstance(wezel.args[1], ast.Constant)
-            and isinstance(wezel.args[1].value, str)
-        ):
-            pelna = zwiazane[pierwszy.id]
-            if wezel.args[1].value not in _podmoduly(pelna):
-                naruszenia.append(f"{pelna}.{wezel.args[1].value} (linia {wezel.lineno})")
-        elif isinstance(pierwszy, ast.Constant) and isinstance(pierwszy.value, str):
-            for pelna in FASADY:
-                reszta = pierwszy.value.removeprefix(f"{pelna}.")
-                if reszta != pierwszy.value and reszta.split(".")[0] not in _podmoduly(pelna):
-                    naruszenia.append(f"{pierwszy.value} (linia {wezel.lineno})")
+        cel = _cel(wezel, zwiazane)
+        if cel is None or not hasattr(MODULY[cel[0]], cel[1]):
+            continue
+        if isinstance(getattr(MODULY[cel[0]], cel[1]), ModuleType):
+            continue
+        if len(miejsca := trzymajacy(*cel)) > 1:
+            naruszenia.append(f"{cel[0]}.{cel[1]} (linia {wezel.lineno}; trzymają: {miejsca})")
     return naruszenia
 
 
-def test_zaden_test_nie_podstawia_na_fasadzie() -> None:
+def test_zaden_test_nie_podstawia_w_jednym_z_wielu_miejsc() -> None:
     znalezione = {
         plik.name: naruszenia
         for plik in sorted(TESTY.rglob("*.py"))
         if plik.name != Path(__file__).name
-        and (naruszenia := podstawienia_na_fasadzie(plik.read_text(encoding="utf-8")))
+        and (naruszenia := podstawienia_bez_skutku(plik.read_text(encoding="utf-8")))
     }
 
     assert znalezione == {}, (
-        f"podstawienia bez skutku na fasadzie: {znalezione} — podstaw w module definicji "
-        "(np. `kio_tool.pipeline.zgoda`) albo przez pomocnika z `wsparcie_sondy`"
+        f"podstawienia, które mogą nie trafić w czytelnika: {znalezione} — podstaw we wszystkich "
+        "miejscach naraz przez `wsparcie_sondy.podstaw_w_pakiecie`"
     )
 
 
@@ -178,25 +216,31 @@ def test_zaden_test_nie_podstawia_na_fasadzie() -> None:
     ("zrodlo", "oczekiwane"),
     [
         ('from kio_tool import pipeline\nm.setattr(pipeline, "PROG_ZGODY", 3)\n', 1),
-        ('from kio_tool import pipeline as p\nm.setattr(p, "build_http_client", f)\n', 1),
-        ('from kio_tool import store\nm.setattr(store, "TABELE", ())\n', 1),
+        ('from kio_tool import store as s\nm.setattr(s, "TABELE", ())\n', 1),
+        ('import kio_tool.pipeline\nm.setattr(kio_tool.pipeline, "PROG_ZGODY", 3)\n', 1),
         ('m.setattr("kio_tool.pipeline.PROG_ZGODY", 3)\n', 1),
         ('mock.patch("kio_tool.store.SCHEMA_VERSION", 9)\n', 1),
+        ('m.setattr("kio_tool.store.schemat.SCHEMA_VERSION", 99)\n', 1),
+        ('m.setattr("kio_tool.pipeline.zgoda.PROG_ZGODY", 3)\n', 1),
         ('from kio_tool import pipeline\nm.setattr(pipeline, "zgoda", z)\n', 0),
-        ('m.setattr("kio_tool.pipeline.zgoda.PROG_ZGODY", 3)\n', 0),
+        ('from kio_tool.pipeline import lokalne\nm.setattr(lokalne, "default_output_dir", f)\n', 0),
+        ('from kio_tool import pipeline\nm.setattr(pipeline, "build_http_client", f)\n', 0),
         ('m.setattr(store, "add_raw_version", f)\n', 0),
     ],
     ids=[
         "stala-na-fasadzie",
         "alias-fasady",
-        "store",
+        "import-bez-aliasu",
         "cel-napisowy",
         "mock-patch",
-        "podmodul",
-        "cel-w-podmodule",
+        "definicja-nie-czytelnik",
+        "podmodul-i-fasada",
+        "podmodul-jako-atrybut",
+        "jedyne-miejsce",
+        "brak-atrybutu-glosno",
         "instancja-nie-modul",
     ],
 )
 def test_samosprawdzenie_skanu_podstawien(zrodlo: str, oczekiwane: int) -> None:
     """Skan, który niczego nie znajduje, wygląda tak samo jak skan, który nie działa."""
-    assert len(podstawienia_na_fasadzie(zrodlo)) == oczekiwane
+    assert len(podstawienia_bez_skutku(zrodlo)) == oczekiwane

@@ -479,12 +479,30 @@ def test_regula_5_punkt_kontrolny_tylko_w_transakcji_strony() -> None:
             path.relative_to(ROOT).as_posix(), path.read_text(encoding="utf-8")
         )
     ]
-    wlasciciel = (ROOT / PLIK_SIEC_Z_BAZA).read_text(encoding="utf-8")
+    # Właściciel liczony przez AST, nie napisem: `.checkpoint(` zostawione w docstringu albo
+    # komentarzu po usunięciu wywołania dawało zielono przy pustym skanie (przegląd 2026-09-22).
+    wywolan = sum(
+        isinstance(w, ast.Call)
+        and isinstance(w.func, ast.Attribute)
+        and w.func.attr == "checkpoint"
+        for w in ast.walk(drzewo(ROOT / PLIK_SIEC_Z_BAZA))
+    )
 
     assert naruszenia == [], "\n".join(naruszenia)
-    assert ".checkpoint(" in wlasciciel, (
+    assert wywolan >= 1, (
         f"{PLIK_SIEC_Z_BAZA} nie woła już punktu kontrolnego — skan nie ma żywego właściciela"
     )
+
+
+def test_operacje_lokalne_nie_siegaja_po_siec() -> None:
+    """ADR-0009 Z-2: zdanie „fabryka klienta jest wołana wyłącznie w `pobierz`" jest granicą
+    modułu `pipeline/lokalne.py`. Reguła 5 blokuje tam `source` (bo moduł zna `store`), ale
+    `httpclient` pilnowało dotąd wyłącznie zachowanie — podstawienie fabryki po nazwie, które
+    postać `from .. import httpclient` omijała. Import jest tu zakazany wprost."""
+    lokalne = ROOT / "kio_tool/pipeline/lokalne.py"
+
+    assert lokalne.is_file(), "moduł operacji lokalnych zniknął — test nie ma czego czytać"
+    assert package_targets(lokalne) & {"source", "httpclient"} == set()
 
 
 _ZAPISY_STRONY = "    s.upsert_document(d)\n    s.add_raw_version(v)\n    s.link_run_document(r)\n"

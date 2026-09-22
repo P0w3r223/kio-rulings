@@ -2,8 +2,8 @@
 
 Do 2026-09-22 jeden plik `store.py` (1 466 linii, ponad sufitem projektu — O-5). Fasada wystawia
 dokładnie dawną publiczną powierzchnię, więc `from .store import Store, Filtr` działa bez zmian;
-`tests/test_fasady.py` przypina `__all__`. Szwy podstawiane w testach mieszkają w modułach
-definicji, nigdy tutaj (ADR-0009 Z-3).
+`tests/test_fasady.py` przypina `__all__`. Nazwę trzymaną przez kilka modułów pakietu testy
+podstawiają we wszystkich naraz (`wsparcie_sondy.podstaw_w_pakiecie`, ADR-0009 Z-3).
 
 Podział: `schemat` (DDL i historia schematów), `model` (klasy danych), `polaczenie` (szew ze
 sterownikiem i rdzeń `Store`), `zapis`, `wyszukiwanie`, `przebiegi` (klasy cząstkowe), `magazyn`

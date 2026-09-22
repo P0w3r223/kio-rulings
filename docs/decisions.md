@@ -1000,7 +1000,7 @@ tutaj, bo pozycja odłożona bez zapisu jest nie do odróżnienia od przeoczonej
 | O-2 | Pomiar 24: awaryjność kanału i skuteczność ponowień (ADR-0007 Z-8) | Wymaga pierwszego przebiegu kwartalnego **po** wdrożeniu ponowień; danych jeszcze nie ma | Pierwszy duży przebieg na `requests_log.proba`, zero żądań dodatkowych |
 | O-3 | Postaci sygnatur nierozpoznane w pomiarze 22 | **zamknięte pomiarem 25 (2026-09-20)**: 78 → 23 nierozpoznanych (4,6 % → 1,3 %), siedem rodzin wdrożonych wraz z rodziną A jako `kio_bez_repertorium` | — (zostają trzy rodziny z powodem: TSUE bez myślnika, Trybunał bez wydziału, sklejka po ekstrakcji z PDF-a) |
 | O-4 | Złoty zbiór nie niesie cytowań ani przepisów (ADR-0006 §10.1) | **zamknięte w całości 2026-09-20**: przegląd okiem 91 cytowań i 226 postaci przepisów, dwie usterki parsera znalezione i naprawione, **przegląd potwierdzony przez właściciela** tego samego dnia | — |
-| O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | **zamknięte 2026-09-22 (ADR-0009)**: oba pliki są pakietami, największy moduł ma 497 linii, `PONAD_SUFITEM` pusty; decyzja właściciela zmieniła decyzję 3 niżej | — (sekcja „O-5 zamknięte — `store` i `pipeline` jako pakiety”) |
+| O-5 | `store.py` (1 466 linii) i `pipeline.py` (971) ponad sufitem 800 | **zamknięte 2026-09-22 (ADR-0009)**: oba pliki są pakietami, największy moduł po rozbiciu ma 497 linii, `PONAD_SUFITEM` pusty; decyzja właściciela zmieniła decyzję 3 niżej | — (sekcja „O-5 zamknięte — `store` i `pipeline` jako pakiety”) |
 | O-6 | Asystent językowy (wzorzec `ceidg-tool/assistant`) | **zamknięte odmownie 2026-09-20**: właściciel zrezygnował — pozycja schodzi z listy jako „nie", nie jako „później" (sekcja „Asystent językowy — rezygnacja, nie odłożenie") | — (wraca wyłącznie z nowym ADR-em; bramka AI Act przed fazą 4 stoi niezależnie, bo serwer MCP też oddaje tekst modelowi) |
 | O-7 | Pomiary odłożone do innych kanałów i faz: 2a, 2b, 4b, 7, 9, 16, 18, 19, 20 | Dotyczą kanałów `uzp`/`saos` albo fazy 4, których drzewo nie ma; **co każdy z nich dałby projektowi — sekcja „Co dałyby pomiary kanałów `uzp` i `saos`" (2026-09-20)** | Decyzja o drugim kanale albo wejście w fazę 4 |
 
@@ -1228,7 +1228,7 @@ nie był zielony). Gałąź `refactor/o5-pakiety`, commity lokalne.
 | `store/polaczenie.py` | 132 | | |
 
 Zmierzone po ruchu, 2026-09-22. Kod przeniesiony dosłownie; mypy strict, ruff i cała suita
-zielone po każdym kroku (1 373 → 1 393 testy; przybyło 20 strażników, żaden nie zniknął).
+zielone po każdym kroku (1 373 → 1 397 testów; przybyły 24 strażniki, żaden nie zniknął).
 
 **Co pokazało samo rozbicie.** Po przeniesieniu kodu bez dotykania testów czerwone były dwa
 testy (sufit i numer ADR), a **reguły 3 i 4 przeszły na zielono, skanując pusty zbiór** — to jest
@@ -1248,7 +1248,7 @@ sprawdzona mutacją:
 Nowe na stałe: reguły 3 i 4 skanują `store/**/*.py`, reguła 5 trzyma równość z
 `pipeline/pobieranie.py`, `WLASCICIELE_OBOWIAZKOWE` (lista obowiązków, nie wyjątków), skan
 punktu kontrolnego w transakcji strony, `tests/test_fasady.py`, pomocnik
-`podstaw_fabryke_klienta`. Na żadnej liście wyjątków nie przybył wpis.
+`podstaw_fabryke_klienta` na `podstaw_w_pakiecie`. Przegląd kodu po wykonaniu (2026-09-22) potwierdził zero zmiany zachowania porównaniem AST każdej przeniesionej funkcji i 340 wiązań nazw; skan fasad przeszedł po nim z listy składniowej na tożsamość obiektu, bo moduł definicji nie zawsze czyta nazwę. Na żadnej liście wyjątków nie przybył wpis.
 
 ---
 

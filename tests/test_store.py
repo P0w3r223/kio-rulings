@@ -1,6 +1,7 @@
-"""Strażnik magazynu — `kio_tool/store.py`, czyli bramka fazy 1 po stronie zapisu.
+"""Strażnik magazynu — pakiet `kio_tool/store/` (do 2026-09-22 `store.py`, ADR-0009), czyli
+bramka fazy 1 po stronie zapisu.
 
-Trzy własności, każda z powodem w nagłówku `store.py`:
+Trzy własności, każda z powodem w nagłówku `store/magazyn.py` (dawniej `store.py`):
 
 1. **Ta sama treść drugi raz to jeden wiersz** — `INSERT OR IGNORE` na `(doc_id, content_sha256)`
    jest całą treścią bramki „przerwany i wznowiony bez duplikatów" (ADR-0001 2.3).

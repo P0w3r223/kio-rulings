@@ -14,8 +14,9 @@ przy okazji.
 ma nagłówki sekcji i dodatek odesłań z treści; budowa `Wpis` mieszka w `wpisy.py`. Korpus tej
 maszyny odtworzony do 443 (Przebieg 4, 119 żądań). **O-5 zamknięte (ADR-0009):** `store/`
 i `pipeline/` są pakietami z fasadą — importuj jak dawniej (`from .store import Store`), ale
-**podstawiaj w testach w module definicji**, nigdy na fasadzie (`tests/test_fasady.py` to
-zapali); fabrykę klienta podstawia `wsparcie_sondy.podstaw_fabryke_klienta`. Sieć z bazą łączy
+**w testach podstawiaj we wszystkich modułach pakietu naraz** (`wsparcie_sondy.podstaw_w_pakiecie`;
+fabrykę klienta — `podstaw_fabryke_klienta`), bo moduł definicji nie zawsze czyta nazwę;
+podstawienie w jednym z wielu miejsc zapala `tests/test_fasady.py`. Sieć z bazą łączy
 wyłącznie `pipeline/pobieranie.py`. Adres `KIO_TOOL_CONTACT` ustawiony tu jako
 zmienna użytkownika na prośbę właściciela.
 

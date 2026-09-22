@@ -117,8 +117,11 @@ wywołanie leksykalnie w bloku `with <x>.transakcja():`, który woła też `upse
 
 1. `__all__` obu fasad równe inwentarzowi i każda nazwa się rozwiązuje.
 2. `build_http_client` i `default_output_dir` **nie** są atrybutami fasady.
-3. Skan testów: `monkeypatch.setattr(<fasada>, "<atrybut niebędący podmodułem>", …)` jest
-   naruszeniem — po rozbiciu byłoby podstawieniem bez skutku.
+3. Skan testów: `setattr`/`patch` na fasadzie albo podmodule jest naruszeniem, gdy **ten sam
+   obiekt** trzyma pod tą nazwą więcej niż jeden moduł pakietu — podstawienie trafia w jedno
+   miejsce, a czytać może drugie. Tożsamość, nie składnia (poprawka po przeglądzie kodu
+   2026-09-22: pierwsza wersja przepuszczała `store.schemat.SCHEMA_VERSION`, czytane
+   w `magazyn`, i postać `import kio_tool.pipeline`).
 
 ## 5. Plan
 
@@ -129,8 +132,11 @@ Każda przepięta reguła sprawdzona mutacją.
 
 ## 6. Konsekwencje
 
-- Dwa pakiety, dwanaście modułów, `PONAD_SUFITEM` pusty.
-- Powierzchnia fasad przypięta testem; szew podstawiany w testach mieszka w module definicji.
+- Dwa pakiety, trzynaście plików (jedenaście modułów i dwie fasady), `PONAD_SUFITEM` pusty.
+- Powierzchnia fasad przypięta testem; szew podstawiany w testach nie mieszka w fasadzie,
+  a nazwę trzymaną przez kilka modułów pakietu podstawia się we wszystkich naraz
+  (`wsparcie_sondy.podstaw_w_pakiecie`) — moduł definicji nie zawsze jest modułem, który czyta
+  (`SCHEMA_VERSION`: definicja w `schemat`, odczyt w `magazyn`; przegląd kodu 2026-09-22).
 - `odczyt.py` zostaje bajt w bajt (odcisk `PARSE_VERSION`).
 - Slajd „Granice": „Dwa pliki przekraczały własną normę projektu; rozbite 22.09 bez zmiany
   zachowania, reguły granic przepięte tak, że nie osłabły" (brzmienie zaakceptowane przez
