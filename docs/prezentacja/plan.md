@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
-Data: 2026-09-20
-Status: **wykonany** — `prezentacja-kio-ekran.html`, 17 slajdów; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), a potem rozszerzona o czym jest KIO, rozkład roczników i wniosek o gotowości pod agenta
+Data: 2026-09-20, uzupełniony 2026-09-23
+Status: **oddany** — `prezentacja-kio-ekran.html`, **16 slajdów**, korpus 1 499; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), zredagowana i przeliczona 2026-09-23 (sekcja 3a)
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -33,7 +33,8 @@ składania slajdów, kiedy brakuje jednej liczby i kusi, żeby ją oszacować. T
 Druga zasada, tym razem tylko dla tego projektu i ważniejsza od pierwszej: **na slajdzie nie ma
 ani jednego zdania orzeczenia i ani jednego nazwiska**. Pomiar 10 (2026-09-19, 443 dokumenty)
 ustalił, że skład orzekający i protokolant **nie są anonimizowani** u pośrednika — 404 dokumenty
-z imieniem i nazwiskiem przewodniczącego, 286 z protokolantem. Zrzuty ekranu robimy więc
+z imieniem i nazwiskiem przewodniczącego, 286 z protokolantem. Po Przebiegu 5 jest to
+**1 410 z 1 499** (odczyt z bazy 2026-09-23) i taka liczba stoi na slajdzie „Granice". Zrzuty ekranu robimy więc
 **wyłącznie z trybu pokazowego** (`kio-tool demo`), który generuje korpus syntetyczny w pamięci
 procesu; korpus operatora nie pojawia się na ekranie rzutnika w żadnej postaci.
 
@@ -110,7 +111,8 @@ w tym miejscu i czego spodziewać się z sali. Otwiera je klawisz `N`; na rzutni
 
 ## 3. Materiał liczbowy — wszystko z bazy operatora, zero żądań
 
-Stan na 2026-09-20, wersja odczytu 6.
+**Zapis historyczny: korpus 443, stan na 2026-09-20**, wersja odczytu 6. Liczby, które weszły
+na oddane slajdy, stoją w sekcji 3a.
 
 | Liczba | Wartość | Skąd |
 |---|---|---|
@@ -140,6 +142,35 @@ już pobranych.
 
 ---
 
+## 3a. Materiał liczbowy wersji oddanej (2026-09-23, korpus 1 499)
+
+Przebieg 5 (2026-09-23, 1 122 żądania, próbka warstwowa po kwartałach) podniósł korpus z 443 na
+1 499 i wszystkie liczby na slajdach zostały przeliczone. Pełna migawka bazy z tego dnia leży
+w `docs/anatomia-bazy.md`; raport pokrycia w `docs/raporty/pokrycie_2026-09-23.md`.
+
+| Liczba | Wartość | Skąd |
+|---|---|---|
+| Dokumentów w korpusie | 1 499 | `documents`, raport pokrycia 2026-09-23 |
+| Zbiór pośrednika | 29 606 | pomiar 28, 2026-09-23, 5 żądań |
+| Roczniki | 2010–2026, **każdy obecny** (od 16 w 2010 do 294 w 2023) | `metadata` |
+| Komplet czterech części | 1 492 z 1 499 (**99,5 %**) | raport pokrycia; siedmiu brakuje jednej części |
+| Znaki nieprzypisane do części | 0 z 51,7 mln | raport pokrycia, wszystkie roczniki |
+| Części orzeczeń | 5 989 | `sections` |
+| Cytowań | 7 078, rozpoznanych **98,5 %** (104 bez postaci kanonicznej) | `citations` |
+| Przepisów | 64 760 (53 646 z treści, 11 114 z kanału); **nieustalone 26,4 %** w tym, co z treści | `provisions` |
+| Rozstrzygnięcia w korpusie | umorzono 498 · oddalono 484 · uwzględnione 407 · inne 73 · odrzucono 37 | `metadata` |
+| Rozstrzygnięcia w całym zbiorze | umorzono 38,9 % wobec oddalono 30,9 % — **osiem punktów przewagi** | pomiar 28 |
+| Nazwisko przewodniczącego w treści | 1 410 z 1 499 | `metadata` |
+| Żądań w dzienniku bazy | 1 616 w 111 przebiegach, **wszystkie 200, zero ponowień** | `requests_log` |
+| Testów | 1 441, wszystkie zielone | `pytest`, 2026-09-23 |
+
+Dwie liczby, które na slajdach zmieniły wymowę: **komplet części spadł ze 100 % na 99,5 %** (na
+443 dokumentach przypadek trzech rodzajów części nie wystąpił ani razu) i **przewaga umorzeń nad
+oddaleniami** stopniała w korpusie do 14 dokumentów, więc slajd cytuje odtąd cały zbiór
+pośrednika, gdzie wynosi osiem punktów procentowych.
+
+---
+
 ## 4. Czego na slajdach twierdzić nie wolno
 
 - **Że korpus jest kompletny.** Mianownika nie mamy. Wolno
@@ -161,22 +192,28 @@ Jeden plik HTML, samowystarczalny, bez połączenia z siecią przy wyświetlaniu
 `prezentacja-ceidg-ekran.html`. Slajd = `<section class="slide">` z głową, treścią i stopką;
 stopka niesie źródło i datę. Nawigacja klawiszami (`←` `→`, `N` notatki), pasek postępu na dole.
 
-**Stan wykonania: `prezentacja-kio-ekran.html`, 264 KB, 17 slajdów.** Z tego 214 KB to trzy fonty
+**Stan wykonania: `prezentacja-kio-ekran.html`, 284 KB, 16 slajdów** (stan 2026-09-23; wcześniej
+17 — slajd „To, co już znacie" wypadł przy redakcji, a dwa ustalenia z niego przeniesiono do
+slajdów „Wniosek" i „Granice"). Z tego 214 KB to trzy fonty
 osadzone w pliku jako `@font-face` — przeniesione z wzorca, żeby prezentacja wyglądała tak samo
 na każdej maszynie i **nie odpytywała żadnego serwera fontów**. Sprawdzone po złożeniu: w pliku
 nie ma ani jednego odwołania do adresu zewnętrznego (`http`, `https`, `src=`, `href=`), a znaczniki
 są domknięte. Plik otwiera się dwuklikiem, bez serwera i bez internetu; motyw jasny i ciemny idzie
 za ustawieniem systemu.
 
-Plik prezentacji **nie wchodzi do repozytorium `kio-tool`**, tak samo jak wzorzec `ceidg`
-(nieśledzony w drzewie Kio): niesie treści prezentacyjne, a nie kod, i żyje własnym cyklem.
+**Zmiana wobec pierwotnego zapisu (2026-09-23):** plan mówił, że plik prezentacji nie wchodzi do
+repozytorium. Tak nie jest — w drzewie stoją zacommitowane `prezentacja-kio-ekran.html`
+(samodzielny plik do dwukliku, z `<html>` i `<head>`) i `prezentacja-kio-v2.html` (to samo bez
+znaczników dokumentu, jako ciało artefaktu), a obok wzorzec `prezentacja-ceidg-ekran.html`.
+Poza znacznikami dokumentu oba pliki kio są co do treści identyczne; **prezentuje się plikiem
+lokalnym `prezentacja-kio-ekran.html`**. Slajdy nie niosą ani jednego zdania orzeczenia i ani
+jednego nazwiska (sekcja 1), więc obecność w repozytorium niczego nie ujawnia.
 
 ---
 
 ## 6. Polecenia, którymi przeliczyć liczby w dniu składania
 
 ```powershell
-cd E:\GitHub\Kio
 $env:PYTHONUTF8 = "1"; .venv\Scripts\python.exe -m pytest
 $env:PYTHONUTF8 = "1"; .venv\Scripts\kio-tool.exe pokrycie --zloty tests\gold
 $env:PYTHONUTF8 = "1"; .venv\Scripts\kio-tool.exe demo

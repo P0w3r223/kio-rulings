@@ -1,6 +1,6 @@
 # kio-tool — instrukcja dla modelu obsługującego narzędzie
 
-Data: 2026-09-22 · Odbiorca: agent prowadzący `kio-tool` w imieniu operatora.
+Data: 2026-09-23 · Odbiorca: agent prowadzący `kio-tool` w imieniu operatora.
 Zmiana flagi albo polecenia w narzędziu jest zmianą tego pliku.
 
 ## Czym jest
@@ -18,7 +18,7 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
    zmierz koszt: `pobierz … --wycena --json` (jedno żądanie, zero dokumentów) i podaj
    operatorowi liczbę żądań i czas z bloku „Koszt przebiegu”.
 2. **Każde twierdzenie z orzeczenia podpieraj źródłem** — sygnaturą, datą i najlepiej polem
-   `cytowanie` z wyniku. Podawaj liczbę trafień i wielkość korpusu („7 z 443”), nie samo
+   `cytowanie` z wyniku. Podawaj liczbę trafień i wielkość korpusu („7 z 1 499”), nie samo
    „znalazłem”.
 3. **Nie oceniaj sprawy prawnie** i nie zgaduj tam, gdzie narzędzie mówi „nieustalone”.
 4. **Dane osobowe:** skład orzekający i protokolant są w treści z imienia i nazwiska. Nie
@@ -31,7 +31,7 @@ rozumowanie jest Twoje, narzędzie daje materiał i mówi, czego nie objęło.
 - Tylko roczniki **2010–2026**; Izba orzeka od grudnia 2007, ale kanał zaczyna się w 2010.
 - Kompletność nie jest znana: mów „N pobranych orzeczeń”, nigdy „wszystkie orzeczenia”.
 - Korpus operatora to próbka (sprawdź `runy` albo `liczby.w_korpusie`), nie cały zbiór
-  pośrednika (29 580 orzeczeń).
+  pośrednika (29 606 orzeczeń; pomiar 28, 2026-09-23).
 
 ## Polecenia
 

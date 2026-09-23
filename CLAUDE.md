@@ -3,14 +3,16 @@
 Lokalny, wersjonowany korpus orzecznictwa Krajowej Izby Odwoławczej (kanał `atlas`). Wzorce
 przeniesione z sąsiedniego `..\Ceidg` (`ceidg-tool`) bez wspólnej biblioteki.
 
-## Stan (2026-09-22)
+## Stan (2026-09-23)
 
 - Fazy 0–3 przyjęte przez właściciela; **pozycji otwartych nie ma** — nie odtwarzaj ich
   z historii, briefów ani ADR-ów. Faza 4 nie jest w toku.
 - **Praca lokalna na `master`, bez `push` i bez PR-ów.** Nic nie wysyłamy bez wyraźnej prośby
   właściciela.
-- Korpus operatora na tej maszynie: 443 orzeczenia, schemat 6, `PARSE_VERSION` 6. Baza poza
-  repozytorium (`%LOCALAPPDATA%\kio-tool\kio-tool\korpus.sqlite`).
+- Korpus operatora na tej maszynie: 1 499 orzeczeń z roczników 2010–2026 (Przebieg 5,
+  2026-09-23), schemat 6, `PARSE_VERSION` 6. Baza poza repozytorium
+  (`%LOCALAPPDATA%\kio-tool\kio-tool\korpus.sqlite`, 173,1 MB). Liczby korpusu bierz
+  z `docs/anatomia-bazy.md` albo z `pokrycie`, nie z pamięci.
 - `.venv` na Pythonie 3.12.10. `KIO_TOOL_CONTACT` jest zmienną użytkownika Windows — nie pytaj
   o nią i nie zapisuj jej w repozytorium.
 

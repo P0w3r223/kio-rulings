@@ -5,8 +5,9 @@ z pełnym tekstem z publicznego API Atlasu Przetargów (licencja CC BY 4.0), zap
 dokładnie tak, jak przyszły, rozkłada na sekcje, cytowania i przepisy, szuka bez sieci
 i eksportuje do `xlsx`, `csv`, `jsonl` i `md` — zawsze z atrybucją źródła.
 
-**Stan na 2026-09-22:** fazy 0–3 przyjęte; kreator, tryb pokazowy, wyjście maszynowe dla modelu
-(`--json`, `docs/dla-modelu.md`). Korpus operatora: 443 orzeczenia z roczników 2010–2026.
+**Stan na 2026-09-23:** fazy 0–3 przyjęte; kreator, tryb pokazowy, wyjście maszynowe dla modelu
+(`--json`, `docs/dla-modelu.md`). Korpus operatora: 1 499 orzeczeń z roczników 2010–2026, każdy
+rocznik obecny (`docs/anatomia-bazy.md`).
 
 ## Instalacja
 
@@ -115,7 +116,7 @@ pośrednik — bywa błędna albo pusta.
 
 ```
 set PYTHONUTF8=1
-.venv\Scripts\python.exe -m pytest        # 1 441 testów (2026-09-22), sieć zablokowana
+.venv\Scripts\python.exe -m pytest        # 1 441 testów (2026-09-23), sieć zablokowana
 .venv\Scripts\ruff.exe check .
 .venv\Scripts\ruff.exe format --check .
 .venv\Scripts\mypy.exe kio_tool scripts   # strict
