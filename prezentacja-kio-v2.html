@@ -672,6 +672,7 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(18px, calc(
         <span class="proces__k">bez sieci</span>
       </div>
     </div>
+    <p class="strip"><b>Co dostaje człowiek w kroku piątym:</b> arkusz <span class="tag">xlsx</span> z 21 kolumnami i słownikiem pól, <span class="tag">csv</span>, <span class="tag">jsonl</span> z surowym rekordem kanału albo <span class="tag">md</span> po jednym pliku na orzeczenie: pełny tekst z nagłówkami części, spis cytowanych wyroków i przepisów oraz <span class="tag">INDEX.md</span>. Każdy wiersz niesie adres orzeczenia w wyszukiwarce UZP, skrót wersji treści i atrybucję kanału.</p>
   </div>
   <div class="slide__foot"><span></span><span class="n"></span></div>
   <aside><b>Przejście.</b> Idziemy po kolei, krokami z tej mapy: najpierw kroki 1–2, czyli źródło, potem to, co zostaje na dysku, na końcu krok 5, czyli jak się z tego korzysta.
@@ -779,7 +780,7 @@ Gdyby padło pytanie, czy lata 2007–2009 da się uzupełnić: obie drogi są d
     <div class="chain" role="img" aria-label="Trzy warstwy bazy: to, co przyszło z sieci i nie ma prawa się zmienić, to, co z tego wyliczył odczyt, i ślad po samym pobraniu.">
       <div><i>NIE DO ODTWORZENIA</i><h3>To, co przyszło</h3><p><b>1 499</b> orzeczeń w surowej postaci, 49,3 MB treści.</p><p>Ta sama sygnatura z inną treścią to <b>nowy wiersz</b>, nie nadpisanie.</p></div>
       <div><i>DO PRZELICZENIA</i><h3>To, co z nich wyczytaliśmy</h3><p><b>5 989</b> części orzeczeń, <b>7 078</b> cytowanych wyroków, <b>53 646</b> powołań na przepisy.</p><p>Każdy wiersz wie, z której wersji treści powstał i którym odczytem.</p></div>
-      <div><i>ŚLAD</i><h3>To, co pamięta pobranie</h3><p><b>106</b> przebiegów, <b>1 611</b> żądań, powiązania orzeczenie–przebieg.</p><p>Stąd wznawianie bez powtórek: baza wie, gdzie stanęła i co już wzięła.</p></div>
+      <div><i>ŚLAD</i><h3>To, co pamięta pobranie</h3><p><b>111</b> przebiegów, <b>1 616</b> żądań, powiązania orzeczenie–przebieg.</p><p>Stąd wznawianie bez powtórek: baza wie, gdzie stanęła i co już wzięła.</p></div>
     </div>
     <div class="cols cols--top">
       <div class="scroll">
@@ -816,7 +817,7 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
   <div class="slide__body">
     <dl class="big">
       <div><dt>Rozłożone na części</dt><dd>99,5 %<small>1 492 z 1 499; siedmiu brakuje jednej części</small></dd></div>
-      <div><dt>Znaków rozłożonych bez reszty</dt><dd>51,7 mln<small>co do znaku: zero poza podziałem</small></dd></div>
+      <div><dt>Znaków rozłożonych bez reszty</dt><dd>51,7 mln<small>zero znaków treści; 4 561 znaków odstępu, czyli 0,009 %</small></dd></div>
       <div><dt>Rozpoznane cytowane wyroki</dt><dd>98,5 %<small>6 974 z 7 078 powołań</small></dd></div>
       <div><dt>Przepisy bez pewnej ustawy</dt><dd>26,4 %<small>14 175 z 53 646 powołań</small></dd></div>
     </dl>
@@ -833,10 +834,12 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
     </div>
   </div>
   <div class="slide__foot"><span></span><span class="n"></span></div>
-  <aside>Zdanie na wejście, do powiedzenia od siebie: orzeczenie przychodzi jako jeden ciąg tekstu, bez żadnych znaczników, więc narzędzie musi samo rozpoznać, gdzie kończy się rozstrzygnięcie, które wyroki Izba przywołuje i na jakie przepisy się powołuje. „Art. 16" bez nazwy ustawy w sąsiednim zdaniu jest niejednoznaczny także dla prawnika, i to warto powiedzieć od siebie przy ostatnim wierszu. Przy nim pada też powód wyboru: narzędzie ma dwie drogi, zgadnąć albo napisać „nieustalone", i wybrano drugą, bo wartość zgadnięta wygląda dokładnie tak samo jak sprawdzona i nikt jej już nigdy nie zakwestionuje. Co trzecie powołanie kończy się w ten sposób i to jest uczciwa cena za to, że reszcie można wierzyć. Trzy kolory w ostatniej kolumnie to trzy stany wiedzy, nie trzy rodzaje aktów: zielony znaczy „akt ustalony z nazwy", szary „wiadomo, że rozporządzenie, ale nie które", pomarańczowy „nic nie ustalono". Druga liczba jest ważniejsza, niż wygląda: zero pominiętego tekstu znaczy, że narzędzie nie wybiera sobie wygodnych fragmentów, tylko każdy znak przypisuje do którejś części orzeczenia. Bez tego nie dałoby się sprawdzić wyniku u źródła, a sprawdzalność jest jedynym powodem, dla którego w ogóle pobieramy pełny tekst zamiast streszczeń. Przy tabeli warto powiedzieć od siebie, że Izba cytuje przepisy tak, jak pisze człowiek: raz z pełną nazwą ustawy, raz skrótem, a raz samym numerem artykułu w zdaniu, które nazwę ustawy ma trzy akapity wcześniej.</aside>
+  <aside>Zdanie na wejście, do powiedzenia od siebie: orzeczenie przychodzi jako jeden ciąg tekstu, bez żadnych znaczników, więc narzędzie musi samo rozpoznać, gdzie kończy się rozstrzygnięcie, które wyroki Izba przywołuje i na jakie przepisy się powołuje. „Art. 16" bez nazwy ustawy w sąsiednim zdaniu jest niejednoznaczny także dla prawnika, i to warto powiedzieć od siebie przy ostatnim wierszu. Przy nim pada też powód wyboru: narzędzie ma dwie drogi, zgadnąć albo napisać „nieustalone", i wybrano drugą, bo wartość zgadnięta wygląda dokładnie tak samo jak sprawdzona i nikt jej już nigdy nie zakwestionuje. Co trzecie powołanie kończy się w ten sposób i to jest uczciwa cena za to, że reszcie można wierzyć. Trzy kolory w ostatniej kolumnie to trzy stany wiedzy, nie trzy rodzaje aktów: zielony znaczy „akt ustalony z nazwy", szary „wiadomo, że rozporządzenie, ale nie które", pomarańczowy „nic nie ustalono". Druga liczba jest ważniejsza, niż wygląda: zero pominiętego tekstu znaczy, że narzędzie nie wybiera sobie wygodnych fragmentów, tylko każdy znak przypisuje do którejś części orzeczenia. Bez tego nie dałoby się sprawdzić wyniku u źródła, a sprawdzalność jest jedynym powodem, dla którego w ogóle pobieramy pełny tekst zamiast streszczeń. Przy tabeli warto powiedzieć od siebie, że Izba cytuje przepisy tak, jak pisze człowiek: raz z pełną nazwą ustawy, raz skrótem, a raz samym numerem artykułu w zdaniu, które nazwę ustawy ma trzy akapity wcześniej.
+
+Do drugiej liczby warto mieć jedno zdanie w zapasie, bo pada pytanie „czyli wszystko jest w częściach?". Poza granicami części leży 4 561 znaków z 51,7 miliona, czyli 0,009 %, i w sprawdzonej próbce sześćdziesięciu orzeczeń wszystkie były puste wiersze oraz znak łamania strony z pliku PDF (zmierzone 23 września 2026, zero żądań). Zero znaków treści, ale nie zero znaków, i tak to mówimy. Polecenie czytaj pokazuje te odstępy wprost jako „nieprzypisane", więc przy pokazie na żywo nie będzie z tego niespodzianki.</aside>
 </section>
 
-<section class="slide slide--plus" id="s8" style="--skala:1.2">
+<section class="slide slide--plus" id="s8" style="--skala:1.1">
   <div class="slide__head">
     <div class="slide__top"><span class="slide__kicker">Skąd wiadomo, że czyta dobrze</span></div>
     <h2>Pięć rodzajów błędu narzędzie wyłapuje samo. Szóstego nie wyłapie żaden test.</h2>
@@ -846,7 +849,7 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
       <table class="cmp cmp--audyt">
         <thead><tr><th>Co może pójść źle</th><th>Co to wykrywa</th><th>Kto zobaczy</th></tr></thead>
         <tbody>
-          <tr><td>Odczyt pomija kawałek tekstu</td><td>licznik znaków bez przypisanej części, dziś 0 z 51,7 miliona</td><td><span class="b b--y">automat</span></td></tr>
+          <tr><td>Odczyt pomija kawałek tekstu</td><td>licznik znaków treści bez przypisanej części, dziś 0 z 51,7 miliona</td><td><span class="b b--y">automat</span></td></tr>
           <tr><td>Zmiana w kodzie psuje podział na części</td><td>wzorcowy zbiór 17 orzeczeń z granicami sprawdzonymi ręcznie</td><td><span class="b b--y">automat</span></td></tr>
           <tr><td>Zmiana sposobu czytania bez podniesienia jego numeru</td><td>odcisk plików odczytu porównywany przy każdej zmianie</td><td><span class="b b--y">automat</span></td></tr>
           <tr><td>Przepis z treści nie zgadza się z listą od pośrednika</td><td>zestawienie dwóch niezależnych zapisów tego samego</td><td><span class="b b--y">automat</span></td></tr>
@@ -855,6 +858,7 @@ Podział nie idzie po temacie, tylko po trwałości: co przyszło z sieci i nie 
         </tbody>
       </table>
     </div>
+    <p class="strip"><b>Każde z tych zabezpieczeń sprawdzamy mutacją:</b> psujemy kod tak, żeby test musiał się zapalić, i patrzymy, czy się zapala. Kilka luk przeszło zieloną suitę i pokazała je dopiero ta próba.</p>
   </div>
   <div class="slide__foot"><span></span><span class="n"></span></div>
   <aside>Najważniejszy slajd o wiarygodności i jedyny, którego nie było w prezentacji ceidg-tool. Sedno jest w ostatnim wierszu tabeli: zielona suita testów mówi „nic się nie zepsuło względem tego, co umiemy sprawdzić", a nie „jest dobrze". Na tę różnicę potrzebny jest człowiek i dlatego przegląd okiem jest częścią procedury, nie gestem. Gdyby ktoś zapytał o czwarty wiersz: pośrednik dołącza do rekordu własną listę powołanych przepisów, a my wyliczamy swoją z samej treści; w ostatnim raporcie pokrycia każde powołanie z jego listy odnalazło się w naszej, w drugą stronę było ich znacznie więcej, bo z treści wyłapujemy też te, których pośrednik nie wypisał.
@@ -964,6 +968,44 @@ Wątek zapytań rozwinąć tylko wtedy, gdy ktoś zapyta, i rozwinąć uczciwie.
   <aside>Warto podkreślić ostatni punkt: instrukcja dla modelu jest wersjonowana razem z kodem, więc nie rozjedzie się z narzędziem. To ta sama zasada co dokumentacja dla programisty, tylko odbiorca inny. Rzecz, której na slajdzie nie ma, a bywa pytaniem z sali: model nie dostaje też cudzych streszczeń. Pośrednik dołącza do rekordu własną tezę, która bywa tekstem wygenerowanym maszynowo; zostaje ona w surowych bajtach, ale nie wchodzi ani do metadanych, ani do wyszukiwania, ani do arkusza, CSV czy plików Markdown. Zostaje wyłącznie w surowym zrzucie JSONL, który z założenia oddaje rekord pośrednika w całości.</aside>
 </section>
 
+<section class="slide slide--plus" id="s4a" style="--skala:1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">Kto to prowadzi</span></div>
+    <h2>Model prowadzi narzędzie, instrukcja jedzie z kodem</h2>
+    <p class="slide__sub">Skill dla Claude Code, zwykły plik w repozytorium. Liczby z korpusu operatora, odczyt 23 września 2026, zero żądań do sieci.</p>
+  </div>
+  <div class="slide__body">
+    <div class="cols cols--top">
+      <div>
+        <pre class="term">Pytanie człowieka, po polsku:
+„Jak Izba patrzy na rażąco niską cenę?
+ Podaj sygnatury, które mogę zacytować."
+
+$ kio-tool <b>opis --json</b>
+$ kio-tool szukaj <b>--fraza</b> "rażąco niska cena" <b>--json</b>
+  <i>132 trafienia z 1 499 w korpusie</i>
+$ kio-tool czytaj "KIO 3810/23" <b>--bez-tresci --json</b>
+  naglowek 556, sentencja 879, uzasadnienie 43 908
+$ kio-tool czytaj "KIO 3810/23" <b>--sekcja sentencja</b>
+  <i>879 znaków z 45 714, czyli 1,9 % wyroku</i></pre>
+        <p class="strip" style="margin-top:12px"><b>Tak samo wygląda to u prawnika:</b> pytanie po polsku, odpowiedź z sygnaturą, datą i blokiem cytowania do wklejenia do pisma. Zero żądań do sieci, dopóki materiał jest w korpusie.</p>
+      </div>
+      <ul class="lines">
+        <li><b>Skill wstaje sam, gdy pytanie dotyczy KIO</b><small>Sygnatura, Pzp albo „jak Izba orzeka" włączają procedurę wejścia. Człowiek nie musi pamiętać ani jednego polecenia</small></li>
+        <li><b>Czyta akapit, nie cały wyrok</b><small>Najpierw mapa części z długościami, potem jedna część. W KIO 3810/23 sentencja to 879 znaków z 45 714</small></li>
+        <li><b>Sieć zostaje po stronie człowieka</b><small>Gdy materiału brakuje, model podaje koszt z <span class="tag">--wycena</span> i pyta. Zgodę daje operator w tej samej sesji, model jej sobie nie dopisze</small></li>
+        <li><b>Flagi z narzędzia, nie z pamięci</b><small>Pierwsze polecenie to <span class="tag">opis --json</span>: polecenia, flagi i kody wyjścia z drzewa poleceń. Test pilnuje, żeby skill, instrukcja i README nie rozjechały się z narzędziem</small></li>
+      </ul>
+    </div>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside>Ten slajd zamyka argument z dwóch poprzednich: asystenta w środku nie ma, wyjście maszynowe jest, a tutaj widać, że ktoś już tego narzędzia w tej postaci używa. Warto powiedzieć od siebie, że skill to zwykły plik tekstowy w repozytorium (.claude/skills/kio-tool/SKILL.md, dwadzieścia kilka linii), nie osobny program ani usługa: jedzie razem z kodem i podlega temu samemu przeglądowi.
+
+Pytanie, które pada z sali: czy model nie pobierze czegoś na własną rękę. Nie. Przebieg powyżej pięćdziesięciu żądań wymaga zgody wpisanej przez operatora w tej samej sesji, instrukcja mówi modelowi wprost, żeby jej sobie nie dopisywał, a narzędzie i tak zatrzymuje się na progu i czeka.
+
+Druga rzecz do powiedzenia: te 1,9 % nie są ozdobą. Model, który wczytuje całe czterdzieści cztery tysiące znaków uzasadnienia, żeby zacytować jedno zdanie sentencji, kosztuje kilkadziesiąt razy więcej i częściej się myli, bo odpowiedź tonie w tekście, którego nikt nie potrzebował.</aside>
+</section>
+
 <section class="slide slide--plus" id="s10a" style="--skala:1">
   <div class="slide__head">
     <span class="slide__kicker">Wniosek</span>
@@ -995,14 +1037,16 @@ Ten slajd domyka tezę z trzeciego: skoro modelu nie ma w środku, model wchodzi
     <ol class="seven">
       <li><b>1 499 orzeczeń z pełnym tekstem</b> leży na dysku i czyta się je bez sieci, z <b>29 580</b> w całym zbiorze kanału.</li>
       <li><b>Asystenta nie ma świadomie</b>, a narzędzie jest <b>gotowe pod agenta</b>: wyjście maszynowe, mianowniki, kody wyjścia i instrukcja dla modelu w repozytorium.</li>
-      <li><b>Korpus 1 499 orzeczeń kosztował 1 611 żądań.</b> Pobranie całego zbioru to 22 doby przy dzisiejszym limicie albo <b>6 dni po założeniu konta</b> u dostawcy.</li>
+      <li><b>Korpus 1 499 orzeczeń kosztował 1 616 żądań.</b> Pobranie całego zbioru to 22 doby przy dzisiejszym limicie albo <b>6 dni po założeniu konta</b> u dostawcy.</li>
       <li><b>Granice powiedziane wprost:</b> roczniki 2007–2009 puste, w 2018 dziura od lutego do września (oba zmierzone), 26 % przepisów bez ustalonej ustawy.</li>
       <li><b>Każda liczba tutaj ma źródło i datę</b>, a te, które są wyliczeniem, nie pomiarem, mówią to wprost.</li>
     </ol>
     <p class="strip">Narzędzie stoi uruchomione na prawdziwym korpusie 1 499 orzeczeń: wyszukiwanie i eksport z tych slajdów da się przejść na żywo, bez jednego żądania do sieci. <span class="tag">kio-tool demo</span> pokazuje to samo na danych fikcyjnych.</p>
   </div>
   <div class="slide__foot"><span>Piotr Cząstkiewicz · kio-tool · 23 września 2026</span><span class="n"></span></div>
-  <aside>Przy pokazie na żywo warto powiedzieć na głos, że dane w trybie pokazowym są wygenerowane (sygnatury z zakresu KIO 9000–9999, osoby i strony fikcyjne), zanim ktoś zapyta, czyje to orzeczenie na ekranie.</aside>
+  <aside>Przy pokazie na żywo warto powiedzieć na głos, że dane w trybie pokazowym są wygenerowane (sygnatury z zakresu KIO 9000–9999, osoby i strony fikcyjne), zanim ktoś zapyta, czyje to orzeczenie na ekranie.
+
+Jeśli pokaz ma iść na rzutniku, prowadź go trybem pokazowym. Korpus operatora niesie nazwiska składu orzekającego (1 410 z 1 499 orzeczeń), a tryb pokazowy generuje osoby fikcyjne i oznacza każdy rekord, więc żadne prawdziwe nazwisko nie trafia na ekran.</aside>
 </section>
 
 </main>

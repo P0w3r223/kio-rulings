@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20, uzupełniony 2026-09-23
-Status: **oddany** — `prezentacja-kio-ekran.html`, **16 slajdów**, korpus 1 499; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), zredagowana i przeliczona 2026-09-23 (sekcja 3a)
+Status: **oddany** — `prezentacja-kio-ekran.html`, **17 slajdów**, korpus 1 499; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), zredagowana i przeliczona 2026-09-23 (sekcja 3a)
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -171,6 +171,34 @@ pośrednika, gdzie wynosi osiem punktów procentowych.
 
 ---
 
+## 3b. Co doszło 2026-09-23 po przeglądzie pokrycia tematów
+
+Przegląd decku wobec tego, co projekt ma, pokazał pięć rzeczy nieobecnych na slajdach: skill dla
+Claude Code, samoopis `opis --json`, eksport dla człowieka, mutację jako sposób sprawdzania
+zabezpieczeń i czytanie pojedynczej części orzeczenia. Weszły w jednym nowym slajdzie i w trzech
+dopiskach.
+
+| Gdzie | Co doszło |
+|---|---|
+| **Nowy slajd 15** „Kto to prowadzi" | Skill dla Claude Code: procedura wejścia (`opis` → `szukaj` → `czytaj --bez-tresci` → `czytaj --sekcja`), oszczędność odczytu (w KIO 3810/23 sentencja to 879 znaków z 45 714, czyli 1,9 %), granica sieci po stronie operatora i strażnik zgodności skilla z CLI |
+| Slajd 4 (droga orzeczenia) | Pasek „co dostaje człowiek w kroku piątym": `xlsx` z 21 kolumnami, `csv`, `jsonl`, `md` po pliku na orzeczenie plus `INDEX.md`, każdy wiersz z adresem UZP, skrótem wersji i atrybucją |
+| Slajd 10 (skąd wiadomo, że czyta dobrze) | Zdanie o mutacji: zabezpieczenie sprawdzamy psując kod i patrząc, czy test się zapala. Skala slajdu 1,20 → 1,10, żeby zdanie się zmieściło |
+| Slajd 9 (jakość odczytu) | Doprecyzowanie: **zero znaków treści** poza podziałem, a 4 561 znaków odstępu (0,009 %) leży poza granicami części. W próbce 60 orzeczeń wszystkie takie fragmenty to puste wiersze i znak łamania strony z PDF-a; `czytaj` pokazuje je jako „nieprzypisane", raport pokrycia liczy 0, bo sumuje wyłącznie części oznaczone tym słowem |
+| Slajdy 8 i 17 | Dziennik bazy po pomiarze 28: 106 przebiegów i 1 611 żądań → **111 i 1 616** |
+
+**Czego nie dało się dołożyć.** Wiersz o `opis --json` miał stanąć na slajdzie 14; przy 1920×1080
+ten slajd ma **9 px zapasu**, więc każdy dodatkowy wiersz go rozsadza. Fakt stoi więc na nowym
+slajdzie 15, wiersz „Flagi z narzędzia, nie z pamięci".
+
+**Pomiar wysokości slajdów.** Skrypt renderuje deck w Edge headless przy zdjętym `min-height`
+i mierzy naturalną wysokość każdego slajdu. Po zmianach: przy 1366×768, 1536×864 i 1920×1080
+**żaden slajd nie wychodzi poza ekran** (najciaśniej jest na slajdzie 14: 9 px zapasu przy
+1920×1080 i 14 px na slajdzie 10 przy 1366×768). Przy 1024×768 (4:3) poza ekranem stoi pięć
+slajdów: s2, s7b, s7, s4 i nowy s4a; przed zmianami też pięć, tyle że zamiast s4a był s8, który
+po zejściu ze skalą 1,20 na 1,10 zaczął się mieścić. Stan 4:3 właściciel przyjął.
+
+---
+
 ## 4. Czego na slajdach twierdzić nie wolno
 
 - **Że korpus jest kompletny.** Mianownika nie mamy. Wolno
@@ -192,9 +220,10 @@ Jeden plik HTML, samowystarczalny, bez połączenia z siecią przy wyświetlaniu
 `prezentacja-ceidg-ekran.html`. Slajd = `<section class="slide">` z głową, treścią i stopką;
 stopka niesie źródło i datę. Nawigacja klawiszami (`←` `→`, `N` notatki), pasek postępu na dole.
 
-**Stan wykonania: `prezentacja-kio-ekran.html`, 284 KB, 16 slajdów** (stan 2026-09-23; wcześniej
-17 — slajd „To, co już znacie" wypadł przy redakcji, a dwa ustalenia z niego przeniesiono do
-slajdów „Wniosek" i „Granice"). Z tego 214 KB to trzy fonty
+**Stan wykonania: `prezentacja-kio-ekran.html`, 289 KB, 17 slajdów** (stan 2026-09-23).
+Droga do tej liczby: wzorzec miał 17, redakcja zdjęła slajd „To, co już znacie" (dwa ustalenia
+z niego przeniesiono do slajdów „Wniosek" i „Granice"), a potem doszedł slajd 15 o skillu
+dla Claude Code (sekcja 3b). Z tego 214 KB to trzy fonty
 osadzone w pliku jako `@font-face` — przeniesione z wzorca, żeby prezentacja wyglądała tak samo
 na każdej maszynie i **nie odpytywała żadnego serwera fontów**. Sprawdzone po złożeniu: w pliku
 nie ma ani jednego odwołania do adresu zewnętrznego (`http`, `https`, `src=`, `href=`), a znaczniki

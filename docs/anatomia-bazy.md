@@ -67,7 +67,7 @@ od wcześniejszych 1,047.
 |---|---|
 | Żądań na cały zbiór | ok. **31 400** |
 | Czysty czas przy odstępie 1 s | **8,7 godziny** |
-| Przy naszym sufitcie 1 400/dobę | **23 doby** |
+| Przy naszym sufitcie 1 400/dobę | **22 doby** (22,4) |
 | Przy 5 000/dobę, czyli **z kluczem API** | **6,3 doby** |
 
 Wiążący jest **limit dobowy, nie odstęp między żądaniami** — i to jest cały praktyczny powód,
