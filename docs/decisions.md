@@ -825,6 +825,132 @@ to 11.7 na dobę. Te dwa niezależne odczyty zgadzają się z rocznikiem.
 
 ---
 
+## Pomiar 28 — rozkład rozstrzygnięć na całym zbiorze kanału (2026-09-23, 5 żądań)
+
+**Zgoda właściciela dana w tej sesji.** Po jednym żądaniu na wartość filtra `outcome`, wyłącznie
+po licznik (`pobierz --rozstrzygniecie … --wycena --json`): zero treści, zero zapisów do korpusu.
+
+Powód: prezentacja mówiła „umorzeń jest więcej niż oddaleń" na podstawie **naszego korpusu**,
+a ten jest próbką warstwową, nie losową. Po Przebiegu 5 margines wynosił 498 do 484, czyli
+jeden punkt procentowy — za wąsko, żeby twierdzić cokolwiek o populacji.
+
+| Rozstrzygnięcie | Cały zbiór | udział | Nasze 1 499 | udział |
+|---|---|---|---|---|
+| umorzono | **11 509** | 38,9 % | 498 | 33,2 % |
+| oddalono | 9 142 | 30,9 % | 484 | 32,3 % |
+| uwzględniono | 7 068 | 23,9 % | 407 | 27,2 % |
+| inne | 1 152 | 3,9 % | 73 | 4,9 % |
+| odrzucono | 735 | 2,5 % | 37 | 2,5 % |
+
+Co to rozstrzyga:
+
+1. **Teza się broni, i to mocniej niż na próbce.** Na całym zbiorze przewaga umorzeń nad
+   oddaleniami to **8 punktów procentowych**; na naszych 1 499 był jeden. Próbka warstwowa
+   tłumiła tę różnicę, nie zawyżała jej. Slajd cytuje odtąd cały zbiór, nie korpus.
+2. **Kolejność pięciu kategorii jest w obu odczytach identyczna** (umorzono > oddalono >
+   uwzględniono > inne > odrzucono). To jest sygnał spójności między polem `outcome`
+   pośrednika a naszym odczytem, nie dowód ich tożsamości.
+3. **Suma wynosi 29 606 wobec licznika 29 580 z 2026-09-18.** Różnica 26 na pięć dób to rząd
+   wielkości dopływu i nie wymaga innego wyjaśnienia. Każdy dokument ma dokładnie jedno
+   rozstrzygnięcie — gdyby pole bywało puste, suma byłaby mniejsza od licznika.
+
+Granica pomiaru: to jest **pole pośrednika**, nie nasz odczyt z treści. Pomiar nie mówi, czy
+pośrednik kwalifikuje rozstrzygnięcia tak samo jak my na wszystkich 29 606; mówi tylko, że na
+próbce 1 499 obie drogi dają tę samą kolejność.
+
+---
+
+## Przebieg 5 — próbka warstwowa po kwartałach (2026-09-23, 1 122 żądania)
+
+**Zgoda właściciela dana w tej sesji, z pułapem żądań na dobę.** Właściciel poprosił o 1 450;
+kontrakt kanału ma okno **1 400/dobę** (`tempo.okna`), zawężone poniżej publikowanych 1 500/IP,
+bo limit liczy się na adres, nie na proces. Pułapu nie podniesiono i nie obchodzono go dzieleniem
+na drobne przebiegi (każdy przebieg szła z `--zgoda`). Sterownik dostał twardy budżet 1 300;
+z 14 żądaniami wcześniejszymi doba zamknęła się na **1 136**, czyli 264 pod sufitem.
+
+Powód: korpus 443 dokumentów był ważony na dwóch rocznikach (192 z 2023 i 160 z 2024 plus po
+sześć z reszty), więc każdy procent jakości odczytu mówił o tych dwóch rocznikach, a nie
+o zbiorze. Dobór: wagi malejące od 32 dokumentów na kwartał dla 2026 do 2 dla 2010, **po
+kwartałach**, bo kanał sortuje `sort=oldest` i przebieg na cały rocznik z limitem przyniósłby
+sam styczeń. Kolejność kwartałami (Q1 wszystkich roczników od najnowszego, potem Q2…), żeby
+zatrzymanie na budżecie zostawiło każdy rocznik pokryty.
+
+| | przed | po |
+|---|---|---|
+| Dokumentów | 443 | **1 499** |
+| Treści | 19,8 MB | **49,3 MB** (51,7 mln znaków) |
+| Plik bazy | 52,7 MB | **173,1 MB** |
+| Części orzeczeń | 1 772 | **5 989** |
+| Cytowanych wyroków | 1 708 | **7 078** |
+| Powołań na przepisy (z treści) | 16 834 | **53 646** |
+| Przebiegów / żądań w dzienniku | 38 / 487 | **106 / 1 611** |
+
+67 przebiegów, **zero błędów odczytu i zero ponowień**. Złoty zbiór po przebiegu: **17 z 17**.
+
+Co się zmieniło w liczbach jakości odczytu (raport pokrycia 2026-09-23, zero żądań):
+
+1. **Komplet sekcji spadł ze 100 % na 99,5 %** — 1 492 z 1 499. Siedem dokumentów ma trzy
+   rodzaje części zamiast czterech: `kio-2697-10`, `kio-388-10`, `kio-2009-10` i `kio-2691-14`
+   bez `uzasadnienie` albo `sentencja` — dokładnie cztery bez sentencji i trzy bez uzasadnienia.
+   Na 443 dokumentach ten przypadek nie występował ani razu. To jest wejście do poprawki
+   `parser/`, a więc i do podniesienia `PARSE_VERSION`; **zapisane, nie naprawione**.
+2. **Znaków bez przypisanej części nadal 0**, teraz z 51,7 miliona zamiast z 13,5 miliona.
+   Licznik, który na małej próbce mógł uchodzić za szczęście, przetrzymał potrojenie korpusu.
+3. **Przepisów bez ustalonej ustawy ubylo: 31,1 % → 26,4 %** (14 175 z 53 646). Kierunek jest
+   odwrotny do intuicji „większy zbiór to więcej śmieci"; stara wartość była zawyżona przez
+   dwa roczniki, które w niej dominowały.
+4. **Rozpoznanych cytowań nieznacznie mniej: 98,7 % → 98,5 %** (6 974 z 7 078).
+5. **Umorzeń wciąż więcej niż oddaleń, ale różnica stopniała**: było 168 do 116 na 443,
+   jest **498 do 484** na 1 499. Teza „najczęstszy koniec sprawy to nie przegrana firmy"
+   stoi, ale na wąskim marginesie i tak trzeba o niej mówić.
+6. **Współczynnik żądań na dokument: 1,047 → 1,06** (1 122 na 1 055), bo przebieg kwartalny
+   płaci więcej stron listy niż rocznikowy.
+7. **Wyliczenie rozmiaru całości się przesunęło**: mnożnik z 66,8 na 19,7, a szacunek treści
+   całego zbioru z 1,3 GB na **0,95 GB** (baza z 3,5 GB na 3,4 GB). Poprzedni szacunek stał
+   na korpusie ważonym najdłuższymi rocznikami.
+
+Potwierdzenie pomiaru 27 drugą drogą: kanał zgłosił w kwartałach 2018 roku **52, 1, 1, 217**,
+suma 271. Rozbicie miesięczne z pomiaru 27 daje te same kwartały co do sztuki (43+9+0, 0+0+1,
+0+1+0, 83+86+48). Dziura luty–wrzesień potwierdzona zapytaniem o innym kształcie.
+
+---
+
+## Pomiar 27 — spis miesięczny rocznika 2018 (2026-09-23, 12 żądań)
+
+**Zgoda właściciela dana w tej sesji.** Po jednym żądaniu na miesiąc 2018 roku, wyłącznie po
+licznik (`pobierz --wycena --json`: jedna strona listy, zero żądań o dokument): zero treści
+orzeczeń, zero zapisów do korpusu. Ten sam klient i ten sam limiter co w przebiegu masowym.
+
+Powód: pomiar 26 zostawił rocznik 2018 jako **podejrzenie** („271 przy 1 006 w 2017 i 1 530
+w 2019 wygląda na lukę u pośrednika") i wiązał rozstrzygnięcie z mianownikiem po stronie urzędu
+(pomiar 4b/16). Okazało się, że mianownik nie jest potrzebny: wystarczy rozkład wewnątrz roku.
+
+| Miesiąc | I | II | III | IV | V | VI | VII | VIII | IX | X | XI | XII |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Dokumentów | 43 | 9 | 0 | 0 | 0 | 1 | 0 | 1 | 0 | 83 | 86 | 48 |
+
+**Suma: 271** — dokładnie licznik roczny z pomiaru 26, więc spis miesięczny i roczny mówią to
+samo i żaden dokument nie wypada między filtrami.
+
+Co ten pomiar rozstrzyga:
+
+1. **Rocznik 2018 nie jest chudy, tylko dziurawy.** Osiem kolejnych miesięcy (luty–wrzesień)
+   trzyma razem **11 dokumentów**; październik, listopad i grudzień mają 83, 86 i 48, czyli
+   poziom sąsiednich roczników (2017 to 1 006, czyli około 84 na miesiąc).
+2. **To brak u pośrednika, nie właściwość orzecznictwa.** Izba nie przestaje orzekać na osiem
+   miesięcy i nie wznawia w październiku. Rozkład wyklucza wyjaśnienie „tyle było spraw",
+   którego sam licznik roczny wykluczyć nie mógł. Podejrzenie z pomiaru 26 przechodzi
+   w **ustalenie**.
+3. **Czego pomiar nadal nie mówi:** dlaczego pośrednik tych ośmiu miesięcy nie ma i czy urząd
+   je opublikował. To wciąż wymagałoby mianownika po stronie UZP (pomiar 4b/16). Zbieżność
+   z zasięgiem SAOS (KIO do 2018-09, audyt 4.4) jest odnotowana jako zbieżność, nie przyczyna.
+
+Koszt uboczny: 12 przebiegów zapisanych jako przerwane albo zakończone bez kandydatów. Po tym
+pomiarze baza operatora ma **38 przebiegów i 487 żądań** w dzienniku (było 26 i 475); liczba
+dokumentów bez zmian, **443**, bo `--wycena` nie pobiera treści.
+
+---
+
 ## Pomiar 25 — postaci sygnatur nierozpoznanych w cytowaniach (O-3)
 
 Wykonany 2026-09-20 na korpusie operatora, **0 żądań**: 78 cytowań, przy których zapowiedź

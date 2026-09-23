@@ -39,8 +39,11 @@ SHA-256 zapisanym w kontrakcie kanału (`source/atlas/contract.yaml`).
 Trzy rzeczy z tego wynikają. **2007–2009 mają zero** — brak najstarszych roczników jest odtąd
 zmierzony, a nie wywnioskowany. **Zbiór jest młody**: lata 2021–2025 to 16 629 dokumentów, czyli
 56 % całości, a rocznik 2025 ma dwadzieścia siedem razy więcej niż 2010. **Rocznik 2018 jest
-podejrzany** — 271 przy 1 006 w 2017 i 1 530 w 2019 wygląda na lukę u pośrednika, nie na
-właściwość orzecznictwa; zapisane jako podejrzenie, nie ustalenie.
+dziurawy** — 271 to nie chudy rok, tylko osiem miesięcy prawie bez dokumentów. Pomiar 27
+(2026-09-23, 12 żądań, spis miesięczny) daje 43 w styczniu, **11 łącznie od lutego do września**
+oraz 83, 86 i 48 w ostatnim kwartale; suma 271 domyka się do licznika rocznego. Izba nie milknie
+na osiem miesięcy, więc to brak u pośrednika, nie właściwość orzecznictwa — podejrzenie
+z pomiaru 26 jest odtąd ustaleniem. Dlaczego pośrednik tych miesięcy nie ma, pomiar nie mówi.
 
 Suma roczników to 29 501 wobec licznika całości 29 580 — różnica 79, czyli 0,27 %. Kandydaci:
 dwie doby dopływu między odczytami i dokumenty z błędną datą wydania, które wypadają poza każdy
