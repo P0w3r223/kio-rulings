@@ -626,8 +626,8 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(18px, calc(
           <tr><td>Jedna pozycja to</td><td>Jeden przedsiębiorca</td><td><b>Jedno orzeczenie wraz z wersją treści</b></td></tr>
           <tr class="cmp__grp"><td colspan="3">Kto to obsługuje</td></tr>
           <tr class="cmp__plus"><td>Asystent językowy wbudowany w narzędzie</td><td><span class="b b--y">jest</span></td><td><span class="b b--n">nie ma</span></td></tr>
-          <tr class="cmp__plus"><td>Obsługa przez model z zewnątrz</td><td><span class="b b--m">możliwa</span></td><td><span class="b b--y">docelowa</span></td></tr>
-          <tr><td>Stała opłata za obsługę</td><td>Opłata za model przy każdym pytaniu</td><td><b>Zero</b></td></tr>
+          <tr class="cmp__plus"><td>Obsługa przez model z zewnątrz</td><td><span class="b b--y">wspierana</span></td><td><span class="b b--y">docelowa</span></td></tr>
+          <tr><td>Stała opłata za obsługę</td><td>Opłata za model, gdy pytanie idzie zdaniem</td><td><b>Zero</b></td></tr>
           <tr class="cmp__grp"><td colspan="3">Co obejmuje zbiór</td></tr>
           <tr><td>Roczniki dostępne do pobrania</td><td>Cały rejestr</td><td><b>2010–2026</b></td></tr>
           <tr><td>Czego w zbiorze brakuje</td><td><span class="b b--m">niczego</span></td><td><span class="b b--n">roczniki 2007–2009</span></td></tr>
@@ -637,7 +637,7 @@ table.cmp { border-collapse: collapse; width: 100%; font-size: clamp(18px, calc(
     <p class="strip"><b>Zbiór pośrednika to 29 580 orzeczeń z roczników 2010–2026</b>, policzone rocznik po roczniku 20 września 2026. Najpierw pokażę, jak narzędzie pracuje: skąd bierze orzeczenia, co z nich zostaje na dysku i skąd wiadomo, że czyta je dobrze.</p>
   </div>
   <div class="slide__foot"><span></span><span class="n"></span></div>
-  <aside>To jest kręgosłup spotkania. Dwa wiersze w środku są tezą: asystent zniknął, a obsługa przez model awansowała z „możliwej" na „docelową". Reszta prezentacji rozwija właśnie te dwa wiersze, ale wracamy do nich dopiero po drodze orzeczenia i jakości odczytu; teza stoi mocniej, gdy sala już wie, co narzędzie robi. Szczegóły zdjęte ze slajdu, do powiedzenia na pytanie: asystenta nie ma decyzją z 20 września, a nie z braku czasu; wytyczne dla modelu leżą w repozytorium; opłata w ceidg to około dziewięciu centów za pierwsze pytanie. O zasięgu mówić wprost: 2010–2026 to zasięg **pośrednika**, a nie „cały rejestr Izby"; rocznik 2018 wygląda u niego na niepełny (slajd o rozkładzie).</aside>
+  <aside>To jest kręgosłup spotkania. Dwa wiersze w środku są tezą: w kio-tool asystenta nie ma, a obsługa przez model jest docelowa, nie dodatkiem. ceidg-tool od 23 września też daje się prowadzić modelowi (koperta wyniku, asystent z wyłącznikiem), ale obok człowieka, dla którego asystent zostaje; kio-tool od początku budowano pod model. Do zmian w ceidg-tool wracamy na końcu, w osobnej sekcji. Reszta prezentacji rozwija właśnie te dwa wiersze, ale wracamy do nich dopiero po drodze orzeczenia i jakości odczytu; teza stoi mocniej, gdy sala już wie, co narzędzie robi. Szczegóły zdjęte ze slajdu, do powiedzenia na pytanie: asystenta nie ma decyzją z 20 września, a nie z braku czasu; wytyczne dla modelu leżą w repozytorium; opłata w ceidg to około dziewięciu centów za pierwsze pytanie. O zasięgu mówić wprost: 2010–2026 to zasięg **pośrednika**, a nie „cały rejestr Izby"; rocznik 2018 wygląda u niego na niepełny (slajd o rozkładzie).</aside>
 </section>
 
 <section class="slide slide--plus" id="s7a" style="--skala:1.1">
@@ -922,27 +922,6 @@ Ostatni punkt bywa najtrudniejszy, więc lepiej powiedzieć go samemu, zanim pad
 Ta pułapka jest dobrym przykładem tego, po co istnieje plik z wytycznymi. Nie da się jej zgadnąć z nazwy flagi i nie ma jej w dokumentacji dostawcy; wyszła z pomiaru i została zapisana.</aside>
 </section>
 
-<section class="slide slide--plus" id="s3" style="--skala:1.1">
-  <div class="slide__head">
-    <div class="slide__top"><span class="slide__kicker">Teza</span></div>
-    <h2>Asystent w środku nic tu nie wnosi, a kosztuje czas i drugi adres wyjściowy</h2>
-  </div>
-  <div class="slide__body">
-    <ul class="lines">
-      <li><b>Każde pytanie do modelu to osobna wyprawa do sieci</b><small>Pierwszy znak odpowiedzi przychodzi po 0,6 sekundy u najszybszych modeli i po 1–1,5 sekundy u większości, a potem czeka się na resztę. Asystent dokładałby ten czas do każdego zapytania, zanim narzędzie ruszy. Czasy z publicznych pomiarów porównawczych, odczyt 20 września 2026</small></li>
-      <li><b>Agent zna kryteria, zanim zapyta</b><small>Asystent zamienia zdanie człowieka na filtry. Program, który już wie, czego szuka, nie potrzebuje tłumacza, tylko flagi</small></li>
-      <li><b>Zero złotówek za obsługę</b><small>W ceidg-tool asystent kosztował około dziewięciu centów za pierwsze pytanie i centa za kolejne (prezentacja z 14 września 2026). Tutaj nie ma czego rozliczać</small></li>
-    </ul>
-    <p class="strip"><b>Gdzie trafiają zapytania.</b> Jeden adres wyjściowy, adres pośrednika; własnego połączenia do systemu państwowego nie ma i widać to w kodzie. Ale pośrednik widzi każde zapytanie i może je przekazać dalej na żądanie uprawnionego organu, więc <b>prywatny kanał nie jest tarczą</b>. Klucz jest opcjonalny, więc pytamy bez konta i bez nazwiska. <b>Bramka zgodności z wymogami dla systemów AI stoi mimo to</b> i wraca przy etapie czwartym.</p>
-  </div>
-  <div class="slide__foot"><span></span><span class="n"></span></div>
-  <aside><b>Przejście.</b> Filtry mamy za sobą. W ceidg-tool zdanie człowieka na takie filtry zamieniał asystent, i tu wracamy do dwóch wierszy tezy z trzeciego slajdu.
-
-Jeśli ktoś zapyta „to dlaczego w ceidg jest asystent?", odpowiedź brzmi: bo tam odbiorcą jest operator bez wiedzy o rejestrze i to on pisze zapytanie. Tutaj odbiorcą jest agent, który zapytanie już ma. Dwa różne problemy, dwie różne odpowiedzi. Liczby o czasie odpowiedzi modeli są z cudzych pomiarów i tak je podawać; własnego pomiaru nie robiliśmy, bo asystenta nie ma czego mierzyć.
-
-Wątek zapytań rozwinąć tylko wtedy, gdy ktoś zapyta, i rozwinąć uczciwie. Brak własnego kanału do urzędu znaczy dokładnie tyle, że my tam nic nie wysyłamy. Nie znaczy, że nasze zapytania nie mogą tam trafić drogą okrężną: pośrednik jest administratorem tych zdarzeń u siebie i może je przekazać dalej na żądanie uprawnionego organu, tak samo jak każda inna firma. Różnica wobec ceidg-tool jest w skali i w pewności, nie w odporności: tam konto jest imienne, wiązane Profilem Zaufanym, a retencja zapytań przez 36 miesięcy jest regułą zadeklarowaną przez samo państwo; tutaj najgorszy przypadek to zapis na poziomie adresu IP u prywatnej firmy, o którego istnieniu jeszcze nie wiemy. Warto też powiedzieć, czego zapytanie w ogóle nie zdradza: idzie w nim sygnatura albo zakres dat, a nie to, czyjej sprawy dotyczy analiza ani po co ją robimy. I ostatnia uczciwa uwaga: nawet gdy odczytamy politykę pośrednika, dostaniemy deklarację, a nie dowód.</aside>
-</section>
-
 <section class="slide slide--plus" id="s4" style="--skala:1">
   <div class="slide__head">
     <div class="slide__top"><span class="slide__kicker">Narzędzie dla modelu</span></div>
@@ -1007,7 +986,7 @@ $ kio-tool czytaj "KIO 3810/23" <b>--sekcja sentencja</b>
     </div>
   </div>
   <div class="slide__foot"><span></span><span class="n"></span></div>
-  <aside>Ten slajd zamyka argument z dwóch poprzednich: asystenta w środku nie ma, wyjście maszynowe jest, a tutaj widać, że ktoś już tego narzędzia w tej postaci używa. Warto powiedzieć od siebie, że skill to zwykły plik tekstowy w repozytorium (.claude/skills/kio-tool/SKILL.md, dwadzieścia kilka linii), nie osobny program ani usługa: jedzie razem z kodem i podlega temu samemu przeglądowi.
+  <aside>Ten slajd zamyka argument z poprzedniego: asystenta w środku nie ma, wyjście maszynowe jest, a tutaj widać, że ktoś już tego narzędzia w tej postaci używa. Warto powiedzieć od siebie, że skill to zwykły plik tekstowy w repozytorium (.claude/skills/kio-tool/SKILL.md, dwadzieścia kilka linii), nie osobny program ani usługa: jedzie razem z kodem i podlega temu samemu przeglądowi.
 
 Pytanie, które pada z sali: czy model nie pobierze czegoś na własną rękę. Nie. Przebieg powyżej pięćdziesięciu żądań wymaga zgody wpisanej przez operatora w tej samej sesji, instrukcja mówi modelowi wprost, żeby jej sobie nie dopisywał, a narzędzie i tak zatrzymuje się na progu i czeka.
 
@@ -1036,6 +1015,188 @@ Druga rzecz do powiedzenia: te 1,9 % nie są ozdobą. Model, który wczytuje ca�
 Ten slajd domyka tezę z trzeciego: skoro modelu nie ma w środku, model wchodzi z zewnątrz: przez powłokę i wyjście maszynowe, które narzędzie już ma.</aside>
 </section>
 
+<section class="slide slide--plus" id="c1" style="--skala:1.1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">ceidg-tool od 14 września</span></div>
+    <h2>ceidg-tool dostał drugiego użytkownika: agenta</h2>
+    <p class="slide__sub">Tego samego, pod którego od początku budowany jest kio-tool. 28 zmian w repozytorium z 23 i 24 września 2026, trzy decyzje właściciela. Testów przybyło z 1&nbsp;311 do 1&nbsp;491, wszystkie zielone (przeliczone 24 września).</p>
+  </div>
+  <div class="slide__body">
+    <div class="scroll">
+      <table class="cmp cmp--vs">
+        <thead><tr><th>&nbsp;</th><th>Pokaz 14 września</th><th>Dziś</th></tr></thead>
+        <tbody>
+          <tr class="cmp__grp"><td colspan="3">Wynik polecenia</td></tr>
+          <tr><td>Dla kogo jest wynik</td><td>Człowiek przy terminalu</td><td><b>Człowiek albo program</b></td></tr>
+          <tr class="cmp__plus"><td>Wynik do odczytu przez program</td><td><span class="b b--n">nie ma</span></td><td><span class="b b--y">koperta JSON</span><small>na siedmiu poleceniach</small></td></tr>
+          <tr><td>Zapytanie bez trafień</td><td>Kończy się jak sukces</td><td><b>Osobny kod wyjścia</b><small>gdy program o to poprosi</small></td></tr>
+          <tr class="cmp__grp"><td colspan="3">Asystent i słownik</td></tr>
+          <tr><td>Asystent językowy</td><td>Budowany przy każdym poleceniu z siecią</td><td><b>Tylko gdy pytanie idzie zdaniem</b><small>i z wyłącznikiem</small></td></tr>
+          <tr><td>Szukanie kodu PKD</td><td>Wyłącznie przez asystenta</td><td><b>Własne polecenie, bez sieci</b></td></tr>
+          <tr class="cmp__plus"><td>Instrukcja dla modelu</td><td><span class="b b--n">nie ma</span></td><td><span class="b b--y">skill w repozytorium</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside><b>Przejście.</b> Skoro kio-tool jest gotowy pod agenta, jedno zdanie o narzędziu, które sala już zna: ceidg-tool poszedł w ostatnich dniach dokładnie tą drogą.
+
+Ważne, żeby to nie zabrzmiało jak zmiana zdania. W ceidg-tool asystent zostaje, bo tam odbiorcą jest operator bez wiedzy o rejestrze. Doszedł drugi użytkownik obok niego: program, który zna kryteria i nie potrzebuje tłumacza. Oba korzystają z tych samych poleceń.
+
+Liczby testów, gdyby ktoś pytał o pochodzenie: 1 311 zmierzone 13 września, dzień przed pokazem; 1 491 zmierzone 24 września, w obu przypadkach lokalnie, z jednym testem pominiętym z nazwy. Dwadzieścia osiem zmian to commity z 23 i 24 września. Trzy decyzje to wyjście maszynowe, wyłącznik asystenta i polecenie szukaj-pkd; wszystkie przyjęte przez właściciela 23 września.</aside>
+</section>
+
+<section class="slide slide--plus" id="c2" style="--skala:1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">ceidg-tool od 14 września</span></div>
+    <h2>Wszystko, co narzędzie zwracało, było pisane pod ekran</h2>
+    <p class="slide__sub">Pięć usterek zmierzonych 23 września 2026, zanim cokolwiek zmieniono. Jedna przyczyna: ekranowi wolno zmienić brzmienie, a program czytał ekran.</p>
+  </div>
+  <div class="slide__body">
+    <div class="cols cols--top">
+      <ul class="lines">
+        <li><b>Ścieżka pliku łamana w pół</b><small>Poza terminalem tabela ma 80 kolumn, więc nazwa skoroszytu lądowała w kilku wierszach</small></li>
+        <li><b>Błędy wymieszane z wynikiem</b><small>Komunikat o błędzie szedł tym samym strumieniem co wynik</small></li>
+        <li><b>Zero trafień wyglądało jak sukces</b><small>Ten sam kod wyjścia co udane pobranie</small></li>
+      </ul>
+      <ul class="lines">
+        <li><b>Nic nie mówiło, co się stało</b><small>Ile żądań poszło, jakie pliki powstały, dlaczego przebieg stanął</small></li>
+        <li><b>Pół godziny ciszy poza terminalem</b><small>Pasek postępu rysuje się tylko na ekranie. Dziś poza nim linia co 8 żądań, czyli co około 30 sekund</small></li>
+      </ul>
+    </div>
+    <pre class="term" role="img" aria-label="Ten sam przebieg na ekranie i w kopercie. Na ekranie ścieżka pliku łamie się w pół słowa na trzy wiersze, w kopercie stoi jako jedna wartość."><i># ekran dla człowieka: strumień błędów, tabela 80 kolumn</i>
+│ plik         │ C:\Users\uzytkownik\AppData\Local\ceidg-tool\demo\wyniki\<b>DEM</b> │
+│              │ <b>O_ceidg_wielkopolskie_pkd_9621Z_test_20260924_0905.xlsx</b> (23  │
+│              │ KB)                                                          │
+<i># koperta dla programu: wyjście standardowe, jedna wartość</i>
+<b>"pliki": ["C:\\…\\wyniki\\DEMO_ceidg_wielkopolskie_pkd_9621Z_test_20260924_0905.xlsx"]</b></pre>
+    <p class="strip"><b>Ten sam przebieg, 24 września, tryb pokazowy.</b> Na ekranie ścieżka dalej się łamie i tak ma być, bo ekran jest dla człowieka. Program czyta kopertę. Nazwa konta zastąpiona, środek ścieżki w kopercie skrócony.</p>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside>Ten slajd tłumaczy, dlaczego nie wystarczyło „dodać JSON". Każda z pięciu usterek jest osobno drobna, a razem znaczą, że program czytający ekran musiał zgadywać, i zgadywał na podstawie zdań, które zespół przepisuje za każdym razem, gdy znajdzie błąd.
+
+Rozwiązanie jest w dwóch zdaniach: wszystko, co czyta człowiek (ekrany, ostrzeżenia, błędy, postęp), idzie strumieniem błędów, a wyjście standardowe niesie wyłącznie kopertę i tylko wtedy, gdy się o nią poprosi. Nic nie zostało wyciszone.
+
+Piąta usterka jest najciekawsza i wyszła przy projektowaniu poprawki: biblioteka rysująca pasek postępu pokazuje klatki pośrednie tylko na terminalu. Każdy, kto uruchamiał narzędzie z harmonogramu albo przez potok, dostawał jedną klatkę na końcu półgodzinnego przebiegu. Poprawka działa dla wszystkich poza terminalem, nie tylko dla agenta, i to był świadomy wybór.
+
+Wydruk pochodzi z przebiegu z 24 września w trybie pokazowym: dane syntetyczne, zero żądań do rejestru. Miejsce złamania jest prawdziwe, bo zastąpiona nazwa konta ma tę samą długość co oryginalna. Ścieżka pliku to akurat ta jedna dana, której program potrzebuje zawsze.</aside>
+</section>
+
+<section class="slide slide--plus" id="c3" style="--skala:1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">ceidg-tool od 14 września</span></div>
+    <h2>Jeden dokument na końcu każdego polecenia, także gdy coś pójdzie źle</h2>
+    <p class="slide__sub">Przebieg w trybie pokazowym 24 września 2026: rejestr syntetyczny, zero żądań do rejestru, kryteria skrócone.</p>
+  </div>
+  <div class="slide__body">
+    <div class="cols cols--top">
+      <pre class="term" role="img" aria-label="Koperta wyniku polecenia pobierz w trybie pokazowym: status ok, kod wyjścia 0, znacznik demo, 4 zapytania, 29 rekordów, ścieżka pliku.">$ ceidg-tool pobierz <b>--demo --tak</b> \
+    -w wielkopolskie --pkd 9621Z \
+    <b>--bez-asystenta --wynik json</b>
+
+{"wersja": 1, "polecenie": "pobierz",
+ <b>"status": "ok", "kod_wyjscia": 0,</b>
+ <b>"demo": true</b>, "zapytania": 4,
+ "uwagi": [], …, "rekordy": 29,
+ "pliki": ["…\\DEMO_…_0905.xlsx"]}
+
+<i># to samo z kodem, którego nie ma</i>
+{… <b>"status": "brak_trafien",</b>
+   <b>"kod_wyjscia": 4</b>, "demo": true,
+   "zapytania": 2, …}</pre>
+      <div>
+        <div class="scroll">
+          <table class="cmp">
+            <thead><tr><th>Kod</th><th>Co znaczy dla programu</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag">0</span></td><td>zrobione albo przerwane na życzenie</td></tr>
+              <tr class="cmp__plus"><td><span class="tag">4</span></td><td>zapytanie poszło i nic nie pasuje, albo nie ma czego wznawiać<small>tylko pod <span class="tag">--wynik json</span></small></td></tr>
+              <tr><td><span class="tag">2</span></td><td>warto ponowić albo wznowić</td></tr>
+              <tr><td><span class="tag">3</span></td><td>konfiguracja albo decyzja, której narzędzie za człowieka nie podejmie</td></tr>
+              <tr><td><span class="tag">1</span></td><td>nie do naprawienia w tym przebiegu</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="strip" style="margin-top:12px"><b>„demo": true stoi w każdej kopercie</b>, bo za agentem nikt nie czyta pierwszego ekranu, a tylko ten znacznik mówi, że dane są zmyślone. <b>Kod 4 działa tylko pod flagą</b>, żeby istniejące harmonogramy nie zaczęły alarmować w dzień, w którym legalnie nic nie ma.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside>Tu warto pokazać podobieństwo do kio-tool: tam też kod wyjścia niesie decyzję, a nie tylko porażkę. W ceidg-tool doszedł kod 4, bo pusty wynik to tam normalna odpowiedź, a nie błąd, i program musi go odróżnić od udanego pobrania bez czytania zdań.
+
+Trzy odmowy, gdyby ktoś pytał, co się dzieje przy złym użyciu: nieznana wartość flagi wyniku, prośba o kopertę na poleceniu, które jej nie ma, i prośba o kopertę bez zgody na odpowiedzi domyślne. Każda kończy się kodem 3 i zdaniem po polsku, bo zignorowana flaga to dokładnie ta droga, którą program kończy na czytaniu ekranu.
+
+Koperta jest czystym ASCII, polskie litery idą jako kody ucieczki. To świadome: bez tego konsola Windows w tym środowisku wypuszczała bajty, których parser JSON nie przyjmuje (zmierzone 23 września). W kopercie na slajdzie polskich liter akurat nie ma.</aside>
+</section>
+
+<section class="slide slide--plus" id="c4" style="--skala:1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">ceidg-tool od 14 września</span></div>
+    <h2>Asystent zostaje dla człowieka. Program go nie buduje i kodu PKD nie zgaduje.</h2>
+  </div>
+  <div class="slide__body">
+    <div class="cols cols--top">
+      <div>
+        <dl class="big">
+          <div><dt>Start narzędzia</dt><dd>479 ms</dd></div>
+          <div><dt>Budowa asystenta</dt><dd>955 ms<small>w tym 806 ms sam import biblioteki dostawcy modelu</small></dd></div>
+        </dl>
+        <ul class="lines" style="margin-top:10px">
+          <li><b>Asystent powstaje tylko tam, gdzie może być użyty</b><small>Czyli wtedy, gdy kryteria idą zdaniem. Cztery z sześciu poleceń sięgających rejestru nie mają do niego drogi i już go nie budują. Do tego wyłącznik, o którym mówi pierwszy ekran</small></li>
+          <li><b>Pomiar 0,2 s odwołany</b><small>Mierzył polecenie, które asystenta nigdy nie budowało. Prawdziwa liczba jest wyżej</small></li>
+          <li><b>Usterka z przeglądu</b><small>Pytanie zdaniem w trybie bez pytań budowało asystenta z kluczem i dopiero potem odmawiało. Teraz odmowa pada przed budową</small></li>
+        </ul>
+      </div>
+      <div>
+        <pre class="term" role="img" aria-label="Wydruk polecenia szukaj-pkd dla kodu 6201Z: kod z PKD 2007, dziś prowadzi do 6210A i 6210B.">$ ceidg-tool <b>szukaj-pkd</b> 6201Z
+<b>6201Z (PKD 2007)</b>
+  Działalność związana z oprogramowaniem
+  └ dziś prowadzi do <b>6210A</b>, programowanie
+    gier komputerowych
+  └ dziś prowadzi do <b>6210B</b>, pozostała
+    działalność w zakresie programowania
+<i># zero żądań, bez tokenu, bez bazy</i></pre>
+        <div class="panel panel--warn" style="margin-top:12px"><h3>Dlaczego to polecenie</h3><p>Kodu <b>6201Z nie ma w PKD 2025</b>, a rejestr zwraca na niego <b>234&nbsp;605 wpisów</b> (pomiar 7 września 2026, trzy żądania po licznik). Nazwa branży przychodzi ze słownika GUS dołączonego do narzędzia, nie z pamięci modelu. Zła nazwa na ekranie to jedyny sygnał, że kod jest zły.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside>Ten slajd łączy się z tezą kio-tool, ale bez przesady: w ceidg-tool asystent nie zniknął. Zmieniło się to, że nie płaci się za niego tam, gdzie nie jest potrzebny, i że program prowadzący narzędzie nigdy go nie dotyka.
+
+Liczby zmierzone 23 września: sam start narzędzia 479 ms, budowa asystenta z kluczem 955 ms, z czego 806 ms to import biblioteki dostawcy modelu. Wcześniejsza liczba 0,2 s była nieprawdziwa i zespół to zapisał: zmierzono ją na poleceniu, które asystenta nigdy nie budowało, jedną próbką. Dobry przykład tej samej zasady, co u nas: liczba bez sprawdzonego źródła jest błędem.
+
+Treść wydruku po prawej jest prawdziwa (24 września, zero żądań); zdjęta jest ramka tabeli, a nazwy branż są skrócone do szerokości slajdu. Do powiedzenia od siebie: rejestr jest w okresie przejściowym między klasyfikacją z 2007 i z 2025, stare kody są ważne do końca 2026 roku i każdy wpis niesie jeden rocznik. W próbce 285 026 wpisów z Wielkopolski 8,6 % nie ma żadnego kodu z 2025 (pomiar 7 września). To próbka jednego województwa, nie cały rejestr, i tak to mówić.</aside>
+</section>
+
+<section class="slide slide--plus" id="c5" style="--skala:1">
+  <div class="slide__head">
+    <div class="slide__top"><span class="slide__kicker">ceidg-tool od 14 września</span></div>
+    <h2>Skill dla Claude Code: ceidg-tool prowadzony z zewnątrz, tak jak kio-tool</h2>
+    <p class="slide__sub">Plik <span class="tag">.claude/skills/ceidg-tool/SKILL.md</span> w repozytorium narzędzia, bo każdy fakt w nim jest faktem o tym kodzie.</p>
+  </div>
+  <div class="slide__body">
+    <div class="cols cols--top">
+      <ul class="lines">
+        <li><b>Nie czytaj ekranów</b><small>Koperta na wyjściu, decyzja po kodzie wyjścia. Zdania są dla człowieka i wolno im się zmieniać</small></li>
+        <li><b>Najpierw tryb pokazowy i słownik PKD</b><small>Oba działają bez tokenu i bez sieci; kod branży ustala się poleceniem, nie z pamięci</small></li>
+        <li><b>Produkcja tylko za zgodą w tej samej sesji</b><small>Rejestr trzyma prawdziwe osoby, a token niesie PESEL. Zgody z poprzedniej rozmowy nie ma</small></li>
+        <li><b>Kryteria flagami, nie zdaniem</b><small>Każde pole ma flagę, więc asystent jest dla programu wyłącznie kosztem</small></li>
+        <li><b>Twierdzenia sprawdzone na prawdziwym narzędziu</b><small>Przed zapisem skilla każde przepuszczono przez polecenie. Jedno było za mocne: „8,6 % rejestru" zamiast próbki z jednego województwa</small></li>
+      </ul>
+      <div>
+        <div class="panel panel--warn"><h3>Co znalazł przegląd przed oddaniem</h3><p><b>Sprawdzenie firmy po NIP padało przy każdym trafieniu</b>, gdy prosiło się o kopertę. Bramka przeszła, bo testowy NIP nie był w korpusie pokazowym i żaden rekord nie trafił do zapisu.</p><p><b>Osiem mutacji przeżyło testy.</b> Jedna z nich: pojedyncze wypisanie na ekran w odświeżaniu psuło kopertę, a 122 testy granic świeciły na zielono. Reguła granic liczy je od tego dnia.</p></div>
+        <p class="strip" style="margin-top:12px"><b>Stan 24 września 2026: 1&nbsp;491 testów zielonych</b>, jeden pominięty z nazwy, kontrola typów i formatowania bez uwag. Przeliczone w dniu składania slajdów.</p>
+      </div>
+    </div>
+  </div>
+  <div class="slide__foot"><span></span><span class="n"></span></div>
+  <aside>Najważniejsza rzecz do powiedzenia: oba narzędzia mają dziś ten sam układ. Skill jedzie w repozytorium razem z kodem, uczy modelu obsługi flagami i wyjściem maszynowym, a sieć i zgoda zostają po stronie człowieka. W kio-tool skill był od początku, w ceidg-tool doszedł 24 września.
+
+Prawa kolumna jest tu z tego samego powodu co slajd o wiarygodności kio-tool: narzędzie, które pokazuje, co mu się zepsuło i jak to zauważyło, jest wiarygodniejsze od takiego, które jest samą zaletą. Pierwsza usterka jest podręcznikowa: dowód, który miał coś potwierdzić, został pozbawiony dokładnie tej cechy, którą miał sprawdzić. Zespół notuje to jako czwarty taki przypadek w projekcie.
+
+Gdyby padło pytanie o poświadczenia: w repozytorium nie ma tokenu ani klucza. Bez nich działają tryb pokazowy i słownik PKD, a każde polecenie sięgające rejestru kończy się kodem 3 i zdaniem zaczynającym się od „Brak tokenu". Token uzyskuje człowiek, Profilem Zaufanym; model tego za niego nie zrobi.</aside>
+</section>
+
 <section class="slide slide--plus" id="s12" style="--skala:1.2">
   <div class="slide__head">
     <span class="slide__kicker">Podsumowanie</span>
@@ -1044,7 +1205,7 @@ Ten slajd domyka tezę z trzeciego: skoro modelu nie ma w środku, model wchodzi
   <div class="slide__body">
     <ol class="seven">
       <li><b>1 499 orzeczeń z pełnym tekstem</b> leży na dysku i czyta się je bez sieci, z <b>29 580</b> w całym zbiorze kanału.</li>
-      <li><b>Asystenta nie ma świadomie</b>, a narzędzie jest <b>gotowe pod agenta</b>: wyjście maszynowe, mianowniki, kody wyjścia i instrukcja dla modelu w repozytorium.</li>
+      <li><b>Asystenta nie ma świadomie</b>, a narzędzie jest <b>gotowe pod agenta</b>: wyjście maszynowe, mianowniki, kody wyjścia i instrukcja dla modelu w repozytorium. <b><span style="white-space:nowrap">ceidg-tool</span> poszedł od 23 września tą samą drogą.</b></li>
       <li><b>Korpus 1 499 orzeczeń kosztował 1 616 żądań.</b> Pobranie całego zbioru to 22 doby przy dzisiejszym limicie albo <b>6 dni po założeniu konta</b> u dostawcy.</li>
       <li><b>Granice powiedziane wprost:</b> roczniki 2007–2009 puste, w 2018 dziura od lutego do września (oba zmierzone), 26 % przepisów bez ustalonej ustawy.</li>
       <li><b>Każda liczba tutaj ma źródło i datę</b>, a te, które są wyliczeniem, nie pomiarem, mówią to wprost.</li>

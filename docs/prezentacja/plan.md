@@ -1,7 +1,7 @@
 # Prezentacja kio-tool — plan i materiał liczbowy
 
 Data: 2026-09-20, uzupełniony 2026-09-23
-Status: **oddany** — `prezentacja-kio-ekran.html`, **17 slajdów**, korpus 1 499; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), zredagowana i przeliczona 2026-09-23 (sekcja 3a)
+Status: **oddany** — `prezentacja-kio-ekran.html`, **21 slajdów**, korpus 1 499; przebudowana 2026-09-20 po przeglądzie właściciela (sekcja 2a), zredagowana i przeliczona 2026-09-23 (sekcja 3a), sekcja o zmianach w `ceidg-tool` dołożona i slajd „Teza” zdjęty 2026-09-24 (sekcja 3c)
 Autor: właściciel
 Dotyczy: `prezentacja-ceidg-ekran.html` jako wzorzec formy
 
@@ -199,6 +199,49 @@ po zejściu ze skalą 1,20 na 1,10 zaczął się mieścić. Stan 4:3 właścicie
 
 ---
 
+## 3c. Sekcja „ceidg-tool od 14 września" (2026-09-24)
+
+Pięć slajdów (`c1`–`c5`) między „Wniosek" a „Podsumowanie". Decyzje właściciela z tej sesji: sekcja
+stoi **przed podsumowaniem**, bo domyka tezę „gotowe pod agenta" drugim narzędziem; tabela na
+slajdzie 3 zostaje poprawiona, bo po zmianach w `ceidg-tool` mówiła nieprawdę; przeniesienie
+`ceidg-tool` do monorepo WorkMate i nieskończone scalenie **nie wchodzą** na slajdy (sprawa
+organizacyjna właściciela, nie zarządu).
+
+Źródłem jest repozytorium `..\Ceidg` w stanie z 2026-09-24: commity z 23 i 24 września, ADR-0024,
+0025 i 0026 (przyjęte 2026-09-23), `docs/status.md` faza 7, `.claude/skills/ceidg-tool/SKILL.md`.
+Zero żądań do rejestru: wydruki pochodzą z `szukaj-pkd` (bez sieci) i z `pobierz --demo`
+(rejestr syntetyczny).
+
+| Slajd | Twierdzenie | Czym poparte |
+|---|---|---|
+| c1 | `ceidg-tool` dostał drugiego użytkownika: agenta. Tabela 14 września kontra dziś | 28 commitów `--since=2026-09-14`; testy **1 311** (2026-09-13, `DZIENNIK-ZMIAN-prezentacji.md`) → **1 491 passed, 1 skipped** (przeliczone 2026-09-24, z `probe_out/`) |
+| c2 | Wszystko było pisane pod ekran: pięć usterek, jedna przyczyna | ADR-0024 „Context" (pomiar 2026-09-23); wydruk podsumowania z `pobierz --demo --tak -w wielkopolskie --pkd 9621Z --bez-asystenta --wynik json` z 2026-09-24 — nazwa konta zastąpiona napisem tej samej długości, więc miejsce złamania jest prawdziwe |
+| c3 | Jedna koperta na końcu każdego polecenia; tabela kodów wyjścia | ta sama koperta (status `ok`, 4 zapytania, 29 rekordów) i `--pkd 9999Z` (status `brak_trafien`, kod 4, 2 zapytania), 2026-09-24; kody z `SKILL.md` |
+| c4 | Asystent zostaje dla człowieka; program go nie buduje i kodu PKD nie zgaduje | ADR-0025: 479 ms start, 955 ms budowa, 806 ms `import anthropic`, pomiar 0,2 s odwołany; `szukaj-pkd 6201Z` z 2026-09-24; 234 605 wpisów dla `6201Z` z `docs/decisions.md` (2026-09-07, 3 żądania) |
+| c5 | Skill dla Claude Code i co znalazł przegląd | `SKILL.md` (commit ae3b403, 2026-09-24); `sprawdz-nip --wynik json` padający przy każdym trafieniu (1afc3d9); osiem mutacji z przeglądu testera (`docs/status.md`); bramki 2026-09-24: pytest 1 491/1, mypy „no issues in 121 source files", ruff check i format czyste |
+
+Poprawione przy okazji: slajd 3 (asystent w `ceidg-tool` „jest", obsługa przez model „możliwa" →
+„wspierana", opłata „gdy pytanie idzie zdaniem") i jego notatka; slajd „Podsumowanie", punkt 2,
+dostał zdanie o `ceidg-tool`.
+
+**Zdjęty tego samego dnia, decyzją właściciela: slajd 13 „Teza”** (`s3`, „Asystent w środku nic tu nie
+wnosi, a kosztuje czas i drugi adres wyjściowy”). Razem z nim zeszły ze slajdów czasy odpowiedzi
+modeli z publicznych pomiarów i pasek o tym, gdzie trafiają zapytania (pośrednik widzi każde
+zapytanie; bramka zgodności z wymogami dla systemów AI). Notatka slajdu „Kto to prowadzi”
+odsyłała do „dwóch poprzednich” slajdów i mówi teraz o jednym.
+
+**Czego na tych slajdach nie ma, choć jest w repozytorium `ceidg-tool`.** Stan poświadczeń
+(„paczka nie zawiera tokenu") w dniu składania był w drzewie roboczym, nie w commicie — stoi
+wyłącznie w notatce prelegenta slajdu c5. Liczba 8,6 % dotyczy próbki 285 026 wpisów
+z wielkopolskiego archiwum i tylko tak jest podana.
+
+**Pomiar wysokości** (Edge headless, `min-height` zdjęty): przy 1366×768, 1536×864 i 1920×1080
+żaden z 22 slajdów (przed zdjęciem `s3`) nie wychodzi poza ekran; najciaśniej c5 przy 1920×1080 (9 px). Slajd c1 ma
+skalę 1,10, pozostałe nowe 1,00. Przy 1280×720 poza ekranem stoją c2, c3 i c5 obok s7 i s8,
+które wychodziły już przed tą zmianą; przy 1024×768 (4:3, stan przyjęty) dochodzą c2, c3 i c4.
+
+---
+
 ## 4. Czego na slajdach twierdzić nie wolno
 
 - **Że korpus jest kompletny.** Mianownika nie mamy. Wolno
@@ -220,7 +263,7 @@ Jeden plik HTML, samowystarczalny, bez połączenia z siecią przy wyświetlaniu
 `prezentacja-ceidg-ekran.html`. Slajd = `<section class="slide">` z głową, treścią i stopką;
 stopka niesie źródło i datę. Nawigacja klawiszami (`←` `→`, `N` notatki), pasek postępu na dole.
 
-**Stan wykonania: `prezentacja-kio-ekran.html`, 289 KB, 17 slajdów** (stan 2026-09-23).
+**Stan wykonania: `prezentacja-kio-ekran.html`, 21 slajdów** (stan 2026-09-24; 2026-09-23 było 289 KB i 17 slajdów: doszło pięć slajdów z sekcji 3c, zdjęty jeden).
 Droga do tej liczby: wzorzec miał 17, redakcja zdjęła slajd „To, co już znacie" (dwa ustalenia
 z niego przeniesiono do slajdów „Wniosek" i „Granice"), a potem doszedł slajd 15 o skillu
 dla Claude Code (sekcja 3b). Z tego 214 KB to trzy fonty
