@@ -1,15 +1,44 @@
 # kio-tool
 
-Lokalny, wersjonowany korpus orzecznictwa **Krajowej Izby Odwoławczej**. Pobiera orzeczenia
-z pełnym tekstem z publicznego API Atlasu Przetargów (licencja CC BY 4.0), zapisuje je w SQLite
-dokładnie tak, jak przyszły, rozkłada na sekcje, cytowania i przepisy, szuka bez sieci
-i eksportuje do `xlsx`, `csv`, `jsonl` i `md` — zawsze z atrybucją źródła.
+A local, versioned corpus of rulings of Poland's National Appeals Chamber (Krajowa Izba
+Odwoławcza, KIO), which hears public-procurement appeals. The command-line tool downloads rulings
+with full text from the public Atlas Przetargów API (CC BY 4.0), stores each one in SQLite exactly as
+it arrived, splits it into sections, citations and legal provisions, searches it offline, and exports
+`xlsx`, `csv`, `jsonl` and `md`, always with source attribution.
 
-**Stan na 2026-09-23:** fazy 0–3 przyjęte; kreator, tryb pokazowy, wyjście maszynowe dla modelu
-(`--json`, `docs/dla-modelu.md`). Korpus operatora: 1 499 orzeczeń z roczników 2010–2026, każdy
-rocznik obecny (`docs/anatomia-bazy.md`).
+**Status (2026-09-23):** phases 0 to 3 accepted: interactive wizard, demo mode, machine-readable
+output for a model (`--json`, `docs/dla-modelu.md`). The operator's corpus holds 1 499 rulings from
+2010 to 2026, every year present, and 1 492 of them have all four section types recognised
+(`docs/anatomia-bazy.md`).
 
-## Instalacja
+The rulings and the command vocabulary are Polish. Commands and flags below are written as they are
+typed, with an English gloss.
+
+## Why this is more than a scraper
+
+- The source is a third-party mirror, not the official register, and its HTML changes across 16 years
+  of rulings, so parsing, dates and identity matching are checked per document. An issue date the
+  source got wrong or left empty is kept as delivered.
+- The API has a request budget. Above 50 requests a run stops until it is confirmed with `--zgoda`;
+  the confirmation is bound to the cost shown before the run and cannot be stored in configuration.
+- A run interrupted by Ctrl+C, the network, a killed process or a full disk resumes from a checkpoint
+  without duplicate records.
+- Rulings name judges and court clerks, so the database and exports stay outside the repository.
+
+## Quick start
+
+```
+.venv\Scripts\kio-tool.exe            # wizard: menu, hints, cost table before downloading
+.venv\Scripts\kio-tool.exe demo       # the same on a fictional corpus, no network or configuration
+```
+
+Everything demo mode produces is marked: a separate database, a `DEMO_` prefix, and records without a
+citation block.
+
+## Details
+
+<details>
+<summary><strong>Install and configuration</strong></summary>
 
 ```
 python -m venv .venv
@@ -17,29 +46,22 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pytest
 ```
 
-Python 3.12. Testy działają przy zablokowanej sieci — żaden nie wysyła żądania na zewnątrz.
+Python 3.12. The tests run with the network blocked; none sends a request.
 
-Do pobierania wymagany jest adres kontaktowy do nagłówka `User-Agent` (bez niego narzędzie nie
-wyśle żądania); klucz API Atlasu jest opcjonalny i podnosi limit z 1 500 do 5 000 żądań na dobę:
-
-```
-set KIO_TOOL_CONTACT=twoj@adres
-set KIO_TOOL_ATLAS_KEY=klucz          # opcjonalnie
-```
-
-## Najprościej
+Downloading needs a contact address for the `User-Agent` header, and the tool sends nothing without
+it. An Atlas API key is optional and raises the limit from 1 500 to 5 000 requests a day:
 
 ```
-.venv\Scripts\kio-tool.exe            # kreator: menu, podpowiedzi, tabela kosztów przed pobraniem
-.venv\Scripts\kio-tool.exe demo       # to samo na korpusie fikcyjnym, bez sieci i konfiguracji
+set KIO_TOOL_CONTACT=your@address
+set KIO_TOOL_ATLAS_KEY=key          # optional
 ```
 
-Wszystko, co wytwarza tryb pokazowy, jest oznaczone (osobna baza, przedrostek `DEMO_`, rekordy
-bez bloku cytowania).
+</details>
 
-## Użycie
+<details>
+<summary><strong>Usage: commands, filters, exit codes</strong></summary>
 
-Z aktywnym `.venv` (`.venv\Scripts\activate`), inaczej `.venv\Scripts\kio-tool.exe`:
+With `.venv` active (`.venv\Scripts\activate`), otherwise `.venv\Scripts\kio-tool.exe`:
 
 ```
 kio-tool pobierz --od 2024-02-01 --do 2024-02-29 --wycena --json
@@ -53,89 +75,94 @@ kio-tool przelicz
 kio-tool pokrycie --zloty tests/gold
 ```
 
-| Polecenie | Co robi | Sieć |
+| Command | What it does | Network |
 |---|---|---|
-| `pobierz` | lista z Atlasu + jeden rekord z pełnym tekstem za każdy nowy dokument; na końcu eksport | tak |
-| `wznow` | dokończenie przerwanego przebiegu bez duplikatów | tak |
-| `szukaj` | fraza dosłownie w pełnym tekście z filtrami; zawsze z liczbą dokumentów w korpusie i trafień | nie |
-| `czytaj` | jedno orzeczenie po sygnaturze albo `doc_id`: metadane, cytowanie, mapa sekcji, treść całości albo wybranych sekcji | nie |
-| `eksportuj` | dokumenty przebiegu (`--run-id`) albo pasujące do kryteriów | nie |
-| `runy` | historia przebiegów | nie |
-| `opis` | polecenia, flagi, wartości dozwolone i kody wyjścia — z drzewa poleceń, dla programu | nie |
-| `przelicz` | ponowny odczyt z zapisanych bajtów, bez pobierania | nie |
-| `pokrycie` | raport jakości odczytu; `--zloty` sprawdza złoty zbiór | nie |
+| `pobierz` (download) | list from Atlas plus one full-text record per new document; export at the end | yes |
+| `wznow` (resume) | finishes an interrupted run without duplicates | yes |
+| `szukaj` (search) | literal phrase in the full text, with filters; always prints corpus size and hit count | no |
+| `czytaj` (read) | one ruling by case number or `doc_id`: metadata, citation, section map, full text or chosen sections | no |
+| `eksportuj` (export) | the documents of a run (`--run-id`) or those matching the criteria | no |
+| `runy` (runs) | run history | no |
+| `opis` (describe) | commands, flags, allowed values and exit codes, read from the command tree, for a program | no |
+| `przelicz` (re-parse) | parses the stored bytes again without downloading | no |
+| `pokrycie` (coverage) | parsing quality report; `--zloty` checks the gold set | no |
 
-Filtry wspólne dla `pobierz`, `szukaj` i `eksportuj`: `--od`, `--do`, `--fraza`,
-`--rozstrzygniecie`, `--rodzaj`, `--przepis`, `--przewodniczacy`, `--strona`. W `pobierz`
-`--fraza` trafia do wyszukiwarki Atlasu, która dopasowuje sygnaturę, nie treść — treść
-przeszukuje lokalnie `szukaj`. Wszystkie polecenia poza kreatorem i pokazem przyjmują `--json`; `pobierz --wycena` podaje sam koszt
-(jedna strona listy, zero dokumentów).
+Filters shared by `pobierz`, `szukaj` and `eksportuj`: `--od` (from), `--do` (to), `--fraza` (phrase),
+`--rozstrzygniecie` (outcome), `--rodzaj` (type), `--przepis` (provision), `--przewodniczacy`
+(presiding member), `--strona` (party). In `pobierz`, `--fraza` goes to the Atlas search, which
+matches the case number and not the text; `szukaj` searches the text locally. Every command except
+the wizard and the demo accepts `--json`; `pobierz --wycena` prints the cost only (one list page, zero
+documents).
 
-Kody wyjścia: 0 — wykonane, 1 — błąd, 2 — przebieg do wznowienia (albo błąd składni polecenia),
-3 — konfiguracja, brak zgody albo zły parametr, 130 — Ctrl+C.
+Exit codes: 0 done, 1 error, 2 run to resume (or a command syntax error), 3 configuration, missing
+confirmation or a bad parameter, 130 Ctrl+C.
 
-## Zgoda na przebieg masowy
+The tool sets its own pace: at least 1 s between requests, at most 450 a minute and 1 400 a day; 429,
+5xx and dropped connections are retried under the channel contract. It does not work around
+protections: on a CAPTCHA or a block it stops and says so.
 
-Powyżej **50 żądań** potrzebna jest flaga `--zgoda`; bez niej przebieg staje na progu jako
-`przerwany`, a to samo polecenie z `--zgoda` go wznawia. Zgoda wiąże się z liczbą z tabeli
-kosztów — przebieg, który by ją przekroczył, zatrzymuje się. Zgody nie da się zapisać
-w konfiguracji.
+</details>
 
-Tempo pilnuje samo narzędzie: co najmniej 1 s między żądaniami, najwyżej 450 na minutę i 1 400 na
-dobę; 429, 5xx i zerwane łącza są ponawiane według kontraktu kanału. **Narzędzie nie omija
-zabezpieczeń** — przy CAPTCHA czy blokadzie zatrzymuje się i mówi o tym.
+<details>
+<summary><strong>Output files</strong></summary>
 
-Przerwany przebieg (Ctrl+C, sieć, ubity proces, pełny dysk) zostaje w bazie z punktem
-kontrolnym i wznawia się bez duplikatów.
+The database and exports live outside the repository, in `%LOCALAPPDATA%\kio-tool\kio-tool\`
+(`korpus.sqlite`, `wyniki/`).
 
-## Pliki wynikowe
-
-Baza i eksporty leżą poza repozytorium: `%LOCALAPPDATA%\kio-tool\kio-tool\` (`korpus.sqlite`,
-`wyniki/`). Korpus niesie nazwiska składu orzekającego i protokolantów, więc nie trafia do
-repozytorium.
-
-| Format | Zawartość |
+| Format | Contents |
 |---|---|
-| `xlsx` | arkusz `Orzeczenia` (21 kolumn), `Slownik`, `Metadane`; bez pełnego tekstu |
-| `csv` | te same kolumny, `;`, UTF-8 z BOM |
-| `jsonl` | tożsamość, blok cytowania i surowy rekord kanału z pełnym tekstem |
-| `md` | plik na orzeczenie: metadane, blok cytowania, tekst z nagłówkami sekcji, spis cytowanych orzeczeń i przepisów; `INDEX.md` |
+| `xlsx` | sheets `Orzeczenia` (21 columns), `Slownik`, `Metadane`; no full text |
+| `csv` | the same columns, `;`, UTF-8 with BOM |
+| `jsonl` | identity, citation block and the raw channel record with full text |
+| `md` | one file per ruling: metadata, citation block, text with section headings, cited rulings and provisions; `INDEX.md` |
 
-Każdy wiersz niesie adres orzeczenia w wyszukiwarce UZP, skrót SHA-256 wersji i atrybucję
-„Źródło: Atlas Przetargów (https://atlasprzetargow.pl)". `data_wydania` jest taka, jak podał
-pośrednik — bywa błędna albo pusta.
+Every row carries the ruling's address in the UZP search, the SHA-256 of the stored version and the
+attribution "Źródło: Atlas Przetargów (https://atlasprzetargow.pl)".
 
-## Czego narzędzie nie robi
+</details>
 
-- Nie sięga przed rocznik 2010 i nie wie, czy korpus jest kompletny wobec urzędu.
-- Ma jeden kanał (`atlas`); nie wykrywa zmian u źródła po pobraniu.
-- Nie ocenia spraw prawnie i nie ma modelu językowego w środku — model prowadzi je z zewnątrz.
-- Nie pilnuje dwóch procesów pracujących na jednej bazie.
+<details>
+<summary><strong>What it does not do</strong></summary>
 
-## Rozwój
+- It does not go back before 2010 and does not know whether the corpus is complete against the
+  official register.
+- It has one channel (`atlas`) and does not detect changes at the source after download.
+- It does not assess cases legally and has no language model inside; a model drives it from outside.
+- It does not guard against two processes working on one database.
+
+</details>
+
+<details>
+<summary><strong>Development</strong></summary>
 
 ```
 set PYTHONUTF8=1
-.venv\Scripts\python.exe -m pytest        # 1 441 testów (2026-09-23), sieć zablokowana
+.venv\Scripts\python.exe -m pytest        # 1 441 tests (2026-09-26), network blocked
 .venv\Scripts\ruff.exe check .
 .venv\Scripts\ruff.exe format --check .
 .venv\Scripts\mypy.exe kio_tool scripts   # strict
 ```
 
-Granice między modułami (m.in. sieć z bazą łączy wyłącznie `pipeline/pobieranie.py`) pilnują
-testy w `tests/test_boundaries.py`. Poprawkę zabezpieczenia sprawdza się mutacją: zepsuć kod
-i zobaczyć, że test się zapala.
+Module boundaries are enforced by `tests/test_boundaries.py`; for example, only
+`pipeline/pobieranie.py` connects the network to the database. A fix to a safeguard is checked by
+mutation: break the code and watch the test fail.
 
-## Dokumentacja
+</details>
 
-| Plik | Co niesie |
+<details>
+<summary><strong>Documentation (in Polish)</strong></summary>
+
+| File | Contents |
 |---|---|
-| `docs/dla-modelu.md` | instrukcja dla modelu prowadzącego narzędzie |
-| `docs/decisions.md` | pomiary z datami, przebiegi, decyzje właściciela |
-| `docs/adr/` | decyzje architektoniczne 0001–0009 |
-| `docs/AUDYT_KIO_ORZECZENIA.md`, `docs/ARCHITEKTURA_KIO_TOOL.md` | źródło, dopuszczalność, reguły granic, architektura |
-| `CLAUDE.md` | zasady pracy dla Claude Code |
+| `docs/dla-modelu.md` | instructions for the model that drives the tool |
+| `docs/decisions.md` | dated measurements, runs, owner decisions |
+| `docs/adr/` | architecture decisions 0001 to 0009 |
+| `docs/AUDYT_KIO_ORZECZENIA.md`, `docs/ARCHITEKTURA_KIO_TOOL.md` | source, admissibility, boundary rules, architecture |
+| `CLAUDE.md` | working rules for Claude Code |
 
-## Licencja
+</details>
 
-MIT dla kodu. Dane z Atlasu Przetargów na licencji CC BY 4.0 — każdy eksport niesie atrybucję.
+## License
+
+MIT for the code, see [LICENSE](LICENSE). Data from Atlas Przetargów is CC BY 4.0, and every export
+carries the attribution.
